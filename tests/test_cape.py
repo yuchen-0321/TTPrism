@@ -1,0 +1,141 @@
+from __future__ import annotations
+
+import copy
+import time
+from typing import Any
+
+import pytest
+
+from ttprism import AnalysisOptions, IOCType, analyze_cape
+from ttprism.cape import MAX_ITEMS, looks_like_cape, parse_cape
+
+
+def test_looks_like_cape(cape_report: dict[str, Any]) -> None:
+    assert looks_like_cape(cape_report)
+    assert not looks_like_cape({"info": {}})
+    assert not looks_like_cape([cape_report])
+
+
+def test_network_and_file_iocs(cape_report: dict[str, Any], raw_options: AnalysisOptions) -> None:
+    result = analyze_cape(cape_report, raw_options)
+    assert result.iocs_of(IOCType.URL) == [
+        "http://update-check.example/gate.php?id=1",
+        "http://update-check.example/p.ps1",  # only on the PowerShell command line
+        "https://cdn.update-check.example/stage2.bin",
+    ]
+    assert result.iocs_of(IOCType.DOMAIN) == [
+        "cdn.update-check.example",
+        "update-check.example",
+        "www.msftconnecttest.com",
+    ]
+    assert result.iocs_of(IOCType.IPV4) == [
+        "192.0.2.80",
+        "198.51.100.23",
+        "203.0.113.5",
+        "203.0.113.7",
+        "8.8.8.8",
+    ]
+    assert "5f89cef4c9ed3f109bc7c400d822e60e" in result.iocs_of(IOCType.MD5)  # target
+    assert "1b2062450bd3d9b1f41aadadae4f44f1" in result.iocs_of(IOCType.MD5)  # dropped
+    sources = {i.value: i.sources for i in result.iocs}
+    assert sources["update-check.example"] == (
+        "cape:commands",
+        "cape:network.domains",
+        "cape:network.http",
+    )
+
+
+def test_default_filters_hide_reserved_and_noise(cape_report: dict[str, Any]) -> None:
+    result = analyze_cape(cape_report)
+    assert result.iocs_of(IOCType.DOMAIN) == []
+    assert result.iocs_of(IOCType.IPV4) == []
+    assert len(result.iocs_of(IOCType.SHA256)) == 2
+    assert result.suppressed["allowlisted"] == 2  # 8.8.8.8, www.msftconnecttest.com
+
+
+def test_rules_and_reported_ttps(cape_report: dict[str, Any]) -> None:
+    result = analyze_cape(cape_report)
+    by_id = {t.technique_id: t for t in result.techniques}
+
+    # Rules: command line, caret-obfuscated command, registry, API sequence, signatures.
+    assert by_id["T1490"].rules == ("cmd.inhibit-recovery",)
+    assert by_id["T1053.005"].rules == ("cmd.scheduled-task",)
+    assert by_id["T1547.001"].rules == ("reg.run-keys",)
+    assert set(by_id["T1055.012"].rules) == {"cape.injection-runpe", "api.process-hollowing"}
+    assert by_id["T1055.012"].confidence == "high"
+    assert set(by_id["T1105"].rules) == {"cmd.download", "api.download-to-file"}
+
+    # CAPE's own TTPs, with revoked IDs mapped to the current technique.
+    packing = by_id["T1027.002"]
+    assert packing.reported
+    assert packing.original_ids == ("T1045",)
+    assert "cape.packer-known" in packing.rules
+    assert by_id["T1055"].reported
+    assert by_id["T1055"].rules == ()
+
+    assert result.suppressed["non_technique_ttp"] == 1  # S0105 is software, not a technique
+    assert result.attack_version == "19.2"
+
+
+def test_legacy_ttp_layout(cape_report: dict[str, Any]) -> None:
+    report = copy.deepcopy(cape_report)
+    report["ttps"] = [{"signature": "powershell_download", "ttp": "T1086"}]
+    result = analyze_cape(report)
+    powershell = next(t for t in result.techniques if t.technique_id == "T1059.001")
+    assert powershell.reported
+    assert powershell.original_ids == ("T1086",)
+
+
+def test_old_style_string_hosts() -> None:
+    parsed = parse_cape({"info": {}, "network": {"hosts": ["198.51.100.1", {"ip": "198.51.100.2"}, 7]}})
+    assert {v for _, v, _ in parsed.iocs} == {"198.51.100.1", "198.51.100.2"}
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda r: r.update(network="oops"),
+        lambda r: r.update(network={"hosts": "1.2.3.4", "dns": [None, 1, "x"], "http": {"uri": 1}}),
+        lambda r: r.update(behavior={"processes": [{"calls": "NtWriteVirtualMemory"}], "summary": []}),
+        lambda r: r.update(behavior={"summary": {"executed_commands": [None, 5, {"a": 1}]}}),
+        lambda r: r.update(signatures=[None, {"name": 5}, "injection_runpe"]),
+        lambda r: r.update(ttps=[{"signature": None, "ttps": [None, 5, "T1055"]}, "junk"]),
+        lambda r: r.update(target={"file": {"md5": "zz" * 16, "sha256": 7}}),
+        lambda r: r.update(dropped={"md5": "x"}, CAPE=[]),
+    ],
+)
+def test_malformed_reports_do_not_crash(cape_report: dict[str, Any], mutation: Any) -> None:
+    report = copy.deepcopy(cape_report)
+    mutation(report)
+    analyze_cape(report)
+
+
+def test_huge_field_values_are_truncated() -> None:
+    report = {"info": {}, "behavior": {"summary": {"executed_commands": ["powershell " + "A" * 100_000]}}}
+    result = analyze_cape(report)
+    technique = next(t for t in result.techniques if t.technique_id == "T1059.001")
+    assert all(len(e) <= 200 for e in technique.evidence)
+
+
+def test_oversized_behaviour_lists_are_capped_and_fast() -> None:
+    count = 50_000
+    report = {
+        "info": {},
+        "behavior": {
+            "summary": {
+                "executed_commands": [f"cmd /c echo {i}" for i in range(count)],
+                "write_keys": [f"HKEY_CURRENT_USER\\Software\\k{i}" for i in range(count)],
+            },
+            "processes": [{"calls": [{"api": f"Api{i}"} for i in range(count)]}],
+        },
+        "signatures": [{"name": f"sig_{i}"} for i in range(count)],
+        "ttps": [{"signature": "s", "ttps": [f"T{9000 + i % 1000}" for i in range(count)]}],
+    }
+    start = time.perf_counter()
+    result = analyze_cape(report)
+    assert time.perf_counter() - start < 30
+    assert result.suppressed["truncated_commands"] == count - MAX_ITEMS
+    assert result.suppressed["truncated_registry_writes"] == count - MAX_ITEMS
+    assert result.suppressed["truncated_signatures"] == count - MAX_ITEMS
+    (warning,) = [w for w in result.warnings if "not in ATT&CK" in w]
+    assert warning.endswith("and 980 more")

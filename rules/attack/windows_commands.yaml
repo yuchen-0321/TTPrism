@@ -1,0 +1,488 @@
+# Map Windows command lines seen in sandbox runs to ATT&CK techniques.
+#
+# Phrases match case-insensitively on word boundaries after quotes and cmd.exe
+# caret escapes (s^c^h^t^a^s^k^s) are removed. An inner list means every phrase
+# must appear in the same command line, in any order, so
+# [vssadmin, delete shadows] matches both "vssadmin delete shadows" and
+# "C:\Windows\System32\vssadmin.exe Delete Shadows /All /Quiet".
+#
+# Prefer specific, high-precision phrases. A rule that fires on every benign
+# use of a tool belongs at confidence: low, or not at all.
+
+attack_version: "19.2"
+
+rules:
+  # --- Execution ---------------------------------------------------------------
+  - id: cmd.powershell
+    technique: T1059.001
+    confidence: high
+    description: PowerShell started by the sample.
+    references:
+      - https://attack.mitre.org/techniques/T1059/001/
+    match:
+      commands: [powershell, pwsh]
+
+  - id: cmd.powershell-encoded
+    technique: T1027.010
+    confidence: high
+    description: PowerShell with a Base64-encoded command (-EncodedCommand or an abbreviation).
+    references:
+      - https://attack.mitre.org/techniques/T1027/010/
+    match:
+      commands:
+        - [powershell, -e]
+        - [powershell, -ec]
+        - [powershell, -en]
+        - [powershell, -enc]
+        - [powershell, -encodedcommand]
+        - [pwsh, -enc]
+        - [pwsh, -encodedcommand]
+
+  - id: cmd.cmd-shell
+    technique: T1059.003
+    confidence: medium
+    description: Commands run through cmd.exe.
+    references:
+      - https://attack.mitre.org/techniques/T1059/003/
+    match:
+      commands: [[cmd, /c], [cmd, /k], [cmd, /r]]
+
+  - id: cmd.vbscript
+    technique: T1059.005
+    confidence: high
+    description: VBScript run with the Windows Script Host or mshta.
+    references:
+      - https://attack.mitre.org/techniques/T1059/005/
+    match:
+      commands:
+        - [wscript, .vbs]
+        - [cscript, .vbs]
+        - [wscript, .vbe]
+        - [cscript, .vbe]
+        - [mshta, "vbscript:"]
+
+  - id: cmd.jscript
+    technique: T1059.007
+    confidence: high
+    description: JScript run with the Windows Script Host or mshta.
+    references:
+      - https://attack.mitre.org/techniques/T1059/007/
+    match:
+      commands:
+        - [wscript, .js]
+        - [cscript, .js]
+        - [wscript, .jse]
+        - [cscript, .jse]
+        - [mshta, "javascript:"]
+
+  - id: cmd.wmi-process-create
+    technique: T1047
+    confidence: high
+    description: Process created through WMI.
+    references:
+      - https://attack.mitre.org/techniques/T1047/
+    match:
+      commands:
+        - [wmic, process, call, create]
+        - invoke-wmimethod
+        - invoke-cimmethod
+
+  - id: cmd.wmic
+    technique: T1047
+    confidence: low
+    description: Any use of wmic.
+    references:
+      - https://attack.mitre.org/techniques/T1047/
+    match:
+      commands: [wmic]
+
+  - id: cmd.service-execution
+    technique: T1569.002
+    confidence: medium
+    description: Programs started as a service (PsExec, sc start).
+    references:
+      - https://attack.mitre.org/techniques/T1569/002/
+    match:
+      commands: [psexec, psexec64, [sc, start]]
+
+  # --- System binary proxy execution ---------------------------------------
+  - id: cmd.mshta
+    technique: T1218.005
+    confidence: high
+    description: mshta.exe used to run HTA or inline script.
+    references:
+      - https://attack.mitre.org/techniques/T1218/005/
+      - https://lolbas-project.github.io/lolbas/Binaries/Mshta/
+    match:
+      commands: [mshta]
+
+  - id: cmd.regsvr32-scriptlet
+    technique: T1218.010
+    confidence: high
+    description: regsvr32 loading a remote or COM scriptlet ("Squiblydoo").
+    references:
+      - https://attack.mitre.org/techniques/T1218/010/
+      - https://lolbas-project.github.io/lolbas/Binaries/Regsvr32/
+    match:
+      commands: [[regsvr32, scrobj.dll], [regsvr32, "/i:http"]]
+
+  - id: cmd.rundll32
+    technique: T1218.011
+    confidence: medium
+    description: rundll32.exe started by the sample.
+    references:
+      - https://attack.mitre.org/techniques/T1218/011/
+      - https://lolbas-project.github.io/lolbas/Binaries/Rundll32/
+    match:
+      commands: [rundll32]
+
+  # --- Persistence ----------------------------------------------------------
+  - id: cmd.scheduled-task
+    technique: T1053.005
+    confidence: high
+    description: Scheduled task created.
+    references:
+      - https://attack.mitre.org/techniques/T1053/005/
+    match:
+      commands: [[schtasks, /create], register-scheduledtask, new-scheduledtask]
+
+  - id: cmd.service-create
+    technique: T1543.003
+    confidence: high
+    description: Windows service created from the command line.
+    references:
+      - https://attack.mitre.org/techniques/T1543/003/
+    match:
+      commands: [[sc, create, binpath], new-service]
+
+  - id: cmd.run-key
+    technique: T1547.001
+    confidence: high
+    description: Run or RunOnce registry value added from the command line.
+    references:
+      - https://attack.mitre.org/techniques/T1547/001/
+    match:
+      commands:
+        - [reg, add, '\currentversion\run']
+        - [reg, add, '\currentversion\runonce']
+        - [new-itemproperty, '\currentversion\run']
+        - [set-itemproperty, '\currentversion\run']
+
+  - id: cmd.wmi-event-subscription
+    technique: T1546.003
+    confidence: high
+    description: WMI event filter or consumer created.
+    references:
+      - https://attack.mitre.org/techniques/T1546/003/
+    match:
+      commands: [__eventfilter, commandlineeventconsumer, activescripteventconsumer]
+
+  - id: cmd.create-local-account
+    technique: T1136.001
+    confidence: high
+    description: Local user account created.
+    references:
+      - https://attack.mitre.org/techniques/T1136/001/
+    match:
+      commands: [[net, user, /add], [net1, user, /add], new-localuser]
+
+  - id: cmd.bits-job
+    technique: T1197
+    confidence: high
+    description: BITS job created or used for transfer.
+    references:
+      - https://attack.mitre.org/techniques/T1197/
+      - https://lolbas-project.github.io/lolbas/Binaries/Bitsadmin/
+    match:
+      commands: [[bitsadmin, /transfer], [bitsadmin, /create], [bitsadmin, /addfile], start-bitstransfer]
+
+  # --- Command and control / tool transfer -------------------------------------
+  - id: cmd.download
+    technique: T1105
+    confidence: high
+    description: File downloaded with a built-in tool or PowerShell download cradle.
+    references:
+      - https://attack.mitre.org/techniques/T1105/
+      - https://lolbas-project.github.io/lolbas/Binaries/Certutil/
+    match:
+      commands:
+        - [certutil, -urlcache]
+        - [certutil, -verifyctl]
+        - [bitsadmin, /transfer]
+        - start-bitstransfer
+        - downloadfile
+        - downloadstring
+        - downloaddata
+        - invoke-webrequest
+        - invoke-restmethod
+        - [iwr, http]
+        - [irm, http]
+
+  - id: cmd.decode
+    technique: T1140
+    confidence: high
+    description: Encoded content decoded on the host.
+    references:
+      - https://attack.mitre.org/techniques/T1140/
+    match:
+      commands: [[certutil, -decode], [certutil, -decodehex], frombase64string]
+
+  # --- Defense impairment and stealth ------------------------------------------
+  - id: cmd.disable-defender
+    technique: T1685
+    confidence: high
+    description: Microsoft Defender disabled or given exclusions.
+    references:
+      - https://attack.mitre.org/techniques/T1685/
+    match:
+      commands:
+        - [set-mppreference, -disablerealtimemonitoring]
+        - [set-mppreference, -disableioavprotection]
+        - [set-mppreference, -disablebehaviormonitoring]
+        - [add-mppreference, -exclusionpath]
+        - [add-mppreference, -exclusionprocess]
+        - [add-mppreference, -exclusionextension]
+
+  - id: cmd.disable-firewall
+    technique: T1686
+    confidence: high
+    description: Windows Firewall disabled or opened.
+    references:
+      - https://attack.mitre.org/techniques/T1686/
+    match:
+      commands:
+        - [netsh, advfirewall, state off]
+        - [netsh, firewall, opmode, disable]
+        - [netsh, advfirewall, firewall, add rule]
+
+  - id: cmd.clear-event-logs
+    technique: T1685.005
+    confidence: high
+    description: Windows event logs cleared.
+    references:
+      - https://attack.mitre.org/techniques/T1685/005/
+    match:
+      commands: [[wevtutil, cl], [wevtutil, clear-log], clear-eventlog]
+
+  - id: cmd.file-deletion
+    technique: T1070.004
+    confidence: medium
+    description: Forced or delayed file deletion, typical of self-deleting malware.
+    references:
+      - https://attack.mitre.org/techniques/T1070/004/
+    match:
+      commands: [[del, /f], [del, /q], [ping, del], [timeout, del]]
+
+  - id: cmd.hide-file
+    technique: T1564.001
+    confidence: high
+    description: File hidden with attrib.
+    references:
+      - https://attack.mitre.org/techniques/T1564/001/
+    match:
+      commands: [[attrib, +h]]
+
+  - id: cmd.modify-registry
+    technique: T1112
+    confidence: low
+    description: Registry changed from the command line.
+    references:
+      - https://attack.mitre.org/techniques/T1112/
+    match:
+      commands: [[reg, add], [reg, delete]]
+
+  # --- Credential access -------------------------------------------------------
+  - id: cmd.lsass-dump
+    technique: T1003.001
+    confidence: high
+    description: LSASS memory dumped or read by a credential tool.
+    references:
+      - https://attack.mitre.org/techniques/T1003/001/
+    match:
+      commands:
+        - [comsvcs, minidump]
+        - [procdump, lsass]
+        - lsass.dmp
+        - sekurlsa
+
+  - id: cmd.sam-dump
+    technique: T1003.002
+    confidence: high
+    description: SAM registry hive saved.
+    references:
+      - https://attack.mitre.org/techniques/T1003/002/
+    match:
+      commands: [[reg, save, 'hklm\sam'], [reg, save, 'hkey_local_machine\sam']]
+
+  - id: cmd.ntds-dump
+    technique: T1003.003
+    confidence: high
+    description: Active Directory database (NTDS.dit) accessed.
+    references:
+      - https://attack.mitre.org/techniques/T1003/003/
+    match:
+      commands: [ntdsutil, ntds.dit]
+
+  # --- Discovery ---------------------------------------------------------------
+  - id: cmd.system-info
+    technique: T1082
+    confidence: high
+    description: System information queried.
+    references:
+      - https://attack.mitre.org/techniques/T1082/
+    match:
+      commands: [systeminfo, get-computerinfo]
+
+  - id: cmd.network-config
+    technique: T1016
+    confidence: high
+    description: Network configuration queried.
+    references:
+      - https://attack.mitre.org/techniques/T1016/
+    match:
+      commands: [ipconfig, [route, print], [netsh, interface, show]]
+
+  - id: cmd.user-discovery
+    technique: T1033
+    confidence: high
+    description: Current or logged-on users queried.
+    references:
+      - https://attack.mitre.org/techniques/T1033/
+    match:
+      commands: [whoami, quser, [query, user]]
+
+  - id: cmd.process-discovery
+    technique: T1057
+    confidence: high
+    description: Running processes listed.
+    references:
+      - https://attack.mitre.org/techniques/T1057/
+    match:
+      commands: [tasklist, qprocess]
+
+  - id: cmd.remote-system-discovery
+    technique: T1018
+    confidence: high
+    description: Other hosts or domain controllers enumerated.
+    references:
+      - https://attack.mitre.org/techniques/T1018/
+    match:
+      commands: [[net, view], [arp, -a], [nltest, /dclist]]
+
+  - id: cmd.domain-account-discovery
+    technique: T1087.002
+    confidence: high
+    description: Domain accounts enumerated.
+    references:
+      - https://attack.mitre.org/techniques/T1087/002/
+    match:
+      commands: [[net, user, /domain], get-aduser]
+
+  - id: cmd.domain-group-discovery
+    technique: T1069.002
+    confidence: high
+    description: Domain groups enumerated.
+    references:
+      - https://attack.mitre.org/techniques/T1069/002/
+    match:
+      commands: [[net, group, /domain], get-adgroupmember]
+
+  - id: cmd.local-group-discovery
+    technique: T1069.001
+    confidence: high
+    description: Local groups enumerated.
+    references:
+      - https://attack.mitre.org/techniques/T1069/001/
+    match:
+      commands: [[net, localgroup], get-localgroupmember]
+
+  - id: cmd.domain-trust-discovery
+    technique: T1482
+    confidence: high
+    description: Domain trusts enumerated.
+    references:
+      - https://attack.mitre.org/techniques/T1482/
+    match:
+      commands: [[nltest, /domain_trusts], [nltest, /trusted_domains], get-adtrust]
+
+  - id: cmd.service-discovery
+    technique: T1007
+    confidence: medium
+    description: Services enumerated.
+    references:
+      - https://attack.mitre.org/techniques/T1007/
+    match:
+      commands: [[sc, query], get-service]
+
+  - id: cmd.time-discovery
+    technique: T1124
+    confidence: high
+    description: System time or time zone queried.
+    references:
+      - https://attack.mitre.org/techniques/T1124/
+    match:
+      commands: [[net, time], [w32tm, /tz]]
+
+  - id: cmd.security-software-discovery
+    technique: T1518.001
+    confidence: high
+    description: Installed antivirus products queried.
+    references:
+      - https://attack.mitre.org/techniques/T1518/001/
+    match:
+      commands: [securitycenter2, antivirusproduct]
+
+  - id: cmd.network-connections-discovery
+    technique: T1049
+    confidence: high
+    description: Network connections or sessions listed.
+    references:
+      - https://attack.mitre.org/techniques/T1049/
+    match:
+      commands: [netstat, [net, session], get-nettcpconnection]
+
+  - id: cmd.share-discovery
+    technique: T1135
+    confidence: high
+    description: Network shares enumerated.
+    references:
+      - https://attack.mitre.org/techniques/T1135/
+    match:
+      commands: [[net, share], [net, view], get-smbshare]
+
+  # --- Lateral movement ----------------------------------------------------------
+  - id: cmd.admin-shares
+    technique: T1021.002
+    confidence: medium
+    description: Windows admin shares (ADMIN$, C$) referenced.
+    references:
+      - https://attack.mitre.org/techniques/T1021/002/
+    match:
+      commands: [admin$, '\c$', '\ipc$']
+
+  # --- Impact --------------------------------------------------------------------
+  - id: cmd.inhibit-recovery
+    technique: T1490
+    confidence: high
+    description: Shadow copies, backups or boot recovery deleted or disabled.
+    references:
+      - https://attack.mitre.org/techniques/T1490/
+    match:
+      commands:
+        - [vssadmin, delete shadows]
+        - [vssadmin, resize, shadowstorage]
+        - [wmic, shadowcopy, delete]
+        - [win32_shadowcopy, delete]
+        - [bcdedit, recoveryenabled no]
+        - [bcdedit, bootstatuspolicy ignoreallfailures]
+        - [wbadmin, delete, catalog]
+        - [wbadmin, delete, systemstatebackup]
+
+  - id: cmd.service-stop
+    technique: T1489
+    confidence: medium
+    description: Services stopped, often databases or backups before encryption.
+    references:
+      - https://attack.mitre.org/techniques/T1489/
+    match:
+      commands: [[net, stop], [net1, stop], [sc, stop], stop-service]

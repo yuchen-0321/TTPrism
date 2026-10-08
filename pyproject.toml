@@ -1,0 +1,90 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ttprism"
+dynamic = ["version"]
+description = "Extract IOCs from threat reports and sandbox output, and map behaviour to MITRE ATT&CK."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "李語晨" }]
+keywords = ["threat-intelligence", "ioc", "mitre-attack", "stix", "malware-analysis", "cape", "defang"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Information Technology",
+    "Natural Language :: Chinese (Traditional)",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Security",
+    "Typing :: Typed",
+]
+dependencies = ["PyYAML>=6.0.1"]
+
+[project.urls]
+Homepage = "https://github.com/yuchen-0321/TTPrism"
+Issues = "https://github.com/yuchen-0321/TTPrism/issues"
+Security = "https://github.com/yuchen-0321/TTPrism/security/policy"
+Changelog = "https://github.com/yuchen-0321/TTPrism/blob/main/CHANGELOG.md"
+
+[project.scripts]
+ttprism = "ttprism.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "hypothesis>=6.112",
+    "stix2>=3.0.1",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "types-PyYAML>=6.0",
+]
+
+[tool.hatch.version]
+path = "src/ttprism/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ttprism"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"rules/attack" = "ttprism/rules/attack"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/rules",
+    "/tests",
+    "/scripts",
+    "/CHANGELOG.md",
+    "/SECURITY.md",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM", "RUF", "PT"]
+ignore = ["RUF001", "RUF002", "RUF003"]  # full-width characters are intentional test data
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S603"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src/ttprism"]

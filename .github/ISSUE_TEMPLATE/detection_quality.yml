@@ -1,0 +1,56 @@
+name: Detection quality (false positive / false negative / ATT&CK mapping)
+description: An IOC was missed or wrongly extracted, or a technique mapping is wrong or outdated.
+labels: ["detection-quality"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve detection quality. These reports are public.
+
+        **Only share TLP:CLEAR material.** Do not paste non-public intelligence, customer data or
+        live malware. Defanged IOCs, hashes and short excerpts from public reports are fine.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of problem
+      options:
+        - False positive (something extracted that is not an IOC)
+        - False negative (an IOC was missed)
+        - Wrong or outdated ATT&CK mapping
+        - Defang / refang form not recognised
+    validations:
+      required: true
+  - type: textarea
+    id: input
+    attributes:
+      label: Input excerpt
+      description: The smallest piece of text or sandbox JSON that shows the problem (defanged is fine).
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Paste the relevant part of `ttprism extract` output.
+      render: json
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Public source (optional)
+      description: Link to the public report or ATT&CK page that supports the expected result.
+  - type: input
+    id: version
+    attributes:
+      label: TTPrism version
+      description: Output of `ttprism --version`
+    validations:
+      required: true

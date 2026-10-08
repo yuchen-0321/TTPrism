@@ -1,0 +1,98 @@
+# TTPrism default allowlist.
+#
+# Keep this list short and conservative: every entry hides data from analysts.
+# Do not add platforms that attackers use to host payloads or C2 (cloud storage,
+# code hosting, paste sites, CDNs) to `url_hosts`. Adding their root domain to
+# `domains` is fine, because URLs and subdomains on them are still reported.
+#
+# Documentation values (example.com, 192.0.2.0/24 and other reserved ranges)
+# are handled separately by the reserved-value filter, not by this list.
+#
+# Syntax: "name" matches exactly, "*.name" matches name and all subdomains.
+
+domains:
+  # Large platforms whose bare root domain is almost always noise in reports.
+  # Only the exact name is listed, so e.g. evil-bucket.s3.amazonaws.com still shows.
+  - amazon.com
+  - amazonaws.com
+  - apple.com
+  - azure.com
+  - azureedge.net
+  - bing.com
+  - cloudflare.com
+  - cloudfront.net
+  - facebook.com
+  - github.com
+  - githubusercontent.com
+  - gmail.com
+  - google.com
+  - linkedin.com
+  - live.com
+  - microsoft.com
+  - office.com
+  - outlook.com
+  - twitter.com
+  - windows.net
+  - x.com
+  - yahoo.com
+  - youtube.com
+  - www.google.com
+  - www.microsoft.com
+  # Windows background traffic seen in almost every sandbox run.
+  - "*.msftconnecttest.com"
+  - "*.msftncsi.com"
+  - "*.windowsupdate.com"
+  - "*.update.microsoft.com"
+  # Certificate revocation (OCSP/CRL) lookups.
+  - "*.digicert.com"
+  - "*.globalsign.com"
+  - "*.lencr.org"
+  - "*.sectigo.com"
+  - "*.symcb.com"
+  - "*.symcd.com"
+  # Reverse-DNS names.
+  - "*.in-addr.arpa"
+  - "*.ip6.arpa"
+  # Reference and standards sites cited in reports.
+  - "*.cve.org"
+  - "*.first.org"
+  - "*.mitre.org"
+  - "*.nist.gov"
+  - "*.virustotal.com"
+  - "*.w3.org"
+  - purl.org
+  - schemas.microsoft.com
+  - schemas.openxmlformats.org
+  - schemas.xmlsoap.org
+  - ns.adobe.com
+
+url_hosts:
+  # Reference links in report footnotes. Attackers cannot host content here.
+  - "*.cve.org"
+  - "*.first.org"
+  - "*.mitre.org"
+  - "*.nist.gov"
+  - "*.virustotal.com"
+  - "*.w3.org"
+  - learn.microsoft.com
+  - purl.org
+  - schemas.microsoft.com
+  - schemas.openxmlformats.org
+  - schemas.xmlsoap.org
+  - ns.adobe.com
+
+ips:
+  # Public DNS resolvers, used by malware for connectivity checks.
+  - 1.0.0.1
+  - 1.1.1.1
+  - 8.8.4.4
+  - 8.8.8.8
+  - 9.9.9.9
+  - 208.67.220.220
+  - 208.67.222.222
+
+hashes:
+  # Digests of the empty file.
+  - d41d8cd98f00b204e9800998ecf8427e
+  - da39a3ee5e6b4b0d3255bfef95601890afd80709
+  - e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

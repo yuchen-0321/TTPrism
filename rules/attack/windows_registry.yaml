@@ -1,0 +1,132 @@
+# Map registry keys written during a sandbox run to ATT&CK techniques.
+#
+# Patterns are case-insensitive substrings of the full key path as CAPE reports
+# it (e.g. HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run\x).
+# An inner list means every part must appear in the same key.
+# Use single quotes in YAML so backslashes are kept as-is.
+
+attack_version: "19.2"
+
+rules:
+  - id: reg.run-keys
+    technique: T1547.001
+    confidence: high
+    description: Run, RunOnce or policy Run value written.
+    references:
+      - https://attack.mitre.org/techniques/T1547/001/
+    match:
+      registry:
+        - '\currentversion\run\'
+        - '\currentversion\runonce\'
+        - '\currentversion\policies\explorer\run\'
+
+  - id: reg.winlogon
+    technique: T1547.004
+    confidence: high
+    description: Winlogon Shell or Userinit value changed.
+    references:
+      - https://attack.mitre.org/techniques/T1547/004/
+    match:
+      registry:
+        - '\windows nt\currentversion\winlogon\shell'
+        - '\windows nt\currentversion\winlogon\userinit'
+        - '\windows nt\currentversion\winlogon\notify\'
+
+  - id: reg.ifeo
+    technique: T1546.012
+    confidence: medium
+    description: Image File Execution Options or SilentProcessExit key written.
+    references:
+      - https://attack.mitre.org/techniques/T1546/012/
+    match:
+      registry:
+        - ['\image file execution options\', '\debugger']
+        - '\currentversion\silentprocessexit\'
+
+  - id: reg.service-image-path
+    technique: T1543.003
+    confidence: medium
+    description: Service ImagePath written.
+    references:
+      - https://attack.mitre.org/techniques/T1543/003/
+    match:
+      registry:
+        - ['\services\', '\imagepath']
+
+  - id: reg.com-hijack
+    technique: T1546.015
+    confidence: medium
+    description: Per-user COM server registered (InprocServer32 under HKCU).
+    references:
+      - https://attack.mitre.org/techniques/T1546/015/
+    match:
+      registry:
+        - ['hkey_current_user\software\classes\clsid\', '\inprocserver32']
+
+  - id: reg.uac-bypass
+    technique: T1548.002
+    confidence: high
+    description: Shell open command hijacked for an auto-elevating binary (fodhelper, eventvwr, sdclt).
+    references:
+      - https://attack.mitre.org/techniques/T1548/002/
+    match:
+      registry:
+        - '\classes\ms-settings\shell\open\command'
+        - '\classes\mscfile\shell\open\command'
+        - '\classes\folder\shell\open\command'
+        - '\classes\exefile\shell\runas\command'
+
+  - id: reg.uac-disable
+    technique: T1548.002
+    confidence: medium
+    description: UAC disabled or its prompt suppressed.
+    references:
+      - https://attack.mitre.org/techniques/T1548/002/
+    match:
+      registry:
+        - '\currentversion\policies\system\enablelua'
+        - '\currentversion\policies\system\consentpromptbehavioradmin'
+
+  - id: reg.defender
+    technique: T1685
+    confidence: high
+    description: Microsoft Defender policy, real-time protection or exclusions changed.
+    references:
+      - https://attack.mitre.org/techniques/T1685/
+    match:
+      registry:
+        - '\policies\microsoft\windows defender\'
+        - '\windows defender\real-time protection\'
+        - '\windows defender\exclusions\'
+
+  - id: reg.firewall
+    technique: T1686
+    confidence: medium
+    description: Windows Firewall policy written.
+    references:
+      - https://attack.mitre.org/techniques/T1686/
+    match:
+      registry:
+        - '\services\sharedaccess\parameters\firewallpolicy\'
+
+  - id: reg.system-restore
+    technique: T1490
+    confidence: high
+    description: System Restore disabled.
+    references:
+      - https://attack.mitre.org/techniques/T1490/
+    match:
+      registry:
+        - '\windows nt\systemrestore\disablesr'
+        - '\windows nt\systemrestore\disableconfig'
+
+  - id: reg.hide-files
+    technique: T1564.001
+    confidence: medium
+    description: Explorer configured not to show hidden or system files.
+    references:
+      - https://attack.mitre.org/techniques/T1564/001/
+    match:
+      registry:
+        - '\explorer\advanced\hidden'
+        - '\explorer\advanced\showsuperhidden'
