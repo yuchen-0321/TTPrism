@@ -1,0 +1,236 @@
+{
+  "description": "Public TLP:CLEAR Chinese-language threat reports used to evaluate IOC extraction. PDFs are not committed: zh-cn copies come from github.com/CyberMonitor/APT_CyberCriminal_Campagin_Collections (commit cbf136e24f5d2a4d89619580455aae8b9b0aeadb, blob SHA-1 below); zh-tw files were downloaded by the maintainer. The original URL is the publisher's own page; 'url_source' says how it was established.",
+  "sets": {
+    "zh-cn": [
+      {
+        "id": "cn01-tencent-oceanlotus-2018",
+        "title": "海莲花 APT 组织最新攻击样本分析",
+        "publisher": "Tencent (腾讯御见威胁情报中心)",
+        "published": "2018-04-27",
+        "original_url": "https://s.tencent.com/research/report/471.html",
+        "url_source": "collection README; to be checked by the maintainer",
+        "collection_path": "2018/2018.04.27.OceanLotus_new_malware/[CN]_OceanLotus_new_malware.pdf",
+        "collection_blob": "64a30bbd3b63aad641bbc8b7a94053684d0b0f31",
+        "appendix": {
+          "start": "0x6 附录(IOCs):",
+          "end": "注册表："
+        }
+      },
+      {
+        "id": "cn02-360-apt-c-01-2018",
+        "title": "毒云藤（APT-C-01）(PoisonVine)",
+        "publisher": "360 (追日团队)",
+        "published": "2018-09-20",
+        "original_url": "https://ti.360.net/uploads/2018/09/20/6f8ad451646c9eda1f75c5d31f39f668.pdf",
+        "url_source": "collection README; to be checked by the maintainer",
+        "collection_path": "2018/2018.09.20.Poison_Trumpet_Vine_Operation/CN_APT-C-01.pdf",
+        "collection_blob": "45ea0b4c6d8e579c1ca1b87c6287c9d2ef6329b6",
+        "appendix": {
+          "start": "附录 1：文件 MD5 列表",
+          "end": "附录 3：360 追日团队"
+        }
+      },
+      {
+        "id": "cn03-360-apt-c-38-2019",
+        "title": "军刀狮组织（APT-C-38）攻击活动揭露",
+        "publisher": "360 (360 核心安全技术博客)",
+        "published": "2019-05-27",
+        "original_url": "http://blogs.360.cn/post/analysis-of-APT-C-38.html",
+        "url_source": "page header printed in the PDF",
+        "collection_path": "2019/2019.05.27.APT-C-38/APT-C-38_cn.pdf",
+        "collection_blob": "5bfe66fc89d54ddbfd2003f05b5dd178b13d7c35",
+        "appendix": {
+          "start": "附录 A ：样本 MD5",
+          "end": "附录 C"
+        },
+        "truth_corrections": {
+          "remove": {
+            "domain": [
+              "blogs.360.cn"
+            ]
+          },
+          "notes": [
+            "blogs.360.cn: page header printed inside the appendix (the article's own address), not an indicator"
+          ]
+        }
+      },
+      {
+        "id": "cn04-tencent-higaisa-2019",
+        "title": "警惕来自节假日的祝福——APT 攻击组织“黑格莎（Higaisa）”攻击活动披露",
+        "publisher": "Tencent (腾讯安全御见威胁情报中心)",
+        "published": "2019-11-04",
+        "original_url": "https://s.tencent.com/research/report/836.html",
+        "url_source": "collection README; to be checked by the maintainer",
+        "collection_path": "2019/2019.11.04.Higaisa_APT/(cn)_higaisa_apt_report.pdf",
+        "collection_blob": "df81ce2f1cc3897e96d2654a0e63720fbf478048",
+        "appendix": {
+          "start": "6.2 IOCs",
+          "end": "6.3 MITRE ATT&CK"
+        }
+      },
+      {
+        "id": "cn05-qianxin-tibbar-2020",
+        "title": "Operation Tibbar",
+        "publisher": "Qi An Xin (奇安信威胁情报中心)",
+        "published": "2020-09-17",
+        "original_url": "https://ti.qianxin.com/uploads/2020/09/17/69da886eecc7087e9dac2d3ea4c66ba8.pdf",
+        "url_source": "collection README; to be checked by the maintainer",
+        "collection_path": "2020/2020.09.17.Operation_Tibbar/69da886eecc7087e9dac2d3ea4c66ba8.pdf",
+        "collection_blob": "02b4ef717342c5c6cecfb3b2b0b3c4d90f2a0dc7",
+        "appendix": {
+          "start": "IOCs ",
+          "end": "附录1  奇安信威胁情报中心"
+        }
+      },
+      {
+        "id": "cn06-qianxin-rubia-2020",
+        "title": "血茜草：永不停歇的华语情报搜集活动",
+        "publisher": "Qi An Xin (奇安信威胁情报中心 WeChat account)",
+        "published": "2020-10-13",
+        "original_url": "https://mp.weixin.qq.com/s/omacDXAdio88a_f0Xwu-kg",
+        "url_source": "page header printed in the PDF",
+        "collection_path": "2020/2020.10.13.Operation_Rubia_cordifolia/Blood_Rubia_APT_CN_version.pdf",
+        "collection_blob": "fd55205d4d7b8c05623817c23bea5d4b52ce7a40",
+        "appendix": {
+          "start": "附录 1⾎茜草⾏动部分IOC",
+          "end": "附录 2奇安信威胁情报中⼼"
+        },
+        "truth_corrections": {
+          "add": {
+            "domain": [
+              "qqmailservers.serveuser.com",
+              "fuwumostsystem.serveuser.com",
+              "webmailaccounts.serveuser.com",
+              "163uswebmail.serveusers.com",
+              "softwarepatch.serveusers.com",
+              "maildocument.serveuser.com",
+              "grandviewctd.serveusers.com",
+              "163mailboxdownload.servehttp.com",
+              "downloaddrive.dynamic-dns.net",
+              "qqmailserver.dynamic-dns.net"
+            ]
+          },
+          "remove": {
+            "url": [
+              "https://mp.weixin.qq.com/s/omacDXAdio88a_f0Xwu-kg"
+            ],
+            "domain": [
+              "mp.weixin.qq.com",
+              "qqmailservers.serveuser",
+              "fuwumostsystem.serveuser",
+              "webmailaccounts.serveuser",
+              "163uswebmail.serveusers",
+              "softwarepatch.serveusers",
+              "maildocument.serveuser",
+              "grandviewctd.serveusers",
+              "maildownload.serveusers",
+              "dns.net",
+              "01.servepics.com",
+              "cilp.serveusers.com",
+              "count.mail.163.com",
+              "download.serveuser.com",
+              "mailsmtp.online",
+              "main.serveusers.com",
+              "warepatch.serveuser.com",
+              "warepatch.serveusers.com"
+            ]
+          },
+          "ambiguous": {
+            "domain": [
+              [
+                "count.mail.163.com.usweb-mailsmtp.online",
+                "count.mail.163.com.uswebmailsmtp.online"
+              ],
+              [
+                "126-maildownload.serveusers.com",
+                "126maildownload.serveusers.com"
+              ],
+              [
+                "163maildownloadi-cilp.serveusers.com",
+                "163maildownloadicilp.serveusers.com"
+              ],
+              [
+                "163datadownloaddo-main.serveusers.com",
+                "163datadownloaddomain.serveusers.com"
+              ],
+              [
+                "sitdownplease-01.servepics.com",
+                "sitdownplease01.servepics.com"
+              ],
+              [
+                "qqmailsoft-warepatch.serveuser.com",
+                "qqmailsoftwarepatch.serveuser.com"
+              ],
+              [
+                "qqmailsoft-warepatch.serveusers.com",
+                "qqmailsoftwarepatch.serveusers.com"
+              ],
+              [
+                "qq-cloudmail-download.serveuser.com",
+                "qq-cloudmaildownload.serveuser.com"
+              ]
+            ]
+          },
+          "notes": [
+            "mp.weixin.qq.com/s/omacDXAdio88a_f0Xwu-kg: page header printed inside the appendix (the article's own address), not an indicator",
+            "The domain tables wrap long names inside narrow cells, and the layout puts a '-' at every wrap. Rule 1: a '-' next to a dot at a wrap ('serveuser.-' + 'com', '163mailboxdownload-' + '.servehttp.com') cannot be part of a name, so it was inserted: the name is added without it and the fragments the line rules produced are removed. Rule 2: 'dynamic-' + 'dns.net' is the dynamic DNS provider dynamic-dns.net, which cn02 lists unwrapped, so that '-' is kept. Any other '-' at a wrap may or may not belong to the name; those entries are left out of the ground truth like masked ones, both readings are listed under 'ambiguous', and an extracted value equal to either reading is counted neither right nor wrong."
+          ]
+        }
+      },
+      {
+        "id": "cn07-360-apt-c-44-2020",
+        "title": "北非狐（APT-C-44）攻击活动揭露",
+        "publisher": "360 (360 核心安全技术博客)",
+        "published": "2020-10-23",
+        "original_url": "https://blogs.360.cn/post/APT-C-44.html",
+        "url_source": "page header printed in the PDF",
+        "collection_path": "2020/2020.10.23.APT-C-44_NAFox/APT-C-44_CN_Version.pdf",
+        "collection_blob": "9a7f41e927420a0d6a89db3dd3217e5f14259683",
+        "appendix": {
+          "start": "IOC\n样本 md5",
+          "end": "参考\n"
+        },
+        "truth_corrections": {
+          "remove": {
+            "url": [
+              "https://blogs.360.cn/post/APT-C-44.html"
+            ]
+          },
+          "notes": [
+            "blogs.360.cn/post/APT-C-44.html: page header printed inside the appendix (the article's own address), not an indicator"
+          ]
+        }
+      },
+      {
+        "id": "cn08-gcow-sidewinder-2020h1",
+        "title": "蛇从暗黑中袭来——响尾蛇（SideWinder）APT 组织 2020 年上半年活动总结报告",
+        "publisher": "Gcow 安全团队追影小组 (WeChat account; community team, not a vendor)",
+        "published": "2020-07-12",
+        "original_url": "https://mp.weixin.qq.com/s/5mBqxf_v6G006EnjECoTHw",
+        "url_source": "page header printed in the PDF",
+        "collection_path": "2020/2020.07.12_SideWinder_2020_H1/SideWinder_APT_2020_H1_CN_version.pdf",
+        "collection_blob": "94ced43cf88b699acabf1db48ac3d97fd573940f",
+        "appendix": {
+          "start": "0x04.IOCs",
+          "end": "0x05. 相关链接"
+        },
+        "truth_corrections": {
+          "remove": {
+            "url": [
+              "https://mp.weixin.qq.com/s/5mBqxf_v6G006EnjECoTHw"
+            ],
+            "domain": [
+              "mp.weixin.qq.com",
+              "0x04.iocs"
+            ]
+          },
+          "notes": [
+            "mp.weixin.qq.com/s/5mBqxf_v6G006EnjECoTHw: page header printed inside the appendix (the article's own address), not an indicator",
+            "0x04.iocs: the section heading '0x04.IOCs', which the domain line rule matches"
+          ]
+        }
+      }
+    ],
+    "zh-tw": []
+  }
+}

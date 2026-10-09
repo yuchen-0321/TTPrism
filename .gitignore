@@ -10,3 +10,6 @@ dist/
 .hypothesis/
 .coverage
 htmlcov/
+
+# Real-report evaluation inputs: PDFs, extracted text and ground-truth values (never committed)
+eval-data/
