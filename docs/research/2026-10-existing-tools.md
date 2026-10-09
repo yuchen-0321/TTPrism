@@ -67,3 +67,6 @@ and record, per report: the defang styles used, IOCs found by each tool, and fal
 Candidate sources are reports published in Chinese by Taiwanese government CERTs and security
 vendors. Only cite reports that may be redistributed, and record each report's URL rather than
 committing its text.
+
+Done for eight Simplified-Chinese reports in [2026-10-real-reports.md](2026-10-real-reports.md);
+none of them uses the full-width or CJK-bracket forms above. Traditional-Chinese reports are next.

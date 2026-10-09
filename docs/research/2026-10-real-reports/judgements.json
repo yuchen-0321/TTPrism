@@ -143,6 +143,10 @@
     "kanbox.com/": [
      "c",
      "a host fragment of https://auth.kanbox.com/0/token"
+    ],
+    "http://www.trendmicro.com/cloud-content/us/pdfs/security-intelligence/white-papers/wp-spear-phishing-email-most-favored-apt-attack-bait.pdf": [
+     "b",
+     "reference or source the report cites (joined across a line break)"
     ]
    },
    "domain": {
@@ -1085,6 +1089,18 @@
     "n.qq.com/s/Kb_woHp1miaCgDZyHLHNgA": [
      "c",
      "the tail of a value that wraps onto a new line in the PDF"
+    ],
+    "https://blog.trendmicro.com/trendlabs-security-intelligence/first-active-attack-exploiting-cve-2019-2215-found-on-google-play-linked-to-sidewinder-apt-group/": [
+     "b",
+     "reference or source the report cites (joined across a line break)"
+    ],
+    "https://blogs.360.cn/post/apt-c-06_0day.html": [
+     "b",
+     "reference or source the report cites (joined across a line break)"
+    ],
+    "https://mp.weixin.qq.com/s/yxUTG3Qva169-XiYV0pAyQ": [
+     "b",
+     "reference or source the report cites (joined across a line break)"
     ]
    },
    "domain": {
