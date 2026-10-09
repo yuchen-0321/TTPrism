@@ -6,7 +6,7 @@ from unittest import mock
 
 import pytest
 
-from ttprism import IOCType, extract_iocs, refang
+from ttprism import AnalysisOptions, IOCType, analyze_text, extract_iocs, refang
 from ttprism.extract import (
     CODE_IDENTIFIERS,
     extract_into,
@@ -373,7 +373,8 @@ def test_bracketed_ipv6_host_needs_no_three_groups() -> None:
 
 def test_open_redirect_target_is_extracted_and_outer_url_kept() -> None:
     text = "https://www.google.com/url?q=https://evil-phish.com/login&sa=D"
-    assert values(text, IOCType.URL) == ["https://evil-phish.com/login&sa=D", text]
+    # "&sa=D" belongs to the wrapper: a redirector reads it as its own parameter.
+    assert values(text, IOCType.URL) == ["https://evil-phish.com/login", text]
     assert values(text, IOCType.DOMAIN) == ["evil-phish.com", "www.google.com"]
     assert values("https://t.co/x?u=http://evil-phish.com/a", IOCType.DOMAIN) == ["evil-phish.com", "t.co"]
 
@@ -382,11 +383,11 @@ def test_percent_encoded_url_in_query_is_decoded() -> None:
     text = (
         "https://nam02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fphish-target.com%2Flogin&data=05"
     )
-    assert values(text, IOCType.URL) == [text, "https://phish-target.com/login&data=05"]
+    assert values(text, IOCType.URL) == [text, "https://phish-target.com/login"]
     assert values(text, IOCType.DOMAIN) == ["nam02.safelinks.protection.outlook.com", "phish-target.com"]
     encoded = "http://redir.evil-cdn.net/r?u=http%3A%2F%2F198.51.100.7%2Fx&m=mailto%3Aops%40evil-mail.com"
     assert ("ipv4", "198.51.100.7") in pairs(encoded)
-    assert ("url", "http://198.51.100.7/x&m=mailto:ops@evil-mail.com") in pairs(encoded)
+    assert ("url", "http://198.51.100.7/x") in pairs(encoded)
     assert ("email", "ops@evil-mail.com") in pairs(encoded)
 
 
@@ -745,3 +746,351 @@ def test_reserved_ips_do_not_depend_on_python_tables() -> None:
         assert is_reserved_ip("198.51.100.1")
         assert is_reserved_ip("::ffff:192.168.0.1")
         assert not is_reserved_ip("8.8.8.8")
+
+
+# --------------------------------------------------------------------------- second review of 1a13871
+
+
+def everything(text: str) -> list[tuple[str, str]]:
+    """IOCs after refanging and reserved/allowlist filtering, with reserved values kept."""
+    return [(str(i.type), i.value) for i in analyze_text(text, AnalysisOptions(include_reserved=True)).iocs]
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        # SQL/WQL LIKE wildcards are not percent escapes.
+        ("CommandLine LIKE '%198.51.100.7%'", [("ipv4", "198.51.100.7")]),
+        ("like '%10.0.0.5%'", [("ipv4", "10.0.0.5")]),
+        ("LIKE '%cafe-cdn.example.com%'", [("domain", "cafe-cdn.example.com")]),
+        # Escapes of separators still are, single and double encoded.
+        ("x=%201.2.3.4", [("ipv4", "1.2.3.4")]),
+        ("%252F198.51.100.7 ip%253D198.51.100.7", [("ipv4", "198.51.100.7")]),
+        # Other escapes are characters glued to the value: "%41" is "A".
+        ("%41198.51.100.7", []),
+    ],
+)
+def test_percent_signs_before_values(text: str, expected: list[tuple[str, str]]) -> None:
+    assert everything(text) == expected
+
+
+def test_user_agent_versions_are_not_addresses() -> None:
+    ua = "UA: Mozilla/5.0 (Windows NT 10.0) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0 YaBrowser/24.1.0.0"
+    result = analyze_text(ua + " Chrome%2F131.0.0.0", AnalysisOptions(include_reserved=True))
+    assert result.iocs == []
+    assert result.suppressed == {"version_like": 4}
+    # An address after a URL's "/" or with a prefix length is still one.
+    assert everything("http://120.0.0.0/x 203.0.113.5/24") == [
+        ("url", "http://120.0.0.0/x"),
+        ("ipv4", "120.0.0.0"),
+        ("ipv4", "203.0.113.5"),
+    ]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "fec0:0:0:ffff::1",
+        "dead:beef:cafe::1",
+        "1:2:3:4:5:6:7:8",
+        "2002:c000:201::1",
+        "::1.2.3.4",
+        "64:ff9b::c000:201",
+    ],
+)
+def test_ipv6_outside_global_unicast_is_reserved(value: str) -> None:
+    # Only 2000::/3 is global unicast; NAT64 addresses are judged by the IPv4 address they carry.
+    assert is_reserved_ip(value)
+    assert [i for i in analyze_text(value).iocs if i.type == IOCType.IPV6] == []
+
+
+def test_reserved_ips_ignore_python_is_global() -> None:
+    with (
+        mock.patch.object(ipaddress.IPv6Address, "is_global", True),
+        mock.patch.object(ipaddress.IPv4Address, "is_global", False),
+    ):
+        assert is_reserved_ip("2002:c000:201::1")
+        assert not is_reserved_ip("8.8.8.8")
+        assert not is_reserved_ip("2606:4700:4700::1111")
+        assert not is_reserved_ip("64:ff9b::808:808")
+
+
+def test_embedded_ipv4_addresses_are_written_dotted_and_read_back() -> None:
+    assert everything("::1.2.3.4") == [("ipv4", "1.2.3.4"), ("ipv6", "::1.2.3.4")]
+    assert everything("64:ff9b::c633:6401") == [("ipv6", "64:ff9b::198.51.100.1")]
+    assert everything("::ffff") == []
+
+
+@pytest.mark.parametrize(
+    ("text", "url", "address"),
+    [
+        ("http://3221225985/payload.exe", "http://3221225985/payload.exe", "192.0.2.1"),
+        ("http://0xC0000201/x", "http://0xc0000201/x", "192.0.2.1"),
+        ("http://0300.0000.0002.0001/x", "http://0300.0000.0002.0001/x", "192.0.2.1"),
+        ("hxxp://0xc0.0.2.1:8080/x", "http://0xc0.0.2.1:8080/x", "192.0.2.1"),
+        ("http://010.0.0.1/x", "http://010.0.0.1/x", "8.0.0.1"),
+    ],
+)
+def test_integer_hex_and_octal_url_hosts(text: str, url: str, address: str) -> None:
+    assert everything(text) == [("url", url), ("ipv4", address)]
+    # Filtered like the address: 192.0.2.1 is a documentation address.
+    assert analyze_text(text).iocs == [] or address == "8.0.0.1"
+
+
+@pytest.mark.parametrize("host", ["99999999999", "0x123456789", "1.2.3", "0day.example.com", "256.1.1.1"])
+def test_hosts_that_are_not_legacy_addresses(host: str) -> None:
+    assert all(t != "ipv4" for t, _ in everything(f"http://{host}/x"))
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("\u26a0\ufe0fsecure-login[.]example[.]com", [("domain", "secure-login.example.com")]),
+        ("\u27a1\ufe0fc2.example.net", [("domain", "c2.example.net")]),
+        ("1\ufe0f\u20e3evil-a.example.com", [("domain", "evil-a.example.com")]),
+        ("\u2709\ufe0fphish-ops[@]example[.]org", [("email", "phish-ops@example.org")]),
+        # Right-to-left letters cannot share a label with Latin ones.
+        ("\u0648evil-b.example.com", [("domain", "evil-b.example.com")]),
+        ("\u05d4\u05e9\u05e8\u05ea\u200eevil.example.com\u200f\u05d5", [("domain", "evil.example.com")]),
+        # Marks on letters and letters of other scripts still join the name.
+        ("bu\u0308cher.de micros\u043eft.com", []),
+    ],
+)
+def test_emoji_and_right_to_left_letters_next_to_names(text: str, expected: list[tuple[str, str]]) -> None:
+    assert everything(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("\\\\files.example.net@SSL\\DavWWWRoot\\x", ["files.example.net"]),
+        ("rundll32 \\\\files.example.net@SSL@443\\DavWWWRoot\\x.dll,Entry", ["files.example.net"]),
+        ("\\\\files.example.net@80\\share", ["files.example.net"]),
+        ("search-ms:crumb=location:\\\\files.example.net@SSL\\DavWWWRoot", ["files.example.net"]),
+        ("\u5171\u4eab\u8def\u5f91\uff1a\\\\fs.example.net\\share", ["fs.example.net"]),
+        ("C2:\\\\fs.example.net\\share", ["fs.example.net"]),
+        ('{"p": "\\\\\\\\fs.example.net\\\\share"}', ["fs.example.net"]),
+        ("\u4f86\u6e90\uff1a//cdn.example.org/x.js", ["cdn.example.org"]),
+        # Not hosts: drive paths, unknown schemes, e-mail addresses.
+        ("C:\\\\evil.com\\x C:\\evil.com unknown://evil.com", []),
+        ("john.name@example.com", []),
+    ],
+)
+def test_unc_webdav_and_label_colon_hosts(text: str, expected: list[str]) -> None:
+    assert values(text, IOCType.DOMAIN) == expected
+
+
+def test_redirect_targets_leave_the_wrapper_parameters() -> None:
+    text = "https://safelinks.example.com/?url=https%3A%2F%2Fphish.example.org%2Flogin&data=05%7C01&sdata=abc"
+    assert ("url", "https://phish.example.org/login") in everything(text)
+    encoded = "https://redir.example.net/r?u=https%3A%2F%2Fphish.example.org%2Flogin%3Fa%3D1%26b%3D2&m=x"
+    assert ("url", "https://phish.example.org/login?a=1&b=2") in everything(encoded)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        (
+            "IOCs: http://198.51.100.5,ops@example.org",
+            [("url", "http://198.51.100.5"), ("ipv4", "198.51.100.5"), ("email", "ops@example.org")],
+        ),
+        (
+            "GET /gate.php?url=http://a.example.com&email=victim@example.org",
+            [("url", "http://a.example.com"), ("domain", "a.example.com"), ("email", "victim@example.org")],
+        ),
+        # "=" stays allowed in userinfo: base64 passwords.
+        (
+            "ftp://user:cGFzcw==@files.example.net/",
+            [("url", "ftp://user:cGFzcw==@files.example.net/"), ("domain", "files.example.net")],
+        ),
+        # The userinfo of a URL inside a URL is not an e-mail address either.
+        (
+            "https://web.archive.org/web/2020/ftp://anonymous:guest@ftp.example.net/pub/",
+            [
+                ("url", "ftp://anonymous:guest@ftp.example.net/pub/"),
+                ("url", "https://web.archive.org/web/2020/ftp://anonymous:guest@ftp.example.net/pub/"),
+                ("domain", "ftp.example.net"),
+                ("domain", "web.archive.org"),
+            ],
+        ),
+    ],
+)
+def test_userinfo_and_url_lists(text: str, expected: list[tuple[str, str]]) -> None:
+    assert everything(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("to=%3Cops@example.org%3E", ["ops@example.org"]),
+        ("mailto:%22John%20Doe%22%20%3Cjd@example.org%3E", ["jd@example.org"]),
+        ("Bcc:%0Aops@example.org", ["ops@example.org"]),
+        ("q=%2522ops@example.org", ["ops@example.org"]),
+        # "%" itself is allowed in a local part.
+        ("user%name@example.org", ["user%name@example.org"]),
+    ],
+)
+def test_encoded_delimiters_before_email_addresses(text: str, expected: list[str]) -> None:
+    assert values(text, IOCType.EMAIL) == expected
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "$d = (Get-WmiObject Win32_ComputerSystem).Domain.Name",
+        "Path(__file__).parent.name",
+        "a[i].link.click()",
+        "x = {a:1}.data.top",
+    ],
+)
+def test_member_access_after_calls_is_not_a_domain(text: str) -> None:
+    assert pairs(text) == []
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "using System.Net.Security;",
+        "using System.Security.Claims;",
+        "using Microsoft.Data;",
+        "Microsoft.Office.Tools",
+        "Windows.Media",
+        "System.Web.Hosting",
+    ],
+)
+def test_dotnet_namespaces_are_code(text: str) -> None:
+    assert pairs(text) == []
+    assert stats_for(text) == Counter({"code_identifier": 1})
+
+
+def test_lower_case_names_under_namespace_roots_are_domains() -> None:
+    assert values("windows.media microsoft.data", IOCType.DOMAIN) == ["microsoft.data", "windows.media"]
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("\u56de\u9023hxxp://evil[.]example/gate.php\uff08C2\uff09", "http://evil.example/gate.php"),
+        ("hxxps://evil[.]example/x.exe\uff0cMD5\uff1a5f89", "https://evil.example/x.exe"),
+        ("C2\uff1ahxxp://evil[.]example/api\uff1bbackup", "http://evil.example/api"),
+        ("http://evil.example/a.exe\uff08Stage 1\uff09", "http://evil.example/a.exe"),
+        ("\u7db2\u5740 hxxps://evil[.]example/x.exe\uff01C2", "https://evil.example/x.exe"),
+    ],
+)
+def test_full_width_punctuation_ends_urls(text: str, expected: str) -> None:
+    assert values(text, IOCType.URL) == [expected]
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("_http://evil.com_.", [("url", "http://evil.com"), ("domain", "evil.com")]),
+        ("__http://evil.com__.", [("url", "http://evil.com"), ("domain", "evil.com")]),
+        ("see _http://198.51.100.7_.", [("url", "http://198.51.100.7"), ("ipv4", "198.51.100.7")]),
+        ("http://evil.com.", [("url", "http://evil.com"), ("domain", "evil.com")]),
+    ],
+)
+def test_underscore_markup_after_url_hosts(text: str, expected: list[tuple[str, str]]) -> None:
+    assert everything(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "url", "host"),
+    [
+        (
+            "xmrig -o stratum+tcp://pool.example.net:3333",
+            "stratum+tcp://pool.example.net:3333",
+            "pool.example.net",
+        ),
+        ("stratum+ssl://pool.example.net:443", "stratum+ssl://pool.example.net:443", "pool.example.net"),
+        ("git+ssh://git@example.org/x.git", "git+ssh://git@example.org/x.git", "example.org"),
+        (
+            "smtp://exfil:Winter2024@mail.example.net:587",
+            "smtp://exfil:Winter2024@mail.example.net:587",
+            "mail.example.net",
+        ),
+        ("socks5://proxy.example.org:1080", "socks5://proxy.example.org:1080", "proxy.example.org"),
+        ("mongodb+srv://u:p@db.example.net/x", "mongodb+srv://u:p@db.example.net/x", "db.example.net"),
+        ("redis://u:p@cache.example.net:6379", "redis://u:p@cache.example.net:6379", "cache.example.net"),
+    ],
+)
+def test_compound_and_credentialed_schemes(text: str, url: str, host: str) -> None:
+    assert everything(text) == [("url", url), ("domain", host)]
+
+
+def test_unknown_compound_schemes_are_skipped_not_cut() -> None:
+    assert values("x+tcp://example.com foo.tcp://example.com", IOCType.URL) == []
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("https://evil.example.com/q&apos;", ["https://evil.example.com/q"]),
+        ("<p>https://evil.example.com/a.bin&nbsp;</p>", ["https://evil.example.com/a.bin"]),
+        ("https://evil.example.com/a&GT;", ["https://evil.example.com/a"]),
+        ("__https://evil.example.com/payload.bin__", ["https://evil.example.com/payload.bin"]),
+        (
+            "**http://a.example.com/x**,**http://b.example.com/y**",
+            ["http://a.example.com/x", "http://b.example.com/y"],
+        ),
+        # Underscores in paths stay.
+        ("https://evil.example.com/a__init__", ["https://evil.example.com/a__init__"]),
+    ],
+)
+def test_more_url_tail_markup(text: str, expected: list[str]) -> None:
+    assert values(text, IOCType.URL) == expected
+
+
+@pytest.mark.parametrize(
+    "name", ["payload.dll.zip", "setup.msi.zip", "update.ps1.zip", "run.bat.zip", "disk.vhd.zip"]
+)
+def test_payload_double_extensions_are_file_names(name: str) -> None:
+    assert pairs(name) == []
+    assert stats_for(name) == Counter({"filename_like_domain": 1})
+    assert values(f"https://{name}/a", IOCType.DOMAIN) == [name]
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("IP:2001:db8::1", ["2001:db8::1"]),
+        ("IPv6:2001:db8::2", ["2001:db8::2"]),
+        ("host=srv;ip:2001:db8::3", ["2001:db8::3"]),
+        # Times and MAC addresses after a label stay out.
+        ("Time:12:30:45 Mac:00:11:22:33:44:55", []),
+    ],
+)
+def test_ipv6_after_letter_labels(text: str, expected: list[str]) -> None:
+    assert values(text, IOCType.IPV6) == expected
+
+
+def test_typographic_dash_in_punycode_names() -> None:
+    assert values("C2: xn\u201380ak6aa92e.example and xn\u201480ak6aa92e.example", IOCType.DOMAIN) == [
+        "xn--80ak6aa92e.example"
+    ]
+    # An em dash in prose is not part of a name.
+    assert values("C2 server\u2014evil.example.com", IOCType.DOMAIN) == ["evil.example.com"]
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        (
+            "\u2066evil.example.com\u2069\u2066example.net\u2069",
+            [("domain", "evil.example.com"), ("domain", "example.net")],
+        ),
+        (
+            "\u2068198.51.100.7\u2069\u2068203.0.113.9\u2069",
+            [("ipv4", "198.51.100.7"), ("ipv4", "203.0.113.9")],
+        ),
+        (
+            "contact admin@example.com\u2069\u2066evil.example.net",
+            [("domain", "evil.example.net"), ("email", "admin@example.com")],
+        ),
+        ("evil\u2063example.org", [("domain", "example.org")]),
+        # Inside a name a mark is still removed.
+        ("ev\u200eil-cdn.net", [("domain", "evil-cdn.net")]),
+    ],
+)
+def test_bidi_controls_between_names_separate_them(text: str, expected: list[tuple[str, str]]) -> None:
+    assert everything(text) == expected

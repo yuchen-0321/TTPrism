@@ -117,7 +117,7 @@ def test_refang_folds_width_forms_ligatures_and_hyphens(text: str, expected: str
         "\u2474 \u2488",  # parenthesised digit, digit full stop
         "\u00bd \u2153",  # fractions
         "\u3002",  # a bare ideographic full stop ends a sentence
-        "\u00a0",  # no-break space is not a width variant
+        "\uff08C2\uff09\uff0c\uff1b\uff01",  # full-width punctuation that cannot be part of a URL
     ],
 )
 def test_refang_keeps_other_compatibility_characters(text: str) -> None:
@@ -139,7 +139,7 @@ def test_refang_does_not_expand_text() -> None:
         "\u180e",  # Mongolian vowel separator
         *"\u200b\u200c\u200d\u200e\u200f",  # zero-width characters, LRM, RLM
         *"\u202a\u202b\u202c\u202d\u202e",  # bidi embeddings and overrides
-        *"\u2060\u2061\u2062\u2063\u2064",  # word joiner, invisible operators
+        *"\u2060\u2061\u2062\u2064",  # word joiner, invisible operators
         *"\u2066\u2067\u2068\u2069",  # bidi isolates
         "\ufeff",  # BOM
         "\U000110bd",
@@ -199,3 +199,37 @@ def test_refang_leaves_lookalikes(text: str, expected: str) -> None:
 def test_defang_round_trips_scheme_and_host_of_other_schemes() -> None:
     for value in ("ldap://evil.com:1389/a", "tcp://c2.evil.net:4444", "http://my_bucket.s3.evil.com/x"):
         assert refang(defang(value, IOCType.URL)) == value
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        # Spaced markers in every bracket and marker form refang() knows unspaced.
+        ("john [@] example [.] com", "john@example.com"),
+        ("john (at) example (dot) com", "john@example.com"),
+        ("evil {.} example {.} com", "evil.example.com"),
+        ("evil 【.】 example 【.】 com", "evil.example.com"),
+        ("evil （.） com", "evil.com"),
+        # No-break and thin spaces from HTML and word processors.
+        ("evil[\u00a0.\u00a0]com", "evil.com"),
+        ("198[\u202f.\u2009]51[ .]100[. ]7", "198.51.100.7"),
+        ("john\u00a0[at]\u00a0example\u00a0[dot]\u00a0com", "john@example.com"),
+        ("hxxps[\u00a0:\u00a0]//a.example/x", "https://a.example/x"),
+        # "http(s)" means http or https, like "http[s]".
+        ("hxxp(s)://evil.com", "https://evil.com"),
+        ("http(s)://evil.com", "https://evil.com"),
+        ("h[tt]p(s)://evil.com", "https://evil.com"),
+        ("hxxp（s）://evil.com", "https://evil.com"),
+        # Typographers' dashes in punycode prefixes.
+        ("xn–80ak6aa92e.com", "xn--80ak6aa92e.com"),
+        ("C2 server—evil.example.com", "C2 server—evil.example.com"),
+    ],
+)
+def test_refang_second_review_forms(text: str, expected: str) -> None:
+    assert refang(text) == expected
+
+
+def test_bidi_controls_separate_or_vanish() -> None:
+    assert refang("\u2066evil.com\u2069\u2066example.net\u2069") == " evil.com example.net "
+    assert refang("evil\u2063example.org") == "evil example.org"
+    assert refang("ev\u200eil.com") == "evil.com"  # inside a name

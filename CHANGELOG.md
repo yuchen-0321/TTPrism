@@ -12,21 +12,29 @@ their advisory.
 - IOC extraction from report text and Markdown: URLs, domains, IPv4, IPv6, email addresses,
   MD5/SHA-1/SHA-256 hashes and CVE IDs, with TLD validation against the IANA list.
 - URLs with `http(s)`, `ftp(s)`, `sftp`, `ws(s)`, `ldap(s)`, `rmi`, `iiop`, `dns`, `tcp`, `udp`,
-  `smb`, `file`, `ssh`, `telnet`, `irc` and `rtsp` schemes; hosts in UNC paths (`\\host\share`),
-  protocol-relative URLs and wildcard names (`*.evil.com`); URL lists joined by commas or quotes
-  split into separate URLs; open-redirect targets and percent-encoded URLs inside a URL's query
-  extracted as well, keeping the outer URL.
-- Noise filters: file names that look like domains (`payload.zip`, `invoice.pdf.zip`), COM /
-  .NET identifiers (`WScript.Shell`, `System.IO`) and bare public suffixes (`co.uk`, `com.tw`)
-  are dropped and counted under `suppressed`; names glued to non-ASCII letters (IDNs,
-  homographs) are skipped instead of truncated. A hex-looking label glued to an IPv6 address
-  (`C2:2001:db8::1`) is not taken as its first group.
+  `smb`, `file`, `ssh`, `telnet`, `irc`, `rtsp`, `smtp(s)`, `imap(s)`, `pop3(s)`, `socks4`/`socks5`,
+  `redis`, `mongodb`, `mysql`, `postgres(ql)`, `amqp(s)` and `mqtt(s)` schemes, plus
+  `stratum+tcp`, `git+ssh` and `mongodb+srv`; integer, hex and octal IPv4 hosts
+  (`http://3221225985/`); hosts in UNC paths (`\\host\share`, also WebDAV `\\host@SSL\...`,
+  after a label colon and JSON-escaped), protocol-relative URLs and wildcard names (`*.evil.com`);
+  URL lists joined by commas or quotes split into separate URLs; open-redirect targets and
+  percent-encoded URLs inside a URL's query extracted as well, each query parameter on its own,
+  keeping the outer URL.
+- Noise filters: file names that look like domains (`payload.zip`, `setup.msi.zip`), COM /
+  .NET identifiers (`WScript.Shell`, `System.Net.Security`), bare public suffixes (`co.uk`,
+  `com.tw`) and browser versions (`Chrome/120.0.0.0`) are dropped and counted under
+  `suppressed`; names glued to non-ASCII letters (IDNs, homographs) are skipped instead of
+  truncated, but emoji and right-to-left letters next to a name are not glue. A label before an
+  IPv6 address (`C2:2001:db8::1`, `IPv6:2001:db8::1`) is not taken as part of it. A literal `%`
+  (`LIKE '%198.51.100.7%'`) is not read as a percent escape.
 - Refanging of common and CJK defang styles: `[.]`, `(.)`, `[dot]`, `【.】`, `〔.〕`, `[。]`,
-  ` [.] ` between labels, `[/]`, `[//]`, full-width characters (`．`, `［＠］`, `１９８．５１…`),
-  `hxxp(s)`, `hxxp[s]`, `h[tt]p`, `[:]`, `[://]`, Unicode hyphens and minus signs, and zero-width,
-  bidi and other format characters inserted by PDF converters. Only width variants, ligatures,
-  hyphens and dot forms are folded (not full NFKC), so superscript footnotes and circled list
-  numbers never merge into an IOC.
+  the same markers with a space on each side (` [.] `, ` (at) `, ` {dot} `), `[/]`, `[//]`,
+  full-width characters (`．`, `［＠］`, `１９８．５１…`), `hxxp`, `hxxp[s]`, `hxxp(s)`,
+  `http(s)`, `h[tt]p`, `[:]`, `[://]`, Unicode hyphens, minus signs and spaces, `xn–` from
+  typographers, and zero-width, bidi and other format characters inserted by PDF converters
+  (bidi controls between two names separate them). Only width variants, ligatures, hyphens and
+  dot forms are folded (not full NFKC), so superscript footnotes and circled list numbers never
+  merge into an IOC, and full-width `（），；！` stay as they are, so they end a URL.
 - `--defang` output for safe sharing.
 - CAPE `report.json` parser: network IOCs, sample/dropped/payload hashes, URLs on executed
   command lines, signatures, API calls, written registry keys.
@@ -47,6 +55,7 @@ their advisory.
   and duplicate keys rejected, per-report caps on rule inputs, an indexed IP allowlist, atomic
   `-o` writes (in place where a new file cannot replace the old one), CSV formula escaping,
   control/bidi-character sanitisation of all output and messages, explicit
-  reserved-IP tables independent of the Python version, Hypothesis fuzz tests.
+  reserved-IP tables independent of the Python version (IPv6 outside `2000::/3` is reserved),
+  Hypothesis fuzz tests.
 - Project governance: security policy with private vulnerability reporting, threat model,
   contributing guide, code of conduct, issue templates.

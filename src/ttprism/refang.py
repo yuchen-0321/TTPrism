@@ -28,6 +28,9 @@ _EXTRA_FOLDS = {
     0x2024: ".",  # one dot leader
     **{code: unicodedata.normalize("NFKC", chr(code)) for code in range(0xFB00, 0xFB07)},  # ligatures
 }
+# Full-width punctuation that can never be part of a URL, kept unfolded so that a URL right before
+# it ends there: "hxxp://evil[.]com/a（C2）" or "...x.exe，MD5：..." in Chinese text.
+_KEEP_WIDE = (0xFF01, 0xFF08, 0xFF09, 0xFF0C, 0xFF1B)  # ！（），；
 # Astral format (Cf) characters, listed so the result does not depend on the
 # Unicode version of the running interpreter.
 _ASTRAL_FORMAT_RANGES = (
@@ -47,33 +50,60 @@ def _fold_table() -> dict[int, str | None]:
     table: dict[int, str | None] = {}
     for code in range(0x80, 0x10000):
         char = chr(code)
-        if unicodedata.category(char) == "Cf":
+        category = unicodedata.category(char)
+        if category == "Cf":
             # Soft hyphen, zero-width and bidi marks inserted inside IOCs.
             table[code] = None
+        elif category == "Zs":
+            # No-break, thin and other spaces: "evil[\u00a0.\u00a0]com" copied from HTML.
+            table[code] = " "
         elif unicodedata.decomposition(char).startswith(_FOLD_TAGS):
             table[code] = unicodedata.normalize("NFKC", char)
     for first, last in _ASTRAL_FORMAT_RANGES:
         table.update(dict.fromkeys(range(first, last + 1)))
     table.update(_EXTRA_FOLDS)
+    for code in _KEEP_WIDE:
+        del table[code]
     return table
 
 
-# Full-width brackets are folded to ASCII first, so only CJK brackets without an
-# ASCII equivalent are listed explicitly.
-_OPEN = r"[\[({<【〔〖「『]"
-_CLOSE = r"[\])}>】〕〗」』]"
+# Bidi controls are deleted inside a name ("ev\u200eil.com"), but where they are not between two
+# name characters they separate, like a space: "\u2066evil.com\u2069\u2066example.net\u2069", or a
+# name next to Hebrew text. So does U+2063 INVISIBLE SEPARATOR.
+_BIDI = "\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069"
+_NAME_OR_BIDI = "A-Za-z0-9.\\-\uff0d\uff0e\uff10-\uff19\uff21-\uff3a\uff41-\uff5a" + _BIDI
+_BIDI_BREAK_RE = re.compile(
+    "[\u202c\u2069][\u202a-\u202e\u2066-\u2068]"  # one isolate or embedding ends, the next begins
+    "|\u2063"
+    f"|(?<![{_NAME_OR_BIDI}])[{_BIDI}]"
+    f"|[{_BIDI}](?![{_NAME_OR_BIDI}])"
+)
 
-# "evil [.] com", "john [at] evil [dot] com": only between label characters.
-_SPACED_DOT_RE = re.compile(r"(?<=[A-Za-z0-9]) (?:\[(?:\.|dot)\]|\(\.\)) (?=[A-Za-z0-9])", re.IGNORECASE)
-_SPACED_AT_RE = re.compile(r"(?<=[A-Za-z0-9]) \[at\] (?=[A-Za-z0-9])", re.IGNORECASE)
-_DOT_RE = re.compile(_OPEN + r" ?(?:\.|。|dot|點|点) ?" + _CLOSE, re.IGNORECASE)
+
+# Full-width brackets are folded to ASCII first, so only CJK brackets without an
+# ASCII equivalent (and the unfolded full-width parentheses) are listed explicitly.
+_OPEN = r"[\[({<【〔〖「『（]"
+_CLOSE = r"[\])}>】〕〗」』）]"
+_DOT_MARK = r" ?(?:\.|。|dot|點|点) ?"
+_AT_MARK = r" ?(?:@|at) ?"
+
+# "evil [.] com", "john (at) evil {dot} com": a marker with one space on each side, only between
+# label characters.
+_SPACED_DOT_RE = re.compile(rf"(?<=[A-Za-z0-9]) {_OPEN}{_DOT_MARK}{_CLOSE} (?=[A-Za-z0-9])", re.IGNORECASE)
+_SPACED_AT_RE = re.compile(rf"(?<=[A-Za-z0-9]) {_OPEN}{_AT_MARK}{_CLOSE} (?=[A-Za-z0-9])", re.IGNORECASE)
+_DOT_RE = re.compile(_OPEN + _DOT_MARK + _CLOSE, re.IGNORECASE)
 _COLON_RE = re.compile(_OPEN + r" ?(://|:) ?" + _CLOSE)
 _SLASH_RE = re.compile(r"\[(//?)\]")
-_AT_RE = re.compile(_OPEN + r" ?(?:@|at) ?" + _CLOSE, re.IGNORECASE)
+_AT_RE = re.compile(_OPEN + _AT_MARK + _CLOSE, re.IGNORECASE)
 _BACKSLASH_DOT_RE = re.compile(r"(?<=[A-Za-z0-9])\\\.(?=[A-Za-z0-9])")
-# "hxxp[s]://" and "http[s]://" mean "http or https"; they are read as https.
-_HTTP_RE = re.compile(r"(?<![A-Za-z])h(?:(?:xx|\*\*|\[xx\]|\[tt\])p(s|\[s\])?|ttp(\[s\]))://", re.IGNORECASE)
+# "hxxp[s]://" and "http(s)://" mean "http or https"; they are read as https.
+_HTTP_RE = re.compile(
+    r"(?<![A-Za-z])h(?:(?:xx|\*\*|\[xx\]|\[tt\])p(s|\[s\]|[(（]s[)）])?|ttp(\[s\]|[(（]s[)）]))://",
+    re.IGNORECASE,
+)
 _FTP_RE = re.compile(r"(?<![A-Za-z])fxp(s?)://", re.IGNORECASE)
+# Word and Markdown typographers turn the "--" of a punycode name into a dash: "xn–80ak6aa92e.com".
+_PUNYCODE_DASH_RE = re.compile(r"(?<![A-Za-z0-9-])(xn)[\u2012-\u2015](?=[A-Za-z0-9])", re.IGNORECASE)
 
 
 def _http_scheme(match: re.Match[str]) -> str:
@@ -83,12 +113,15 @@ def _http_scheme(match: re.Match[str]) -> str:
 def refang(text: str) -> str:
     """Return ``text`` with common and CJK defanging conventions reversed.
 
-    Format characters (zero-width, soft hyphen, bidi marks) are removed, and
-    full-width, half-width and small forms are folded to their plain
-    equivalents. Other compatibility characters (superscripts, circled
-    numbers) are kept, so they never merge into an adjacent IOC.
+    Format characters (zero-width, soft hyphen, bidi marks) are removed, or
+    read as a space between two names; full-width, half-width and small forms
+    are folded to their plain equivalents, except full-width punctuation that
+    cannot be part of a URL; Unicode spaces become plain spaces. Other
+    compatibility characters (superscripts, circled numbers) are kept, so they
+    never merge into an adjacent IOC.
     """
-    text = text.translate(_fold_table())
+    text = _BIDI_BREAK_RE.sub(" ", text).translate(_fold_table())
+    text = _PUNYCODE_DASH_RE.sub(r"\1--", text)
     text = _SPACED_DOT_RE.sub(".", text)
     text = _SPACED_AT_RE.sub("@", text)
     text = _DOT_RE.sub(".", text)

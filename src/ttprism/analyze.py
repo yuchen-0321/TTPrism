@@ -11,7 +11,7 @@ from typing import Any
 from ttprism.allowlist import Allowlist, url_host
 from ttprism.attack import TECHNIQUE_ID_RE, AttackCatalog, RuleSet, TechniqueAccumulator
 from ttprism.cape import looks_like_cape, parse_cape
-from ttprism.extract import extract_into, find_technique_ids, is_reserved_domain, is_reserved_ip
+from ttprism.extract import extract_into, find_technique_ids, host_address, is_reserved_domain, is_reserved_ip
 from ttprism.inputs import (
     DEFAULT_MAX_BYTES,
     InputError,
@@ -44,12 +44,8 @@ def _is_reserved(ioc_type: IOCType, value: str) -> bool:
         host = url_host(value)
         if host == "localhost":
             return True
-        if host.startswith("[") or host[:1].isdigit():
-            try:
-                return is_reserved_ip(host.strip("[]"))
-            except ValueError:
-                pass
-        return is_reserved_domain(host)
+        address = host_address(host)
+        return is_reserved_ip(address) if address is not None else is_reserved_domain(host)
     return False
 
 

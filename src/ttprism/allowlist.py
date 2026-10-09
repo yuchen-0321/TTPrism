@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from ttprism._yaml import ConfigError, load_yaml_file, load_yaml_text
-from ttprism.extract import normalize_domain
+from ttprism.extract import host_address, normalize_domain
 from ttprism.models import HASH_TYPES, IOCType
 
 _HASH_RE = re.compile(r"[0-9a-f]{32}|[0-9a-f]{40}|[0-9a-f]{64}")
@@ -190,12 +190,8 @@ class Allowlist:
             return value in self.emails
         if ioc_type == IOCType.URL:
             host = url_host(value)
-            if host.startswith("[") or host[:1].isdigit():
-                try:
-                    return self._ip_listed(host.strip("[]"))
-                except ValueError:
-                    pass
-            return self.url_hosts.matches(host)
+            address = host_address(host)
+            return self._ip_listed(address) if address is not None else self.url_hosts.matches(host)
         return False
 
 

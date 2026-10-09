@@ -131,8 +131,9 @@ TTPrism does not guess techniques from report prose. The bundled catalog is Ente
 
 By default TTPrism drops:
 
-- **Reserved values**: private, loopback and documentation IP ranges, and `example.com`, `.test`,
-  `.example`, `.invalid`, `.local` names.
+- **Reserved values**: private, loopback and documentation IP ranges, IPv6 addresses outside
+  the global unicast block `2000::/3`, and `example.com`, `.test`, `.example`, `.invalid`,
+  `.local` names.
 - **Allowlisted values**: the root domains of large platforms (`google.com`, but not
   `drive.google.com` or URLs on it), sandbox background traffic, certificate revocation hosts,
   reference sites such as `attack.mitre.org`, and empty-file hashes. See
@@ -140,6 +141,8 @@ By default TTPrism drops:
 - **File names that look like domains**: `payload.zip` or `setup.py` written without a URL.
 - **Public suffixes**: `co.uk`, `com.tw` or `gov.tw` written without a URL (names under them,
   such as `evil.co.uk`, are kept).
+- **Code identifiers**: COM and .NET names such as `WScript.Shell` or `System.Net.Security`.
+- **Browser versions**: `Chrome/120.0.0.0` in a User-Agent string is not an IPv4 address.
 
 Counts of what was dropped are reported under `suppressed`, so nothing disappears silently.
 
@@ -153,6 +156,11 @@ Counts of what was dropped are reported under `suppressed`, so nothing disappear
 - Alternative-root TLDs such as `.bit` and `.i2p` are not recognised; `.onion` is.
 - A URL directly followed by `;command` (for example `wget http://x/a.sh;chmod`) keeps that
   suffix, because `;` is legal inside URLs.
+- A defang marker with a space on one side only (`update [.]example[.]com`) reads as a word
+  followed by a leading-dot name, giving `example.com`; write ` [.] ` with spaces on both sides
+  or none.
+- A single bidi mark between two name characters is removed as part of the name, so two IOCs
+  separated only by such a mark (`198.51.100.7\u200f203.0.113.9`) are not split.
 - `--defang` changes the scheme, host and `@` only; URL paths are left as they are.
 - CAPE is the only sandbox format so far.
 
