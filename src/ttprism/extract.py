@@ -817,19 +817,18 @@ def _rejoin_wrapped_lines(text: str) -> str:
     for match in _HYPHEN_WRAP_RE.finditer(text):
         hyphen, after = match.start(), match.end()
         before, next_char = text[hyphen - 1 : hyphen], text[after : after + 1]
-        state = None
-        if before == "." and _is_alnum(text[hyphen - 2 : hyphen - 1]) and _is_alnum(next_char):
-            cut = hyphen  # "evil.-\ncom"
-        elif _is_alnum(before) and next_char == "." and _is_alnum(text[after + 1 : after + 2]):
-            cut = hyphen  # "evil-\n.com"
-        elif (
-            _is_alnum(before)
-            and _is_alnum(next_char)
-            and (
-                state := _url_reaches(text, hyphen)
-                or _continues_url(text, url_line, url_rest, url_state, hyphen)
-            )
-        ):
+        dot_before = before == "." and _is_alnum(text[hyphen - 2 : hyphen - 1]) and _is_alnum(next_char)
+        dot_after = _is_alnum(before) and next_char == "." and _is_alnum(text[after + 1 : after + 2])
+        if not (dot_before or dot_after or (_is_alnum(before) and _is_alnum(next_char))):
+            continue
+        # The URL that runs up to the hyphen, if any: the one this line continues, else one on it.
+        continuing = url_state is not None and text.rfind("\n", 0, hyphen) + 1 == url_line
+        state = (_continues_url(text, url_rest, url_state, hyphen) if continuing else None) or _url_reaches(
+            text, hyphen
+        )
+        if dot_before or dot_after:
+            cut = hyphen  # "evil.-\ncom", "evil-\n.com": the hyphen cannot belong to the name
+        elif state is not None:
             cut = hyphen + 1  # "http://evil.com/a-\nb.exe", also when the URL wraps again
         else:
             continue
@@ -848,6 +847,7 @@ def _is_alnum(char: str) -> bool:
 # Where a URL that runs up to a line-end hyphen stands: still in its host (no path or port yet), and
 # the quote before it, if any, at which _url_matches ends it.
 _UrlState = tuple[bool, str]
+_HOST_PART_RE = re.compile(r"[A-Za-z0-9.-]{1,253}")
 
 
 def _url_state(match: re.Match[str], quote: str) -> _UrlState:
@@ -874,23 +874,31 @@ def _url_reaches(text: str, hyphen: int) -> _UrlState | None:
     return _url_state(last, line[last.start() - 1 : last.start()])
 
 
-def _continues_url(
-    text: str, url_line: int, url_rest: int, state: _UrlState | None, hyphen: int
-) -> _UrlState | None:
-    """The new state if the hyphen ends the line at ``url_line``, which continues a URL joined to it
-    from ``url_rest`` on, and the URL runs on to the hyphen: as a host while the URL is still in its
-    host, else as a path, and not past the URL's closing quote."""
-    if state is None or text.rfind("\n", 0, hyphen) + 1 != url_line:
+def _continues_url(text: str, url_rest: int, state: _UrlState | None, hyphen: int) -> _UrlState | None:
+    """The new state if the URL joined to the hyphen's line runs on from ``url_rest`` to the hyphen.
+
+    In its host, only letters, digits, dots and hyphens carry the URL on, or a host followed by a
+    port and a path; anything else there (a user name, a password, "(") may make the extractor read
+    the joined text differently, so the URL is not carried on. After the host, the line must be URL
+    path characters. A URL that began after a quote stops at that quote.
+    """
+    if state is None:
         return None
     in_host, quote = state
     rest = text[url_rest : hyphen + 1]
     if quote and quote in rest:
         return None
-    url = ("http://" if in_host else "http://a/") + rest
+    if in_host:
+        if _HOST_PART_RE.fullmatch(rest):
+            return state
+        url = "http://" + rest
+        match = URL_RE.match(url)
+        if match is None or match.end() != len(url) or match.group("userinfo") or match.start("rest") == -1:
+            return None
+        return False, quote
+    url = "http://a/" + rest
     match = URL_RE.match(url)
-    if match is None or match.end() != len(url):
-        return None
-    return in_host and _url_state(match, "")[0], quote
+    return (False, quote) if match is not None and match.end() == len(url) else None
 
 
 def extract_into(collector: IOCCollector, text: str, source: str, stats: Counter[str] | None = None) -> None:

@@ -1633,5 +1633,80 @@ def test_soft_hyphen_check_reads_a_bounded_amount_of_text() -> None:
             "KB\u00adAuto.example.com " + "x " * 30 + "up\u00addate.example.net"
         )
     assert warning.startswith(
-        "1 extracted name(s), e-mail address(es) or URL(s) (in the first 40 characters)"
+        "1 extracted name(s), e-mail address(es) or URL(s) (from the first 40 characters)"
     )
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        # The joined value also occurs as written.
+        "C2: kb\u00adauto.example.com. Also seen: kbauto.example.com",
+        "C2 kb\u00adauto.example.com, http://kbauto.example.com/a",
+        "mail ops\u00adteam@example.org or opsteam@example.org",
+    ],
+)
+def test_soft_hyphen_warning_when_the_joined_value_also_occurs(text: str) -> None:
+    assert len(soft_hyphen_warnings(text)) == 1
+
+
+def test_soft_hyphen_warning_when_the_joined_value_is_allowlisted() -> None:
+    result = analyze_text("C2 server: micro\u00adsoft.com")  # micro-soft.com would be reported
+    assert [w for w in result.warnings if "U+00AD" in w]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "C2 evil.example.com\u00ad\u2063kb.example.net",  # U+2063 separates the two names
+        "C2 \u2066evil.example.com\u2069\u00ad\u2066kb.example.net\u2069",
+        "Contact: kb\u00ad\u2063auto.example.com",
+    ],
+)
+def test_soft_hyphens_beside_separators_give_no_warning(text: str) -> None:
+    assert soft_hyphen_warnings(text) == []
+
+
+@pytest.mark.parametrize(
+    ("text", "url"),
+    [
+        # A URL inside the query of a URL that already wrapped stays part of it.
+        (
+            "See https://r.example.net/redirect?u=a-\nb&url=http://update-\ncheck.example.com&id=x-\ny now",
+            "https://r.example.net/redirect?u=a-b&url=http://update-check.example.com&id=x-y",
+        ),
+        # A dot wrap carries the URL on to the next line.
+        (
+            "C2: http://files.-\nupdate-\ncheck.example.com/a.exe now",
+            "http://files.update-check.example.com/a.exe",
+        ),
+        (
+            "C2: http://files-\n.update-\ncheck.example.com/a.exe now",
+            "http://files.update-check.example.com/a.exe",
+        ),
+        (
+            "C2: http://update-\ncheck.example.com:8443/a-\nb.exe",
+            "http://update-check.example.com:8443/a-b.exe",
+        ),
+    ],
+)
+def test_wrapped_urls_keep_their_state_across_lines(text: str, url: str) -> None:
+    assert url in [v for t, v in everything(text) if t == "url"]
+
+
+@pytest.mark.parametrize(
+    ("text", "url", "host"),
+    [
+        # In its host, only letters, digits, dots and hyphens carry a URL on to a further line.
+        (
+            "C2: ftp://ops-\nteam:a,b@files.example.net/db-\nbackup.zip",
+            "ftp://ops-team:a,b@files.example.net/db-",
+            "files.example.net",
+        ),
+        ("ftp://svc-\nacct:pw-\n1@files.example.net/x.zip now", None, None),
+    ],
+)  # fmt: skip
+def test_urls_wrapping_again_after_userinfo_are_cut(text: str, url: str | None, host: str | None) -> None:
+    found = everything(text)
+    assert [v for t, v in found if t == "url"] == ([url] if url else [])
+    assert [v for t, v in found if t == "domain"] == ([host] if host else [])

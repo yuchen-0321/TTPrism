@@ -291,6 +291,8 @@ def test_inner_soft_hyphens_can_be_shown(text: str, expected: str) -> None:
         "caf\u00e9\u00adbar",  # a non-ASCII letter that does not fold to ASCII
         "KB\u200bAuto",  # deleted characters without a soft hyphen
         "line\u00ad\nbreak",  # refang reads this one as a hyphen anyway
+        "evil.com\u00ad\u2063kb.net",  # U+2063 and bidi controls separate two names
+        "a\u2069\u00ad\u2066b",
     ],
 )
 def test_other_soft_hyphens_are_not_shown(text: str) -> None:

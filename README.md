@@ -187,15 +187,17 @@ Counts of what was dropped are reported under `suppressed`, so nothing disappear
 - Names and URLs broken across lines (as PDF converters leave them) are joined only where the
   hyphen at the break cannot belong to them (`evil.-` / `com`, `evil-` / `.com`) or where a URL
   breaks after one of its own hyphens (`/KB-Auto-win-` / `update.exe`, over as many lines as it
-  takes). This misjudges two cases: a URL that really ends in `-` at the end of a line is joined
-  with the start of the next line, and a name at the start of a line after a line ending in a
-  letter or digit and `-` (`2019-` / `evil.com`) is dropped as a fragment. A break without a hyphen
-  (`mp.weixi` / `n.qq.com`) gives no sign that the line continues, so such names and URLs are not
-  joined, and the part on each line may be reported on its own.
+  takes; while the URL is still in its host, only a line of letters, digits, dots and hyphens, or
+  one that goes on to a port or path, carries it to a further line, so a URL that wraps again after
+  a user name or password is cut there). This misjudges two cases: a URL that really ends in `-` at
+  the end of a line is joined with the start of the next line, and a name at the start of a line
+  after a line ending in a letter or digit and `-` (`2019-` / `evil.com`) is dropped as a fragment.
+  A break without a hyphen (`mp.weixi` / `n.qq.com`) gives no sign that the line continues, so such
+  names and URLs are not joined, and the part on each line may be reported on its own.
 - A soft hyphen (U+00AD) between two letters or digits is deleted as a break hint. A converter
   that writes every hyphen as a soft hyphen therefore makes names and URLs lose their hyphens
   (`KB-Auto` read as `KBAuto`). TTPrism warns when reading those soft hyphens as hyphens would
-  change an extracted name, e-mail address or URL; to find out, it extracts the first 8 Mi
+  change the names, e-mail addresses or URLs it reports; to find out, it extracts the first 8 Mi
   characters of such a text a second time. Soft hyphens between the groups of a GUID and at the end
   of a line are read as hyphens.
 - CAPE is the only sandbox format so far.

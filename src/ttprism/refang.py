@@ -149,11 +149,16 @@ def _folds_to_alnum(char: str, last: bool) -> bool:
     return bool(folded) and folded is not None and (folded[-1] if last else folded[0]) in _ASCII_ALNUM
 
 
+# Characters that refang reads as a space between two names, not as part of one.
+_SEPARATING = frozenset(chr(code) for code in (*_BIDI_CODES, 0x2063))
+
+
 def _inner_run_as_hyphen(match: re.Match[str]) -> str:
     run, text = match.group(0), match.string
     start, end = match.span()
     if (
         "\u00ad" in run
+        and _SEPARATING.isdisjoint(run)
         and _folds_to_alnum(text[start - 1 : start], last=True)
         and _folds_to_alnum(text[end : end + 1], last=False)
     ):
@@ -163,7 +168,8 @@ def _inner_run_as_hyphen(match: re.Match[str]) -> str:
 
 def show_inner_soft_hyphens(text: str) -> str | None:
     """``text`` with each run of deleted characters that holds a soft hyphen and stands between two
-    letters or digits written as "-" ("KB\u00adAuto" as "KB-Auto"), or None if there is none."""
+    letters or digits written as "-" ("KB\u00adAuto" as "KB-Auto"), or None if there is none. Runs
+    with a character that separates two names (U+2063, bidi controls) are left alone."""
     if "\u00ad" not in text:
         return None
     shown = _deleted_run_re().sub(_inner_run_as_hyphen, text)

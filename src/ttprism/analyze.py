@@ -96,7 +96,7 @@ def analyze_text(text: str, options: AnalysisOptions | None = None) -> AnalysisR
         techniques.add_reported(technique_id, f"named in text: {technique_id}")
     result = _finish("text", collector, techniques, options, stats, [])
     if "\u00ad" in text:
-        result.warnings.extend(_soft_hyphen_warning(text, collector, result.iocs))
+        result.warnings.extend(_soft_hyphen_warning(text, collector, result.iocs, options))
     return result
 
 
@@ -105,30 +105,38 @@ _NAME_TYPES = (IOCType.URL, IOCType.DOMAIN, IOCType.EMAIL)
 MAX_SOFT_HYPHEN_CHECK_CHARS = 8 * 1024 * 1024
 
 
-def _soft_hyphen_warning(text: str, collector: IOCCollector, iocs: list[IOC]) -> list[str]:
-    """A warning when names, e-mail addresses or URLs change if the soft hyphens deleted between two
-    letters or digits are read as hyphens: some PDF converters write every hyphen that way, so the
-    values may have lost hyphens. The other reading is extracted again, from the first
-    MAX_SOFT_HYPHEN_CHECK_CHARS characters only."""
+def _soft_hyphen_warning(
+    text: str, collector: IOCCollector, iocs: list[IOC], options: AnalysisOptions
+) -> list[str]:
+    """A warning when reading the soft hyphens deleted between two letters or digits as hyphens would
+    change the names, e-mail addresses or URLs reported: some PDF converters write every hyphen that
+    way, so the values found may have lost hyphens. The first MAX_SOFT_HYPHEN_CHECK_CHARS characters
+    are extracted a second time in that reading; the count is the larger of the reported values it
+    lacks and the values it would report besides."""
     checked = text[:MAX_SOFT_HYPHEN_CHECK_CHARS]
     shown = show_inner_soft_hyphens(checked)
     if shown is None:
         return []
-    if len(checked) < len(text):
-        collector = IOCCollector()
-        extract_into(collector, refang(checked), "text")
     other = IOCCollector()
     extract_into(other, refang(shown), "text")
-    kept = {(t, v) for t, v, _ in other if t in _NAME_TYPES}
-    changed = {(t, v) for t, v, _ in collector if t in _NAME_TYPES and (t, v) not in kept}
-    count = sum(1 for ioc in iocs if (ioc.type, ioc.value) in changed)
+    first = {(t, v) for t, v, _ in collector if t in _NAME_TYPES}
+    second = {(t, v) for t, v, _ in other if t in _NAME_TYPES}
+    lacking = sum(1 for i in iocs if i.type in _NAME_TYPES and (i.type, i.value) not in second)
+    besides = sum(
+        1
+        for i in _filter(other, options, Counter())
+        if i.type in _NAME_TYPES and (i.type, i.value) not in first
+    )
+    count = max(lacking, besides) if len(checked) == len(text) else besides
     if not count:
         return []
-    where = f" (in the first {MAX_SOFT_HYPHEN_CHECK_CHARS:,} characters)" if len(checked) < len(text) else ""
+    where = (
+        f" (from the first {MAX_SOFT_HYPHEN_CHECK_CHARS:,} characters)" if len(checked) < len(text) else ""
+    )
     return [
-        f"{count} extracted name(s), e-mail address(es) or URL(s){where} change if the soft hyphens "
-        "(U+00AD) deleted between letters or digits are read as hyphens; some PDF converters write every "
-        "hyphen as a soft hyphen, so these values may have lost hyphens (KB-Auto read as KBAuto)"
+        f"{count} extracted name(s), e-mail address(es) or URL(s){where} would differ if the soft hyphens "
+        "(U+00AD) deleted between letters or digits were read as hyphens; some PDF converters write every "
+        "hyphen as a soft hyphen, so the values found may have lost hyphens (KB-Auto read as KBAuto)"
     ]
 
 

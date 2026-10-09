@@ -67,7 +67,9 @@ Text reports are bounded only by `--max-size`, so a hostile 64 MiB text costs ab
 CPU time but no more; the CAPE caps keep a hostile report under half a minute. A text with a soft
 hyphen between two letters or digits has its first 8 Mi characters extracted a second time, to see
 whether reading the soft hyphens as hyphens changes any name or URL (`MAX_SOFT_HYPHEN_CHECK_CHARS`);
-on the worst pathological text that adds at most about half a minute. Faster IOC extraction is
+on the worst pathological case of `tests/test_redos.py` that added 19 s here (8.4 million
+characters, 10.3 MB), so about half a minute at most, or up to a minute on a machine twice as
+slow. Faster IOC extraction is
 planned for v0.2 (issue #2).
 
 ## Known limitations
