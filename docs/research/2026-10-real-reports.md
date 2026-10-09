@@ -40,7 +40,7 @@ domains, IPv4 and MD5 only.
 
 - **Input.** pypdf 6.20.0 turns each PDF into text, page headers and footers included; all tools
   read the same text. Versions: iocextract 1.16.1, ioc-finder 9.4.1, Python 3.11.4; TTPrism at
-  d53b3ed (baseline) and a7d7e7b (after the fixes; the first fix commit, 6d0012d, gave the same
+  d53b3ed (baseline) and 88bda72 (after the fixes; the first fix commit, 6d0012d, gave the same
   output, see section 4).
 - **TTPrism settings.** *default* (the main numbers) and *raw* (`--include-reserved
   --no-default-allowlist`). Comparisons with the other tools use raw.
@@ -167,24 +167,25 @@ joined with the next line, and a name at the start of a line after a line ending
 digit and `-` (`2019-` / `example.com`) is dropped as a fragment.
 
 **Changes made before the freeze from reading the code, not from these data** (6857503, then
-6c655c8, 60a0d1f and a7d7e7b after three rounds of adversarial review):
+6c655c8, 60a0d1f, a7d7e7b and 88bda72 after four rounds of adversarial review):
 
 - A soft hyphen right before a line break, also with spaces, bidi controls or other format
   characters between, is read as `-`, so the line-break rules apply to it exactly as to `-`. It used
   to be deleted first, so `update\u00ad` / `check-server.com` gave the wrong `check-server.com`.
-- When reading the soft hyphens deleted between two letters or digits as hyphens would change an
-  extracted name, e-mail address or URL, a warning says so, because some converters (cn01's among
+- When reading the soft hyphens deleted between two letters or digits as hyphens would change the
+  names, e-mail addresses or URLs reported, a warning says so, because some converters (cn01's among
   them) write every hyphen as a soft hyphen and the value then loses its hyphens (`KB-Auto` read as
   `KBAuto`). TTPrism finds out by extracting the text a second time in that reading.
 - A bare `序號` is a serial-number label only with a colon, since it also heads the row-number
   column of tables; `證書序號` and `憑證序號` need none.
 - A line ending in `<letter or digit>-` is joined with the next line as part of a URL only if a URL,
   as the extractor reads it, really runs up to the hyphen; before, any URL earlier on a line of
-  Chinese text without spaces was enough. A URL wrapped after its own hyphens over several lines is
-  joined at every break, as a host while it is still in its host.
+  Chinese text without spaces was enough. A URL wrapped after its own hyphens or at dots over
+  several lines is joined at every break; while it is still in its host, only a line of host
+  characters, or one going on to a port or path, carries it further.
 
-None of these changed any output on the eight reports (6d0012d, 6c655c8, 60a0d1f and a7d7e7b give
-identical results). cn01 has 46 soft hyphens inside lines, but reading them as hyphens changes no
+None of these changed any output on the eight reports (6d0012d, 6c655c8, 60a0d1f, a7d7e7b and
+88bda72 give identical results). cn01 has 46 soft hyphens inside lines, but reading them as hyphens changes no
 extracted value, so it gives no warning.
 
 ## 5. Limitations
