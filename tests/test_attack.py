@@ -174,7 +174,7 @@ def test_rule_warnings_for_outdated_techniques(tmp_path: Path) -> None:
         (
             "- id: x\n  technique: T1059\n  match: {commands: [a]}\n  d: 2026-02-30\n",
             '"19.2"',
-            "out of range",
+            "invalid YAML value",  # the rest of the message differs between Python versions
         ),
     ],
 )
