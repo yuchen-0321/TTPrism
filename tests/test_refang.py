@@ -256,7 +256,10 @@ def test_soft_hyphens_in_a_guid_become_hyphens() -> None:
         ("update\u00ad\u200b\u00a0\ncheck", "update- \ncheck"),
         ("a\u00ad\u00ad\nb", "a-\nb"),  # only the last one before the break
         ("update\u00adcheck\u00ad", "updatecheck"),  # not at a line end
-        ("update\u00ad" + " " * 9 + "\ncheck", "update" + " " * 9 + "\ncheck"),
+        ("update\u00ad" + " " * 9 + "\ncheck", "update-" + " " * 9 + "\ncheck"),
+        ("update\u00ad\u2069\ncheck", "update- \ncheck"),  # a bidi control before the break
+        ("update\u00ad\u2009\u3000\ncheck", "update-  \ncheck"),
+        ("update\u00ad" + "\u2009" * 1025 + "\ncheck", "update" + " " * 1025 + "\ncheck"),
     ],
 )
 def test_soft_hyphen_at_a_line_end_becomes_a_hyphen(text: str, expected: str) -> None:
@@ -270,9 +273,22 @@ def test_soft_hyphen_at_a_line_end_becomes_a_hyphen(text: str, expected: str) ->
         ("/1/KB\u00adAuto\u00adwin\u00adupdate.exe", {"kbautowinupdate"}),
         ("c2.up\u00addate.example.net", {"update"}),
         ("ops\u00adteam@example.org", {"opsteam"}),
+        ("up\u00addate[.]example[.]com", {"update"}),  # defanged names count after refanging
+        ("up\u00addate [.] example [.] com", {"update"}),
+        ("up\u00addate\uff0eexample\uff0ecom", {"update"}),
+        ("ops\u00adteam[@]example.org", {"opsteam"}),
+        ("KB\u00ad\u00adAuto.exe", {"kbauto"}),
+        ("KB\u200b\u00adAuto.exe", {"kbauto"}),
+        ("x/KB\u00adAuto", {"kbauto"}),
+        ("x?q=KB\u00adAuto&y=1", {"kbauto"}),
         ("hyphen\u00adation in prose", set()),
+        ("hyphen\u00adation.", set()),
+        ("down\u00adload: http://198.51.100.7/download.php", set()),
+        ("(see the up\u00addate.)", set()),
         ("\u00adword. and word\u00ad.", set()),  # not between two letters or digits
         ("caf\u00e9\u00adbar.com", set()),
+        ("{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}", set()),  # a GUID's hyphens
+        ("\ue000a\u00adb.example", {"ab"}),  # a private-use character in the input is not a mark
     ],
 )
 def test_soft_hyphen_words(text: str, expected: set[str]) -> None:

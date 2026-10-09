@@ -1287,8 +1287,12 @@ def test_guid_written_with_soft_hyphens_is_not_an_md5() -> None:
         "Serial Number: 00b68e6db2bb7412fabcbaa2192394ad",
         "serial_no=00b68e6db2bb7412fabcbaa2192394ad",
         "序列号：00B68E6DB2BB7412FABCBAA2192394AD",
+        "證書序列號 00B68E6DB2BB7412FABCBAA2192394AD",
+        "證書序號 00b68e6db2bb7412fabcbaa2192394ad5f3e2d1c",  # "certificate serial number" needs no colon
+        "憑證序號 00B68E6DB2BB7412FABCBAA2192394AD",
         "證書序號：00b68e6db2bb7412fabcbaa2192394ad5f3e2d1c",
         "序號: 00b68e6db2bb7412fabcbaa2192394ad",
+        "序號 ：00b68e6db2bb7412fabcbaa2192394ad",
     ],
 )
 def test_certificate_serial_numbers_are_not_hashes(text: str) -> None:
@@ -1299,13 +1303,15 @@ def test_certificate_serial_numbers_are_not_hashes(text: str) -> None:
 @pytest.mark.parametrize(
     "text",
     [
-        "序號 d41d8cd98f00b204e9800998ecf8427e",  # the row-number column of a table
-        "序號\td41d8cd98f00b204e9800998ecf8427e",
-        "序號 1 d41d8cd98f00b204e9800998ecf8427e",
+        "序號 00b68e6db2bb7412fabcbaa2192394ad",  # the row-number column of a table
+        "序號\t00b68e6db2bb7412fabcbaa2192394ad",
+        "序號=00b68e6db2bb7412fabcbaa2192394ad",
+        "樣本序號 00b68e6db2bb7412fabcbaa2192394ad",
+        "序號 1 00b68e6db2bb7412fabcbaa2192394ad",
     ],
 )
 def test_row_number_heading_is_not_a_serial_label(text: str) -> None:
-    assert values(text, IOCType.MD5) == ["d41d8cd98f00b204e9800998ecf8427e"]
+    assert values(refang(text), IOCType.MD5) == ["00b68e6db2bb7412fabcbaa2192394ad"]
 
 
 def test_values_after_other_labels_are_still_hashes() -> None:
@@ -1427,6 +1433,41 @@ def test_soft_hyphen_at_a_line_end_leaves_a_fragment() -> None:
     assert stats_for(refang("update\u00ad\ncheck-server.example.com"))["line_wrap_fragment"] == 1
 
 
+@pytest.mark.parametrize(
+    "gap",
+    ["", " ", "\t", " \t  ", "\u00a0", "\u3000", "\u2009", "\u2002", "\u200b", "\u200e", "\u2069", "\u202c",
+     "\u2063", "\u2061", "\ufeff", "\u200b" * 4 + " " * 5, " " * 9, "\u2009" * 9],
+)  # fmt: skip
+@pytest.mark.parametrize(
+    "template",
+    [
+        "update{}\ncheck-server.example.com",
+        "c2.example.{}\ncom",
+        "files.example{}\n.net",
+        "http://198.51.100.7/1/update{}\r\nwin.exe",
+        "ops{}\nteam@example.org",
+    ],
+)
+def test_soft_hyphen_at_a_line_end_works_like_a_hyphen(template: str, gap: str) -> None:
+    options = AnalysisOptions(include_reserved=True)
+    soft = analyze_text(template.format("\u00ad" + gap), options)
+    hard = analyze_text(template.format("-" + gap), options)
+    assert (soft.iocs, soft.suppressed) == (hard.iocs, hard.suppressed)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "样本下载自http://a.example.com/x.exe，时间为2019-\nevil.example.org为C2",
+        "样本下载自http://a.example.com/x.exe，备用域名为dynamic-\ndns.example.net",
+        '"http://a.example.com/x.exe" 2019-\nevil.example.org',
+    ],
+)
+def test_a_url_that_ended_earlier_on_the_line_is_not_joined(text: str) -> None:
+    assert [v for t, v in everything(text) if t == "domain"] == ["a.example.com"]
+    assert stats_for(refang(text))["line_wrap_fragment"] == 1
+
+
 def soft_hyphen_warnings(text: str) -> list[str]:
     result = analyze_text(text, AnalysisOptions(include_reserved=True))
     return [w for w in result.warnings if "U+00AD" in w]
@@ -1439,6 +1480,17 @@ def soft_hyphen_warnings(text: str) -> list[str]:
         "http://198.51.100.7/1/KB\u00adAuto\u00adwin\u00adupdate.exe",
         "mail ops\u00adteam@example.org now",
         "c2.up\u00addate.example.net",
+        "C2: up\u00addate[.]example[.]com",
+        "C2 up\u00addate [.] example [.] com",
+        "C2 up\u00addate\uff0eexample\uff0ecom",
+        "c2.example[.]up\u00addate[.]com",
+        "mail ops\u00adteam[@]example.org",
+        "mail kb\u00adauto+tag@example.org",
+        "http://198.51.100.7/KB\u00adAuto",
+        "http://198.51.100.7/x?q=KB\u00adAuto&y=1",
+        "http://198.51.100.7/a,kb\u00adauto",
+        "KB\u00ad\u00adAuto.example.com",
+        "KB\u200b\u00adAuto.example.com",
     ],
 )
 def test_soft_hyphens_inside_names_and_urls_are_reported(text: str) -> None:
@@ -1450,7 +1502,11 @@ def test_soft_hyphens_inside_names_and_urls_are_reported(text: str) -> None:
     [
         "Hyphen\u00adation in prose, and c2.example.com",
         "please up\u00addate now: http://198.51.100.7/update.exe",  # the word touches no name punctuation
-        "MD5 d41d8cd98f00\u00adb204e9800998ecf8427e",  # hashes have no hyphens to lose
+        "The loader tries to down\u00adload: http://198.51.100.7/download.php",
+        "It impersonates Micro\u00adsoft. Phishing page: https://microsoft-login.example.net/",
+        "e\u00admail: ops@example.org and https://email.example.net/",
+        "Second stage (see the up\u00addate.) http://198.51.100.7/update.exe",
+        "md5=00b68e6db2bb\u00ad7412fabcbaa2192394ad.",  # hashes have no hyphens to lose
         "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",
         "update\u00ad\ncheck-server.example.com",
         "\u00adexample.com and example.org\u00ad",
@@ -1462,4 +1518,7 @@ def test_other_soft_hyphens_are_not_reported(text: str) -> None:
 
 def test_soft_hyphen_warning_counts_the_values() -> None:
     (warning,) = soft_hyphen_warnings("a\u00adb.example.com c\u00add.example.net e.example.org")
-    assert warning.startswith("2 name(s)")
+    assert warning.startswith("2 extracted name(s)")
+    # A value counts when it contains a joined word, wherever that word was joined.
+    (warning,) = soft_hyphen_warnings("KB\u00adAuto.example.com and kbauto.example.net")
+    assert warning.startswith("2 extracted name(s)")

@@ -106,8 +106,9 @@ _WORD_RE = re.compile(r"[a-z0-9]+")
 
 
 def _soft_hyphen_warning(text: str, iocs: list[IOC]) -> list[str]:
-    """A warning when names or URLs contain soft hyphens that refang deleted between two letters or
-    digits: some PDF converters write every hyphen that way, so the values may have lost hyphens."""
+    """A warning when names, e-mail addresses or URLs contain words joined by deleting soft hyphens
+    between two letters or digits: some PDF converters write every hyphen that way, so the values may
+    have lost hyphens. A value counts when one of its words is such a word, wherever it was joined."""
     words = soft_hyphen_words(text)
     if not words:
         return []
@@ -119,9 +120,9 @@ def _soft_hyphen_warning(text: str, iocs: list[IOC]) -> list[str]:
     if not count:
         return []
     return [
-        f"{count} name(s), e-mail address(es) or URL(s) contained soft hyphens (U+00AD) between letters "
-        "or digits, which were deleted; some PDF converters write every hyphen as a soft hyphen, so these "
-        "values may have lost hyphens (KB-Auto read as KBAuto)"
+        f"{count} extracted name(s), e-mail address(es) or URL(s) contain words that were joined by "
+        "deleting soft hyphens (U+00AD) between letters or digits; some PDF converters write every "
+        "hyphen as a soft hyphen, so these values may have lost hyphens (KB-Auto read as KBAuto)"
     ]
 
 

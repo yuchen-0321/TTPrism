@@ -156,6 +156,12 @@ PATHOLOGICAL = {
     "soft hyphen runs": "a\u00adb" * (SIZE // 3),
     "soft hyphens in url paths": ("http://a.com/" + "b\u00adc" * 500 + " ") * (SIZE // 1514),
     "soft hyphens after long words": ("a" * 1000 + "\u00adb.") * (SIZE // 1003),
+    "soft hyphens before long space runs": ("a\u00ad" + "\u2009" * 1100 + "x") * (SIZE // 1103),
+    "soft hyphens in many names": "".join(f"h{i}\u00adx.example.com " for i in range(SIZE // 22)),
+    "soft hyphens beside other format characters": "a\u00ad\u200b" * (SIZE // 3),
+    "line ends after ended urls": ("http://a.com/x\uff0c" + "a" * 40 + "-\n") * (SIZE // 57),
+    "line ends after long url paths": ("http://a.com/" + "b" * 2100 + "-\n") * (SIZE // 2115),
+    "schemes before line ends": ("a://" * 1000 + "b-\n") * (SIZE // 4003),
 }
 
 # Command lines reach the ATT&CK rules from CAPE reports: quotes, carets and chaining, glued

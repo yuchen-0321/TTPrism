@@ -92,41 +92,108 @@ def _guid_hyphens(match: re.Match[str]) -> str:
 
 
 # A soft hyphen at the end of a line is where a word was broken, as a hyphen there is, so it is
-# read as one and the line-break rules of the extractor decide what it joins. Spaces and other
-# format characters may stand between it and the line break.
-_SOFT_HYPHEN_BREAK_RE = re.compile(r"\u00ad(?=[ \t\u00a0\u3000\u200b-\u200f\u2060\ufeff]{0,8}\r?\n)")
+# read as one and the line-break rules of the extractor decide what it joins. Between it and the
+# line break there may be anything that refang turns into a space or deletes (spaces, zero-width and
+# bidi marks), so that the result is the same as for "-". _soft_hyphen_break_re builds the pattern.
+_MAX_BREAK_GAP = 1024
 
-# Soft hyphens between two ASCII letters or digits are deleted, as break hints. That is wrong when a
-# converter wrote every hyphen as one ("KB\u00adAuto" becomes "KBAuto"); see soft_hyphen_words.
+
+def _char_class(codes: set[int]) -> str:
+    """The inside of a regex character class that matches exactly ``codes``."""
+    parts = []
+    ordered = sorted(codes)
+    first = previous = ordered[0]
+    for code in [*ordered[1:], -1]:
+        if code != previous + 1:
+            parts.append(f"\\U{first:08x}" if first == previous else f"\\U{first:08x}-\\U{previous:08x}")
+            first = code
+        previous = code
+    return "".join(parts)
+
+
+@functools.cache
+def _soft_hyphen_break_re() -> re.Pattern[str]:
+    gap = {0x09, 0x20} | {code for code, value in _fold_table().items() if value in (None, " ")} - {0xAD}
+    return re.compile(f"\\u00ad(?=[{_char_class(gap)}]{{0,{_MAX_BREAK_GAP}}}\\r?\\n)")
+
+
+def _soft_hyphens_as_hyphens(text: str) -> str:
+    """Soft hyphens between the groups of a GUID and at the end of a line become hyphens."""
+    text = _SOFT_HYPHEN_GUID_RE.sub(_guid_hyphens, text)
+    return _soft_hyphen_break_re().sub("-", text)
+
+
+# Other soft hyphens are deleted, as break hints. That is wrong when a converter wrote every hyphen
+# as one ("KB\u00adAuto" becomes "KBAuto"). soft_hyphen_words finds the words that this joined
+# inside a name or URL: it marks each run of deleted characters with a soft hyphen in it between two
+# ASCII letters or digits, refangs the marked text, and reads the marks against the refanged names,
+# so defanged names ("up\u00addate[.]example[.]com") count too.
+_SOFT_HYPHEN_MARK = "\ue000"  # private use: refang neither deletes nor folds it
 _ASCII_ALNUM = frozenset("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
-_WORD_OR_SOFT_HYPHEN = _ASCII_ALNUM | {"\u00ad"}
-_WORD_RUN_RE = re.compile(r"[0-9A-Za-z\u00ad]*")
-_NAME_PUNCTUATION = frozenset("./\\:@-_%?=&#~")
+_MARKED_WORD_RE = re.compile("[0-9A-Za-z\ue000]*")
+# Punctuation that joins a word to the rest of a name, e-mail address or URL: a word counts if such
+# a character follows it and a letter or digit comes next ("KB\u00adAuto.example"), or one comes
+# before it after another name character ("/KB\u00adAuto"). Prose does not count:
+# "down\u00adload: http://...", "Micro\u00adsoft. ...", "(see the up\u00addate.)".
+_NAME_PUNCTUATION = frozenset("./\\:@-_%?=&#~+,;!()'*$[]")
+_NAME_CHARACTER = _ASCII_ALNUM | _NAME_PUNCTUATION
+_MARKED_WORD_CHARACTER = _ASCII_ALNUM | {_SOFT_HYPHEN_MARK}
+
+
+@functools.cache
+def _deleted_run_re() -> re.Pattern[str]:
+    deleted = {code for code, value in _fold_table().items() if value is None}
+    return re.compile(f"[{_char_class(deleted)}]{{1,64}}")
+
+
+def _mark_inner_soft_hyphens(match: re.Match[str]) -> str:
+    run, text = match.group(0), match.string
+    start, end = match.span()
+    if "\u00ad" in run and text[start - 1 : start] in _ASCII_ALNUM and text[end : end + 1] in _ASCII_ALNUM:
+        return _SOFT_HYPHEN_MARK
+    return run
 
 
 def soft_hyphen_words(text: str) -> set[str]:
-    """The lower-cased words that :func:`refang` joins by deleting a soft hyphen between two ASCII
-    letters or digits, where the word touches name or URL punctuation ("KB\u00adAuto.exe" gives
-    "kbauto"; "hyphen\u00adation " gives nothing)."""
+    """The lower-cased words that :func:`refang` joins by deleting soft hyphens between two ASCII
+    letters or digits, where punctuation joins the word to more of a name, e-mail address or URL
+    ("KB\u00adAuto.exe" and "up\u00addate[.]example[.]com" give "kbauto" and "update"; prose such
+    as "hyphen\u00adation." gives nothing)."""
+    if "\u00ad" not in text:
+        return set()
+    marked = _deleted_run_re().sub(
+        _mark_inner_soft_hyphens, _soft_hyphens_as_hyphens(text.replace(_SOFT_HYPHEN_MARK, "\ufffd"))
+    )
     words: set[str] = set()
-    covered = 0
-    index = text.find("\u00ad")
+    # Refanging never joins or splits lines, so only the lines with a mark are refanged.
+    index = marked.find(_SOFT_HYPHEN_MARK)
     while index != -1:
-        if (
-            index >= covered
-            and text[index - 1 : index] in _ASCII_ALNUM
-            and text[index + 1 : index + 2] in _ASCII_ALNUM
-        ):
-            start = index
-            while start > covered and text[start - 1] in _WORD_OR_SOFT_HYPHEN:
-                start -= 1
-            match = _WORD_RUN_RE.match(text, index)
-            end = match.end() if match else index + 1
-            covered = end
-            if text[start - 1 : start] in _NAME_PUNCTUATION or text[end : end + 1] in _NAME_PUNCTUATION:
-                words.add(text[start:end].replace("\u00ad", "").lower())
-        index = text.find("\u00ad", max(index + 1, covered))
+        line_start = marked.rfind("\n", 0, index) + 1
+        line_end = marked.find("\n", index)
+        if line_end == -1:
+            line_end = len(marked)
+        _add_marked_words(_refang_rest(marked[line_start:line_end]), words)
+        index = marked.find(_SOFT_HYPHEN_MARK, line_end)
     return words
+
+
+def _add_marked_words(line: str, words: set[str]) -> None:
+    covered = 0
+    index = line.find(_SOFT_HYPHEN_MARK)
+    while index != -1:
+        start = index
+        while start > covered and line[start - 1] in _MARKED_WORD_CHARACTER:
+            start -= 1
+        word_end = _MARKED_WORD_RE.match(line, index)
+        end = word_end.end() if word_end else index + 1
+        covered = end
+        joined_before = (
+            line[start - 1 : start] in _NAME_PUNCTUATION and line[start - 2 : start - 1] in _NAME_CHARACTER
+        )
+        joined_after = line[end : end + 1] in _NAME_PUNCTUATION and line[end + 1 : end + 2] in _ASCII_ALNUM
+        if joined_before or joined_after:
+            words.add(line[start:end].replace(_SOFT_HYPHEN_MARK, "").lower())
+        index = line.find(_SOFT_HYPHEN_MARK, end)
 
 
 @functools.cache
@@ -178,8 +245,12 @@ def refang(text: str) -> str:
     and at the end of a line become hyphens.
     """
     if "\u00ad" in text:
-        text = _SOFT_HYPHEN_GUID_RE.sub(_guid_hyphens, text)
-        text = _SOFT_HYPHEN_BREAK_RE.sub("-", text)
+        text = _soft_hyphens_as_hyphens(text)
+    return _refang_rest(text)
+
+
+def _refang_rest(text: str) -> str:
+    """:func:`refang` after the soft hyphens that become hyphens."""
     text = _BIDI_BREAK_RE.sub(" ", text.translate(_format_table())).translate(_fold_table())
     text = _PUNYCODE_DASH_RE.sub(r"\1--", text)
     text = _SPACED_DOT_RE.sub(".", text)
