@@ -1,5 +1,8 @@
 """The command matcher of TTPrism 0.1 before it was indexed: the reference implementation.
 
+FROZEN REFERENCE IMPLEMENTATION. Change it only together with a deliberate change to what command
+phrases match (their semantics), never to follow a refactoring or an optimisation of ttprism.attack.
+
 ``ttprism.attack`` matches command phrases with an index over the words of each command; this module
 keeps the straightforward matcher it replaced, unchanged, so that tests can check that both give
 the same result for any rule set and behaviour. It is not used by the package.

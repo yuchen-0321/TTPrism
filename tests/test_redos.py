@@ -20,8 +20,8 @@ SIZE = 1_000_000
 TEXT_SECONDS_PER_MB = 10.0
 COMMAND_SECONDS_PER_MB = 5.0
 JSON_SECONDS_PER_MB = 10.0
-# Everyday command lines: about 0.03 s/MB on a 2024 laptop, and at least 20 times faster than the
-# matcher that tried every phrase list on every command (tests/reference_matcher.py).
+# Everyday command lines: about 0.03 to 0.1 s/MB in the development container, and 19 to 28 times
+# faster than the matcher that tried every phrase list on every command (tests/reference_matcher.py).
 EVERYDAY_COMMAND_SECONDS_PER_MB = 0.25
 EVERYDAY_SPEEDUP = 10
 

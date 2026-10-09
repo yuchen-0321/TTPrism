@@ -110,7 +110,7 @@ def analyze_cape(report: Mapping[str, Any], options: AnalysisOptions | None = No
             stats["non_technique_ttp"] += 1
     for rule, evidence in options.rules.evaluate(parsed.behavior):
         techniques.add_rule(rule, evidence)
-    return _finish("cape", parsed.iocs, techniques, options, stats, [])
+    return _finish("cape", parsed.iocs, techniques, options, stats, parsed.warnings)
 
 
 def analyze_file(

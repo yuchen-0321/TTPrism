@@ -22,9 +22,12 @@ MAX_FIELD_CHARS = 8192
 # stay far below these; a crafted report cannot make matching cost explode.
 MAX_ITEMS = 10_000
 MAX_SIGNATURE_CHARS = 200
-# Rule matching looks at the first commands up to this many characters in total (8 Mi, about 1,000
-# commands of MAX_FIELD_CHARS); the rest are counted under suppressed as truncated_rule_commands.
-# IOCs are still extracted from every command.
+# IOC extraction and rule matching each look at the first command lines up to this many characters
+# in total (8 Mi, about 1,000 lines of MAX_FIELD_CHARS), which bounds their cost at about 3 s and
+# 1 s per MB of commands even for pathological text. The lines left out are counted under
+# suppressed (truncated_ioc_commands, truncated_rule_commands) and named in a warning. The
+# structured fields (network, hashes, signatures) are not affected.
+MAX_IOC_COMMAND_CHARS = 8 * 1024 * 1024
 MAX_RULE_COMMAND_CHARS = 8 * 1024 * 1024
 _HASH_FIELDS = (("md5", IOCType.MD5), ("sha1", IOCType.SHA1), ("sha256", IOCType.SHA256))
 _DNS_ADDRESS_TYPES = {"A", "AAAA"}
@@ -36,6 +39,7 @@ class CapeReport:
     behavior: Behavior
     reported_ttps: list[tuple[str, str]] = field(default_factory=list)  # (technique, signature)
     stats: Counter[str] = field(default_factory=Counter)
+    warnings: list[str] = field(default_factory=list)
 
 
 def looks_like_cape(data: object) -> bool:
@@ -157,11 +161,22 @@ def parse_cape(report: Mapping[str, Any]) -> CapeReport:
     if dropped_apis:
         stats["truncated_apis"] += len(dropped_apis)
     command_lines = _capped(list(commands), "commands", stats)
-    behavior.commands = _size_capped(command_lines, stats)
+    warnings: list[str] = []
+    behavior.commands = _size_capped(
+        command_lines,
+        MAX_RULE_COMMAND_CHARS,
+        "rule_commands",
+        "matched against the ATT&CK rules",
+        stats,
+        warnings,
+    )
     behavior.registry_writes = _capped(
         list(dict.fromkeys(_strings(summary.get("write_keys")))), "registry_writes", stats
     )
-    for command in command_lines:
+    searched = _size_capped(
+        command_lines, MAX_IOC_COMMAND_CHARS, "ioc_commands", "searched for IOCs", stats, warnings
+    )
+    for command in searched:
         # Download cradles and C2 URLs often appear only on the command line.
         extract_into(iocs, refang(command), "cape:commands", stats)
 
@@ -173,7 +188,9 @@ def parse_cape(report: Mapping[str, Any]) -> CapeReport:
     behavior.signatures = _capped(signatures, "signatures", stats)
 
     reported_ttps = _capped(_reported_ttps(report), "ttps", stats)
-    return CapeReport(iocs=iocs, behavior=behavior, reported_ttps=reported_ttps, stats=stats)
+    return CapeReport(
+        iocs=iocs, behavior=behavior, reported_ttps=reported_ttps, stats=stats, warnings=warnings
+    )
 
 
 _T = TypeVar("_T")
@@ -186,13 +203,20 @@ def _capped(items: list[_T], name: str, stats: Counter[str]) -> list[_T]:
     return items
 
 
-def _size_capped(commands: list[str], stats: Counter[str]) -> list[str]:
-    """The first ``commands`` that total at most MAX_RULE_COMMAND_CHARS characters."""
+def _size_capped(
+    commands: list[str], limit: int, name: str, purpose: str, stats: Counter[str], warnings: list[str]
+) -> list[str]:
+    """The first ``commands`` that total at most ``limit`` characters."""
     total = 0
     for kept, command in enumerate(commands):
         total += len(command)
-        if total > MAX_RULE_COMMAND_CHARS:
-            stats["truncated_rule_commands"] += len(commands) - kept
+        if total > limit:
+            dropped = len(commands) - kept
+            stats[f"truncated_{name}"] += dropped
+            warnings.append(
+                f"{dropped} command line(s) after the first {limit:,} characters of commands were not "
+                f"{purpose}"
+            )
             return commands[:kept]
     return commands
 

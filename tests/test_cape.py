@@ -160,7 +160,37 @@ def test_rule_matching_sees_a_bounded_amount_of_commands(monkeypatch: pytest.Mon
     assert (IOCType.URL, "http://late.example.net/a") in {(t, v) for t, v, _ in parsed.iocs}
     result = analyze_cape(report)
     assert result.suppressed["truncated_rule_commands"] == 3
+    assert "truncated_ioc_commands" not in result.suppressed
     assert "T1490" not in {t.technique_id for t in result.techniques}
+    (warning,) = [w for w in result.warnings if "command line" in w]
+    assert warning == (
+        "3 command line(s) after the first 1,000 characters of commands were not matched against "
+        "the ATT&CK rules"
+    )
+
+
+def test_ioc_extraction_sees_a_bounded_amount_of_commands(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("ttprism.cape.MAX_IOC_COMMAND_CHARS", 1000)
+    commands = [f"curl http://c{i}.example.net/a " + "x" * 270 for i in range(5)]
+    report = {
+        "info": {},
+        "target": {"file": {"md5": "5f89cef4c9ed3f109bc7c400d822e60e"}},
+        "network": {"hosts": [{"ip": "198.51.100.7"}], "domains": [{"domain": "late.example.org"}]},
+        "behavior": {"summary": {"executed_commands": commands}},
+    }
+    result = analyze_cape(report, AnalysisOptions(include_reserved=True))
+    urls = result.iocs_of(IOCType.URL)
+    assert urls == [f"http://c{i}.example.net/a" for i in range(3)]
+    assert result.suppressed["truncated_ioc_commands"] == 2
+    assert "truncated_rule_commands" not in result.suppressed
+    (warning,) = [w for w in result.warnings if "command line" in w]
+    assert (
+        warning == "2 command line(s) after the first 1,000 characters of commands were not searched for IOCs"
+    )
+    # Structured fields are not capped.
+    assert result.iocs_of(IOCType.IPV4) == ["198.51.100.7"]
+    assert "late.example.org" in result.iocs_of(IOCType.DOMAIN)
+    assert result.iocs_of(IOCType.MD5) == ["5f89cef4c9ed3f109bc7c400d822e60e"]
 
 
 def test_dropped_api_names_are_counted_once() -> None:

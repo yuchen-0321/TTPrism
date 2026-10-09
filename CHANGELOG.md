@@ -57,8 +57,8 @@ their advisory.
 - `ttprism validate-rules` for rule authors.
 - Security hardening: linear-time regexes with a ReDoS test suite (pathological 1 MB inputs, cost per MB),
   chunked input reading with a size limit, JSON nesting limit, strict YAML schemas with aliases
-  and duplicate keys rejected, per-report caps on rule inputs (at most 8 Mi characters of
-  commands go to rule matching), an indexed IP allowlist, atomic
+  and duplicate keys rejected, per-report caps on rule inputs (IOC extraction and rule matching each
+  see at most 8 Mi characters of CAPE command lines, with a warning past that), an indexed IP allowlist, atomic
   `-o` writes (in place where a new file cannot replace the old one), CSV formula escaping,
   control/bidi-character sanitisation of all output and messages, explicit
   reserved-IP tables independent of the Python version (IPv6 outside `2000::/3` is reserved),

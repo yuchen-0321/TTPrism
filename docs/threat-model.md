@@ -24,7 +24,7 @@ TTPrism makes no network requests and never executes, decompresses or opens refe
 | ReDoS / super-linear regex | 1 MB of `a1.a1.a1…` makes a naive domain regex backtrack quadratically | Every pattern starts with a negative lookbehind so matches begin only at token boundaries; all repetitions are bounded; no nested ambiguous quantifiers. URL tail clean-up is a single linear pass. | `tests/test_redos.py` (pathological 1 MB report texts and command lines, limits in seconds per MB), `tests/test_fuzz.py` |
 | Resource exhaustion: size | A multi-GB "report" | Input is read in 1 MiB chunks up to `--max-size` (default 64 MiB, at most 16 GiB); larger input is rejected before parsing. Rule and allowlist files are capped at 2 MiB. | `test_cli.py::test_max_size`, `test_cli.py::test_max_size_ceiling`, `test_allowlist.py::test_oversized_allowlist_rejected` |
 | Resource exhaustion: nesting | `[[[[…` 1 million levels deep | CPython's JSON decoder raises `RecursionError` before exhausting the C stack. The deepest accepted document is about 1,000 levels on Python 3.11, about 10,000 on 3.12–3.13 (C recursion limit), and set by stack-space checks on 3.14+ (about 40,000 with an 8 MiB stack). TTPrism turns it into a clean error. Nesting below that limit is harmless because TTPrism never walks parsed data recursively; an explicit depth check would add a full extra pass over large reports for no added protection. | `test_redos.py::test_malformed_json_fails_fast`, `test_cli.py::test_bad_inputs` |
-| Resource exhaustion: huge fields and lists | A 50 MB command line; a million fake API names or commands so that every rule rescans them | CAPE string fields are truncated to 8 KiB. At most 10,000 commands (each split into at most 32 chained commands), registry keys, signatures, distinct API names and reported (technique, signature) pairs per report go into rule matching, and the overflow is counted under `suppressed` (`truncated_*`). Signature names in reported TTPs are cut to 200 characters. Rule matching sees the first 8 Mi characters of commands (about 1,000 commands of 8 KiB; the rest are counted as `truncated_rule_commands` and still searched for IOCs). Each command is normalised once, and tested only against the phrase lists whose word runs it contains; phrases are precompiled regexes over literal text, so near-miss command lines are scanned in C. Everyday command lines cost about 0.03 s/MB (long lines) to 0.09 s/MB (short ones) here, 19 to 28 times less than testing every list on every command; the tests assert at most 0.25 s/MB and at least 10 times less. Case-folded views are computed once per report, not per rule. Evidence strings are capped at 200 characters and 20 items per technique; unknown-ID warnings list at most 20 IDs. | `test_cape.py::test_huge_field_values_are_truncated`, `test_cape.py::test_oversized_behaviour_lists_are_capped_and_fast`, `test_cape.py::test_reported_ttps_are_capped`, `test_attack.py::test_phrase_matching_is_fast_on_near_misses`, `test_attack.py::test_chained_lines_cost_little_more_than_single_ones`, `test_cape.py::test_rule_matching_sees_a_bounded_amount_of_commands`, `test_redos.py::test_everyday_command_matching_cost`, `test_attack_equivalence.py` (same results as testing every list) |
+| Resource exhaustion: huge fields and lists | A 50 MB command line; a million fake API names or commands so that every rule rescans them | CAPE string fields are truncated to 8 KiB. At most 10,000 commands (each split into at most 32 chained commands), registry keys, signatures, distinct API names and reported (technique, signature) pairs per report go into rule matching, and the overflow is counted under `suppressed` (`truncated_*`). Signature names in reported TTPs are cut to 200 characters. IOC extraction and rule matching each see the first 8 Mi characters of command lines (about 1,000 commands of 8 KiB); the rest are counted as `truncated_ioc_commands` and `truncated_rule_commands` and named in a warning. Network, hash and signature fields are not affected. Each command is normalised once, and tested only against the phrase lists whose word runs it contains; phrases are precompiled regexes over literal text, so near-miss command lines are scanned in C. Everyday command lines cost about 0.03 s/MB (long lines) to 0.09 s/MB (short ones) here, 19 to 28 times less than testing every list on every command; the tests assert at most 0.25 s/MB and at least 10 times less. Case-folded views are computed once per report, not per rule. Evidence strings are capped at 200 characters and 20 items per technique; unknown-ID warnings list at most 20 IDs. | `test_cape.py::test_huge_field_values_are_truncated`, `test_cape.py::test_oversized_behaviour_lists_are_capped_and_fast`, `test_cape.py::test_reported_ttps_are_capped`, `test_attack.py::test_phrase_matching_is_fast_on_near_misses`, `test_attack.py::test_chained_lines_cost_little_more_than_single_ones`, `test_cape.py::test_rule_matching_sees_a_bounded_amount_of_commands`, `test_cape.py::test_ioc_extraction_sees_a_bounded_amount_of_commands`, `test_redos.py::test_everyday_command_matching_cost`, `test_attack_equivalence.py` (same results as testing every list) |
 | Malformed structure | `"hosts": "1.2.3.4"`, `"calls": 5` | The CAPE parser reads only known fields and type-checks each one; anything unexpected is skipped. | `test_cape.py::test_malformed_reports_do_not_crash`, `test_fuzz.py::test_parse_cape_never_crashes` |
 | Unsafe deserialization | `!!python/object/apply:os.system` in a rule file | YAML is loaded with a `SafeLoader` subclass (plain scalars, lists and dicts only). Schemas are strict: unknown keys, duplicate keys and non-string values are rejected, and `attack_version` must look like `19.2`. Scalars PyYAML cannot build (a 5,000-digit integer, `2026-02-30`) are a clean error. | `test_allowlist.py::test_invalid_allowlists`, `test_attack.py::test_attack_version_formats`, `test_attack.py::test_invalid_rules`, `test_cli.py::test_config_values_that_yaml_cannot_build` |
 | YAML alias expansion and nesting | Nested anchors expanding to 10⁹ items, or to millions of rule phrases; `- - - …` 1,000 levels deep | YAML aliases are rejected outright, so a small file cannot expand. Deep nesting becomes a clean "YAML nesting too deep" error instead of a traceback. | `test_allowlist.py::test_alias_expansion_is_rejected_quickly`, `test_allowlist.py::test_deep_nesting_is_a_clean_error`, `test_cli.py::test_rule_file_aliases_and_deep_nesting` |
@@ -37,6 +37,35 @@ TTPrism makes no network requests and never executes, decompresses or opens refe
 | Hidden characters in our own source | Zero-width or bidi characters that hide code from review (Trojan Source) | Test data spells such characters as escapes; a test fails if any text file contains them. | `tests/test_repo_hygiene.py` |
 | Supply chain | Compromised maintainer token or CI action | No long-lived PyPI token (Trusted Publishing); GitHub Actions pinned by commit SHA and updated by Dependabot; least-privilege workflow permissions; one runtime dependency (PyYAML). | `.github/workflows/`, `docs/maintainer-setup.md` |
 
+## Measured cost
+
+Measured in the development container (Linux, x86_64, Python 3.11); other machines may be up to
+about twice as slow. Costs are per MB of input.
+
+| Work | Input | Cost |
+| --- | --- | --- |
+| Rule matching | Everyday command lines of 8 KiB | 0.04 s/MB |
+| Rule matching | Short, distinct command lines | 0.10 s/MB |
+| Rule matching | Random printable characters | 0.15 s/MB |
+| Rule matching | Worst pathological case in `tests/test_redos.py` | 0.9 s/MB |
+| IOC extraction | CAPE command lines, everyday content | 0.8–1.1 s/MB |
+| IOC extraction | Report text (`tests/data/report_zh.md` repeated) | 0.9–1.2 s/MB |
+| IOC extraction | Worst pathological case in `tests/test_redos.py` | 2.3–3.5 s/MB |
+
+At the default `--max-size` of 64 MiB, a whole analysis (`ttprism analyze`, reading and decoding
+included) took:
+
+| Input of about 64 MiB | Time |
+| --- | --- |
+| Text report, everyday content | 83 s |
+| Text report, the worst pathological text, repeated | 235 s |
+| CAPE report whose command lines are all pathological text (both 8 Mi caps reached) | 25 s |
+| CAPE report of 1.7 million network host entries | 14 s |
+
+Text reports are bounded only by `--max-size`, so a hostile 64 MiB text costs about four minutes of
+CPU time but no more; the CAPE caps keep a hostile report under half a minute. Faster IOC
+extraction is planned for v0.2 (issue #2).
+
 ## Known limitations
 
 - **Encoding guesses.** Non-UTF-8 input is decoded with replacement characters unless the analyst
@@ -44,6 +73,8 @@ TTPrism makes no network requests and never executes, decompresses or opens refe
 - **Memory.** Parsed JSON can take up to about 25 times the input size in memory: a crafted
   64 MiB report (millions of tiny objects) peaks around 1.6 GB. Lower `--max-size` when processing
   untrusted reports in bulk or on small machines.
+- **Time.** A 64 MiB text report takes one to four minutes (see "Measured cost"). Lower
+  `--max-size` to bound the time per input when processing untrusted reports in bulk.
 - **Python versions.** The JSON nesting guarantee relies on CPython's recursion guard, which every
   supported version (3.11+) provides. The deepest document accepted differs between versions
   (see the nesting row above), so the same deep input may be accepted on one version and rejected
