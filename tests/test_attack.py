@@ -8,6 +8,7 @@ from typing import Any
 
 import pytest
 
+from timing import seconds_per_mb, size_mb
 from ttprism import AttackCatalog, Behavior, RuleError, RuleSet
 from ttprism.attack import (
     MAX_CHAINED_COMMANDS,
@@ -732,9 +733,8 @@ def test_chained_lines_are_capped(tmp_path: Path) -> None:
     rule = "{commands: [[a, b]]}"
     # The last parts stay together in the final command, so nothing is lost.
     assert evaluate(tmp_path, rule, Behavior(commands=[line]))
-    start = time.perf_counter()
-    BUNDLED.evaluate(Behavior(commands=["net user & " * 2000] * 100))
-    assert time.perf_counter() - start < 10
+    lines = ["net user & " * 2000] * 100
+    assert seconds_per_mb(lambda: BUNDLED.evaluate(Behavior(commands=lines)), size_mb(lines)) < 1
 
 
 @pytest.mark.parametrize(
@@ -898,12 +898,14 @@ def test_glued_switches_are_split_but_urls_are_not() -> None:
     assert normalize_command(url) == url
 
 
-def test_chained_lines_cost_about_as_much_as_single_ones() -> None:
-    # Every list is first tested against the whole line, so 32 parts do not cost 32 times as much.
-    chained = ["x&" * 40 + "net view"] * 5000
-    start = time.perf_counter()
-    BUNDLED.evaluate(Behavior(commands=chained))
-    assert time.perf_counter() - start < 10
+def test_chained_lines_cost_little_more_than_single_ones() -> None:
+    # Each command of a chained line is tested only against the lists its word runs allow.
+    chained = [f"x{i}&" * 40 + f"net view {i}" for i in range(5000)]
+    single = [f"x{i} " * 40 + f"net view {i}" for i in range(5000)]
+    chained_cost = seconds_per_mb(lambda: BUNDLED.evaluate(Behavior(commands=chained)), size_mb(chained), 3)
+    single_cost = seconds_per_mb(lambda: BUNDLED.evaluate(Behavior(commands=single)), size_mb(single), 3)
+    assert chained_cost < 1
+    assert chained_cost < 10 * single_cost
 
 
 RECHECK_HITS = [

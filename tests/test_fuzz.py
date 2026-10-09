@@ -10,10 +10,9 @@ import contextlib
 import csv
 import io
 import json
-import os
 from typing import Any
 
-from hypothesis import HealthCheck, given, settings
+from hypothesis import given
 from hypothesis import strategies as st
 
 from ttprism import AnalysisOptions, IOCType, analyze_cape, analyze_text, defang, refang, to_csv, to_json
@@ -21,12 +20,6 @@ from ttprism.cape import parse_cape
 from ttprism.export import escape_csv_cell
 from ttprism.extract import FILE_EXTENSION_TLDS, extract_iocs, known_tlds
 from ttprism.inputs import InputError, load_json
-
-settings.register_profile("ci", max_examples=200, deadline=None, suppress_health_check=[HealthCheck.too_slow])
-settings.register_profile(
-    "fuzz", max_examples=20_000, deadline=None, suppress_health_check=[HealthCheck.too_slow]
-)
-settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "ci"))
 
 OPTIONS = AnalysisOptions(include_reserved=True)
 

@@ -78,6 +78,12 @@ patterns. Write words that must be adjacent as one phrase (`net user`), not as s
 items, and spell out the variants a tool accepts (`net.exe user`, `net1 user`;
 `certutil -urlcache` and `/urlcache`).
 
+Matching is indexed by words: a command is tested against a list only if it contains, as whole
+words, the words its phrases must contain (`net user` needs `net` and `user`; for `net start
+<arg>`, `net` and `start`). This changes no result, only the cost. A list whose phrases contain
+no letter, digit or `_` at all (`/?`) is tested against every command, so give each list at
+least one word.
+
 `<arg>` in a phrase stands for one argument: `net start <arg>` matches `net start updsvc` but not
 a bare `net start`, `net start > out.txt`, `net start 2>nul` or `('net start')`, and
 `net share <arg>=` matches the share creation `net share C=C:\`. An argument does not start with

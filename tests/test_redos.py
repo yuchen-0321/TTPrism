@@ -1,22 +1,29 @@
-"""Pathological inputs must be processed in (roughly) linear time.
+"""Pathological inputs must be processed in linear time, at a bounded cost per MB.
 
-Each case is about 1 MB. A regex with catastrophic or quadratic backtracking
-takes minutes or hours on these; the linear patterns take well under a second.
-The time limit is generous so slow CI machines do not cause false failures.
+Each case is about 1 MB. A regex with catastrophic or quadratic backtracking takes minutes or hours
+on these; the linear patterns take well under a second. The limits are generous, so slow CI
+machines do not cause false failures; the everyday command corpora have a much tighter one.
 """
 
 from __future__ import annotations
 
-import time
-
 import pytest
 
+import command_corpus
+import reference_matcher
+from timing import seconds_per_mb, size_mb
 from ttprism import AnalysisOptions, analyze_text
 from ttprism.attack import Behavior, RuleSet
 from ttprism.inputs import InputError, load_json
 
 SIZE = 1_000_000
-LIMIT_SECONDS = 10.0
+TEXT_SECONDS_PER_MB = 10.0
+COMMAND_SECONDS_PER_MB = 5.0
+JSON_SECONDS_PER_MB = 10.0
+# Everyday command lines: about 0.03 s/MB on a 2024 laptop, and at least 20 times faster than the
+# matcher that tried every phrase list on every command (tests/reference_matcher.py).
+EVERYDAY_COMMAND_SECONDS_PER_MB = 0.25
+EVERYDAY_SPEEDUP = 10
 
 PATHOLOGICAL = {
     "dotted labels, invalid tld": "a1." * (SIZE // 3),
@@ -146,25 +153,46 @@ PATHOLOGICAL_COMMANDS = {
     "long arguments": ("net share " + "a" * 259 + " ") * (SIZE // 270),
     "switch colons": "/c:" * (SIZE // 3),
     "dashes": "\u2013e " * (SIZE // 3),
+    # The indexed matcher: slash hints, separators, quote runs, chaining, word runs.
+    "slashes before long switches": ("a/" + "b" * 40 + " ") * (SIZE // 43),
+    "switches after separators": "a&/c" * (SIZE // 4),
+    "quote runs between words": ("a" + "\"'" * 40 + "b ") * (SIZE // 83),
+    "quotes after words": 'a"' * (SIZE // 2),
+    "single quotes after words": "a'" * (SIZE // 2),
+    "pipes": "|" * SIZE,
+    "escaped pipes": "^|" * (SIZE // 2),
+    "non-ascii words": "\u00e9" * SIZE,
+    "non-ascii quoted words": '\u00e9"' * (SIZE // 2),
 }
 
 
 @pytest.mark.parametrize("text", PATHOLOGICAL.values(), ids=PATHOLOGICAL.keys())
 def test_extraction_is_linear(text: str) -> None:
     options = AnalysisOptions(include_reserved=True)
-    start = time.perf_counter()
-    analyze_text(text, options)
-    elapsed = time.perf_counter() - start
-    assert elapsed < LIMIT_SECONDS, f"{elapsed:.1f}s"
+    cost = seconds_per_mb(lambda: analyze_text(text, options), size_mb(text))
+    assert cost < TEXT_SECONDS_PER_MB, f"{cost:.2f} s/MB"
 
 
 @pytest.mark.parametrize("command", PATHOLOGICAL_COMMANDS.values(), ids=PATHOLOGICAL_COMMANDS.keys())
 def test_command_matching_is_linear(command: str) -> None:
     rules = RuleSet.default()
-    start = time.perf_counter()
-    rules.evaluate(Behavior(commands=[command]))
-    elapsed = time.perf_counter() - start
-    assert elapsed < LIMIT_SECONDS, f"{elapsed:.1f}s"
+    cost = seconds_per_mb(lambda: rules.evaluate(Behavior(commands=[command])), size_mb(command))
+    assert cost < COMMAND_SECONDS_PER_MB, f"{cost:.2f} s/MB"
+
+
+@pytest.mark.parametrize(
+    "lines",
+    [command_corpus.normal(60), command_corpus.varied(60), command_corpus.short(3000)],
+    ids=["normal", "varied", "short"],
+)
+def test_everyday_command_matching_cost(lines: list[str]) -> None:
+    rules = RuleSet.default()
+    behavior = Behavior(commands=lines)
+    mb = size_mb(lines)
+    cost = seconds_per_mb(lambda: rules.evaluate(behavior), mb, repeat=3)
+    reference = seconds_per_mb(lambda: reference_matcher.reference_evaluate(rules, behavior), mb)
+    assert cost < EVERYDAY_COMMAND_SECONDS_PER_MB, f"{cost:.3f} s/MB"
+    assert reference / cost > EVERYDAY_SPEEDUP, f"{reference / cost:.1f} times faster"
 
 
 @pytest.mark.parametrize(
@@ -173,7 +201,9 @@ def test_command_matching_is_linear(command: str) -> None:
     ids=["arrays", "objects", "nested keys", "unterminated string", "escaped quotes"],
 )
 def test_malformed_json_fails_fast(text: str) -> None:
-    start = time.perf_counter()
-    with pytest.raises(InputError):
-        load_json(text)
-    assert time.perf_counter() - start < LIMIT_SECONDS
+    def parse() -> None:
+        with pytest.raises(InputError):
+            load_json(text)
+
+    cost = seconds_per_mb(parse, size_mb(text))
+    assert cost < JSON_SECONDS_PER_MB, f"{cost:.2f} s/MB"

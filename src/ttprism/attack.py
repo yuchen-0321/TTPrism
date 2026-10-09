@@ -34,16 +34,20 @@ one command. A phrase must not be part of a longer word: where it starts or
 ends with a letter, digit or "_", the neighbouring character must not be one,
 and a switch ("-enc", "/c") must be a word of its own. Registry patterns are
 plain case-insensitive substrings. rules/attack/README.md has the details.
+
+Phrase lists are filed under the word runs every match of them contains, so a
+command is tested only against the lists whose words it has; the result is the
+same as testing every list (tests/reference_matcher.py keeps that matcher).
 """
 
 from __future__ import annotations
 
-import bisect
 import fnmatch
 import functools
 import json
 import re
-from collections.abc import Iterable, Iterator
+import string
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from importlib import resources
 from importlib.resources.abc import Traversable
@@ -154,23 +158,21 @@ class Behavior:
     registry_writes: list[str] = field(default_factory=list)
 
 
-_CommandViews = tuple[str, str]
-# (as reported, normalised views of the whole line, normalised views of each chained command)
-# The views of the commands of a chained line joined by "\n", and where each one starts, for the
-# spaced and the joined view: finding a phrase there tells which commands can match it.
-_ChainIndex = tuple[str, list[int], str, list[int]]
-_PreparedCommand = tuple[str, _CommandViews, tuple[_CommandViews, ...], _ChainIndex | None]
+# Matches of the rules' command phrase lists in one Behavior, keyed by id() of the shared, cached
+# _PhraseList: the (line, command) pairs each list matches, and for chained_commands lists the
+# lines it matches as a whole, both in order.
+_CommandHits = dict[int, list[tuple[int, int]]]
+_LineHits = dict[int, list[int]]
 
 
 @dataclass(frozen=True)
 class _PreparedBehavior:
-    """Case-folded views of a Behavior, computed once per analysis rather than per rule."""
+    """Case-folded views of a Behavior and its command matches, computed once per analysis."""
 
     apis: frozenset[str]
-    commands: tuple[_PreparedCommand, ...]
     registry_writes: tuple[str, ...]
-    # (id of an exclusion list, line number) -> commands it matches; rules share exclusion lists.
-    excluded: dict[tuple[int, int], set[int]] = field(default_factory=dict, compare=False)
+    command_hits: _CommandHits
+    line_hits: _LineHits
 
 
 MAX_CHAINED_COMMANDS = 32
@@ -183,69 +185,143 @@ _CMD_QUOTE_RE = re.compile(r'(?:\A|[\s"\\])(?:cmd(?:\.exe)?)?/[ckr]\s*\Z', re.IG
 _ARG = "<arg>"
 _ARG_RE = r"(?![0-9]?>)[^\s&|<>/;()=\-][^\s&|<>;()=]{0,259}"
 # cmd /c"s""chtasks ..." runs s""chtasks: the quote after the switch must not glue the command to it.
-_SWITCH_QUOTE_RE = re.compile(r'(?:(?<![\w/:])|(?<=cmd)|(?<=cmd\.exe)|(?<=/\w)|(?<=:on)|(?<=:off))(/[ckr])"')
+# The pattern starts with the "/", so the regex engine can skip to the next one; the lookbehinds
+# look at what comes before it.
+_SWITCH_QUOTE_RE = re.compile(
+    r'/(?:(?<![\w/:]/)|(?<=cmd/)|(?<=cmd\.exe/)|(?<=/\w/)|(?<=:on/)|(?<=:off/))([ckr])"'
+)
 # cmd.exe takes switches glued to the command or to each other: "del/f/q", "cmd /q/c",
 # "ipconfig/flushdns", "c:\\windows\\system32\\cmd.exe/c". Such a word is split, so that every switch
 # starts a word. URLs are left alone: their slashes follow a host, or a path with "." or ":".
 _GLUED_SWITCHES_RE = re.compile(
     r"(?<![^\s&|\\])([a-z0-9_]{1,32}(?:\.exe)?)?((?:/[a-z0-9?][a-z0-9?:]{0,31}){1,16})(?![^\s&|])"
 )
+# The last "/" of a match of _GLUED_SWITCHES_RE that changes anything: after a character of a name
+# or a switch, or after "&", "|" or "\\", and followed by a switch that ends the match. Only words
+# that contain one can change.
+_GLUED_SLASH_RE = re.compile(r"/(?<=[a-z0-9_?:&|\\]/)[a-z0-9?][a-z0-9?:]{0,31}+(?![^\s&|])")
+# _GLUED_SWITCHES_RE without its boundaries, for one piece of a word between separators.
+_GLUED_WORD_RE = re.compile(r"([a-z0-9_]{1,32}(?:\.exe)?)?((?:/[a-z0-9?][a-z0-9?:]{0,31}){1,16})")
+_SEPARATOR_RE = re.compile(r"([&|\\])")
+# A run of quotes between two characters that are neither whitespace nor quotes, which deleting the
+# quotes joins: only then can the joined view differ from the spaced one. Longer runs count too.
+_JOINING_QUOTE_RES = (
+    re.compile(r'"(?<=[^\s"\']")(?:["\']{0,64}(?=[^\s"\'])|["\']{64})'),
+    re.compile(r"'(?<=[^\s\"']')(?:[\"']{0,64}(?=[^\s\"'])|[\"']{64})"),
+)
+# The same between two word characters: only then does deleting the quotes join two word runs.
+_MERGING_QUOTE_RES = (
+    re.compile(r'"(?<=\w")(?:["\']{0,64}(?=\w)|["\']{64})'),
+    re.compile(r"'(?<=\w')(?:[\"']{0,64}(?=\w)|[\"']{64})"),
+)
 _CARET_RE = re.compile(r"\^(?=.)")
-_SPACE_RE = re.compile(r"\s+")
 _WORD_RE = re.compile(r"\w")
+_WORD_RUN_RE = re.compile(r"\w{1,1000}")
 _NEVER_RE = re.compile(r"(?!)")
 _DASHES = {"\u2013": "-", "\u2014": "-", "\u2015": "-"}  # PowerShell reads these as "-"
 _QUOTES_AS_SPACES = str.maketrans({**_DASHES, '"': " ", "'": " "})
 _QUOTES_DELETED = str.maketrans({**_DASHES, '"': None, "'": None})
+# The same for ASCII text, where lower-casing is one more entry in the table. These are byte tables:
+# bytes.translate is several times faster than str.translate.
+_ASCII_LOWER = bytes.maketrans(string.ascii_uppercase.encode(), string.ascii_lowercase.encode())
+_ASCII_QUOTES_AS_SPACES = bytes.maketrans(
+    (string.ascii_uppercase + "\"'").encode(), (string.ascii_lowercase + "  ").encode()
+)
+_ASCII_NON_WORD = str.maketrans({c: " " for c in map(chr, range(128)) if not _WORD_RE.match(c)})
 
 
 def normalize_command(command: str, *, delete_quotes: bool = False) -> str:
-    """Lower-case, drop cmd.exe carets, fold Unicode dashes to "-" and collapse whitespace.
+    """Lower-case, drop cmd.exe carets, fold Unicode dashes to "-", split glued switches and
+    collapse whitespace.
 
     Quotes become spaces, or are deleted with ``delete_quotes``.
     """
-    command = _CARET_RE.sub("", command.lower())
-    if delete_quotes:
-        command = _SWITCH_QUOTE_RE.sub(r"\1 ", command).translate(_QUOTES_DELETED)
+    if "^" in command:
+        command = _CARET_RE.sub("", command)
+    return _joined_view(command) if delete_quotes else _spaced_view(command)
+
+
+def _spaced_view(command: str) -> str:
+    """:func:`normalize_command` of a command without carets."""
+    return _split_glued_switches(" ".join(_spaced_words(command)))
+
+
+def _spaced_words(command: str) -> list[str]:
+    """The words of a command without carets, lower-cased, with quotes as spaces."""
+    if command.isascii():
+        return command.encode("ascii").translate(_ASCII_QUOTES_AS_SPACES).decode("ascii").split()
+    return command.lower().translate(_QUOTES_AS_SPACES).split()
+
+
+def _joined_view(command: str) -> str:
+    """:func:`normalize_command` with ``delete_quotes`` of a command without carets."""
+    if command.isascii():
+        if '"' in command:
+            command = _SWITCH_QUOTE_RE.sub(r"/\1 ", _ascii_lower_deleting(command, b""))
+        text = _ascii_lower_deleting(command, b"\"'")
     else:
-        command = command.translate(_QUOTES_AS_SPACES)
-    command = _GLUED_SWITCHES_RE.sub(_split_switches, command)
-    return _SPACE_RE.sub(" ", command).strip()
+        command = command.lower()
+        if '"' in command:
+            command = _SWITCH_QUOTE_RE.sub(r"/\1 ", command)
+        text = command.translate(_QUOTES_DELETED)
+    return _split_glued_switches(" ".join(text.split()))
+
+
+def _ascii_lower_deleting(text: str, delete: bytes) -> str:
+    """ASCII ``text`` lower-cased, without the characters in ``delete``."""
+    return text.encode("ascii").translate(_ASCII_LOWER, delete).decode("ascii")
+
+
+def _split_glued_switches(text: str) -> str:
+    """Apply _GLUED_SWITCHES_RE to ``text``, whose words are separated by single spaces.
+
+    A match never spans a space, so each word is rewritten on its own, and only words with a slash
+    that the regex can split off can change.
+    """
+    found = _GLUED_SLASH_RE.search(text)
+    pieces: list[str] = []
+    done = 0
+    while found is not None:
+        start = text.rfind(" ", 0, found.start()) + 1
+        end = text.find(" ", found.end())
+        if end == -1:
+            end = len(text)
+        if _SEPARATOR_RE.search(text, start, end) is None:
+            # The usual case: the match, if any, is the whole word, and its name has no "/".
+            match = _GLUED_WORD_RE.fullmatch(text, start, end)
+            word = text[start:end].replace("/", " /").lstrip(" ") if match else None
+        else:
+            word = _split_glued_word(text[start:end])
+        if word is not None:
+            pieces += (text[done:start], word)
+            done = end
+        found = _GLUED_SLASH_RE.search(text, end)
+    if not pieces:
+        return text
+    pieces.append(text[done:])
+    return "".join(pieces)
+
+
+def _split_glued_word(word: str) -> str | None:
+    """``word`` (no whitespace) with _GLUED_SWITCHES_RE applied, or None if that changes nothing.
+
+    A match starts after "&", "|", "\\" or at the start, ends before "&", "|" or at the end, and
+    has none of these inside: it is a whole piece of the word between them.
+    """
+    pieces = _SEPARATOR_RE.split(word) if "&" in word or "|" in word or "\\" in word else [word]
+    changed = False
+    for i in range(0, len(pieces), 2):
+        if "/" in pieces[i] and (i + 1 == len(pieces) or pieces[i + 1] != "\\"):
+            match = _GLUED_WORD_RE.fullmatch(pieces[i])
+            if match:
+                pieces[i] = _split_switches(match)
+                changed = True
+    # A space put before a leading "/" collapses with the one before the word.
+    return " ".join("".join(pieces).split()) if changed else None
 
 
 def _split_switches(match: re.Match[str]) -> str:
     return (match.group(1) or "") + match.group(2).replace("/", " /")
-
-
-def _command_views(command: str) -> _CommandViews:
-    spaced = normalize_command(command)
-    joined = normalize_command(command, delete_quotes=True)
-    # Reuse the object when both views agree so matching can skip the second one.
-    return (spaced, spaced if joined == spaced else joined)
-
-
-def _prepare_command(command: str) -> _PreparedCommand:
-    views = _command_views(command)
-    parts = _split_chain(command)
-    if len(parts) <= 1:
-        return command, views, (views,), None
-    chain = tuple(_command_views(p) for p in parts)
-    return command, views, chain, _chain_index(chain)
-
-
-def _chain_index(chain: tuple[_CommandViews, ...]) -> _ChainIndex:
-    def with_starts(texts: list[str]) -> tuple[str, list[int]]:
-        starts, total = [], 0
-        for text in texts:
-            starts.append(total)
-            total += len(text) + 1
-        return "\n".join(texts), starts
-
-    spaced, spaced_starts = with_starts([views[0] for views in chain])
-    if all(views[1] is views[0] for views in chain):
-        return spaced, spaced_starts, spaced, spaced_starts
-    joined, joined_starts = with_starts([views[1] for views in chain])
-    return spaced, spaced_starts, joined, joined_starts
 
 
 def _split_chain(command: str) -> list[str]:
@@ -256,26 +332,113 @@ def _split_chain(command: str) -> list[str]:
     continue a PowerShell command, so it does not split either. At most MAX_CHAINED_COMMANDS
     commands; the rest stays in the last one.
     """
+    if "&" not in command and "||" not in command:
+        return [command] if command.strip() else []
     parts: list[str] = []
     start = index = 0
     quoted = False
-    while index < len(command) and len(parts) < MAX_CHAINED_COMMANDS - 1:
+    following = dict.fromkeys('"^&|', -2)  # where each character occurs next; -1: nowhere
+
+    def next_of(chars: str, index: int) -> int:
+        best = -1
+        for char in chars:
+            position = following[char]
+            if position != -1 and position < index:
+                position = following[char] = command.find(char, index)
+            if position != -1 and (best == -1 or position < best):
+                best = position
+        return best
+
+    while len(parts) < MAX_CHAINED_COMMANDS - 1:
+        # Inside quotes only the closing quote counts.
+        index = next_of('"' if quoted else '"^&|', index)
+        if index == -1:
+            break
         char = command[index]
         if char == '"':
             if quoted or not _CMD_QUOTE_RE.search(command, max(0, index - 16), index):
                 quoted = not quoted
-        elif quoted:
-            pass
+            index += 1
         elif char == "^":
-            index += 1  # escapes the next character
-        elif char == "&" or command[index : index + 2] == "||":
-            size = 2 if command[index : index + 2] in ("&&", "||") else 1
+            index += 2  # escapes the next character
+        elif char == "&" or command.startswith("||", index):
+            size = 2 if command.startswith(("&&", "||"), index) else 1
             parts.append(command[start:index])
             start = index = index + size
-            continue
-        index += 1
+        else:
+            index += 1  # a single "|"
     parts.append(command[start:])
     return [part for part in parts if part.strip()]
+
+
+def _word_runs(text: str) -> list[str]:
+    """The runs of word characters in ``text`` (runs over 1,000 characters come in pieces)."""
+    if text.isascii():
+        return text.translate(_ASCII_NON_WORD).split()
+    return _WORD_RUN_RE.findall(text)
+
+
+class _View:
+    """A command in the two normalised views that phrases are matched in.
+
+    The joined view (quotes deleted) is computed only when a phrase list needs it, and is the same
+    object as the spaced view when the two are equal.
+    """
+
+    __slots__ = (
+        "_command",
+        "_deleted",
+        "_joined",
+        "_words",
+        "joined_memo",
+        "merges",
+        "same",
+        "spaced",
+        "spaced_memo",
+    )
+
+    def __init__(self, command: str) -> None:
+        if "^" in command:
+            command = _CARET_RE.sub("", command)
+        self._command = command
+        self._words = _spaced_words(command)
+        self.spaced = _split_glued_switches(" ".join(self._words))
+        # Deleting a quote instead of spacing it changes nothing next to whitespace or at either
+        # end, and joins word runs only between two word characters.
+        quoted = '"' in command or "'" in command
+        lowered = command if command.isascii() or not quoted else command.lower()
+        self.same = not quoted or not any(regex.search(lowered) for regex in _JOINING_QUOTE_RES)
+        self.merges = not self.same and any(regex.search(lowered) for regex in _MERGING_QUOTE_RES)
+        self._joined: str | None = self.spaced if self.same else None
+        self._deleted: str | None = None
+        # Phrase results in each view, by id of the phrase regex (see _contains_all).
+        self.spaced_memo: dict[int, bool] = {}
+        self.joined_memo: dict[int, bool] = {}
+
+    def spaced_runs(self) -> list[str]:
+        """The word runs of the spaced view, some more than once."""
+        words = self._words
+        # Long commands repeat words; splitting the glued switches adds no runs.
+        return _word_runs(" ".join(set(words)) if len(words) > 64 else self.spaced)
+
+    @property
+    def joined(self) -> str:
+        if self._joined is None:
+            joined = _joined_view(self._command)
+            self._joined = self.spaced if joined == self.spaced else joined
+        return self._joined
+
+    @property
+    def deleted(self) -> str:
+        """The command lower-cased, with quotes deleted and dashes folded: every run of
+        non-space characters of the joined view occurs in it."""
+        if self._deleted is None:
+            command = self._command
+            if command.isascii():
+                self._deleted = _ascii_lower_deleting(command, b"\"'")
+            else:
+                self._deleted = command.lower().translate(_QUOTES_DELETED)
+        return self._deleted
 
 
 def _phrase_re(phrase: str) -> re.Pattern[str]:
@@ -312,70 +475,178 @@ def _phrase_literal(phrase: str) -> str:
     return phrase.split(_ARG, 1)[0].strip()
 
 
+def _phrase_anchors(phrase: str) -> set[str]:
+    """Runs of word characters that every match of a normalised phrase has as whole runs.
+
+    These are the runs before the first "<arg>": _phrase_re keeps a word character from coming
+    right before the phrase, a non-word character inside the phrase ends a run, and so does the
+    end of a phrase without "<arg>" (which must be followed by a non-word character there). The
+    run just before an "<arg>" can continue into the argument, so it is left out.
+    """
+    text, arg, _ = phrase.partition(_ARG)
+    return {m.group() for m in _WORD_RUN_RE.finditer(text) if m.end() < len(text) or not arg}
+
+
 _Phrases = tuple[tuple[str, re.Pattern[str]], ...]  # (normalised phrase, its regex)
 
 
-def _contains_all(phrases: _Phrases, text: str) -> bool:
-    # The substring test is much faster than a regex search and rules out most phrases.
-    return all(phrase in text and pattern.search(text) for phrase, pattern in phrases)
+def _contains_all(phrases: _Phrases, text: str, memo: dict[int, bool]) -> bool:
+    """Every phrase occurs in ``text``. ``memo`` keeps the result for each phrase regex, since lists
+    share phrases."""
+    for phrase, pattern in phrases:
+        found = memo.get(id(pattern))
+        if found is None:
+            # The substring test is much faster than a regex search and rules out most phrases.
+            found = memo[id(pattern)] = phrase in text and pattern.search(text) is not None
+        if not found:
+            return False
+    return True
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class _PhraseList:
     """One inner list of command phrases, compiled for both command views."""
 
     spaced: _Phrases
     joined: _Phrases  # the same object as ``spaced`` unless a phrase contains quotes
+    # Word runs that a view must have for the list to match it (see _phrase_anchors).
+    spaced_anchors: frozenset[str]
+    joined_anchors: frozenset[str]
+    # The words of the joined phrases' literals: each occurs in a command they match, with its
+    # quotes deleted (see _View.deleted).
+    joined_words: tuple[str, ...]
 
     @classmethod
     @functools.cache
     def compile(cls, phrases: tuple[str, ...]) -> _PhraseList:
         """Compiled once per distinct list, so that rules with the same list share it."""
 
-        def view(delete_quotes: bool) -> _Phrases:
-            normalised = (normalize_command(p, delete_quotes=delete_quotes) for p in phrases)
-            return tuple((_phrase_literal(p), _phrase_re(p)) for p in normalised)
+        def view(delete_quotes: bool) -> tuple[_Phrases, frozenset[str]]:
+            normalised = [normalize_command(p, delete_quotes=delete_quotes) for p in phrases]
+            compiled = tuple((_phrase_literal(p), _phrase_re(p)) for p in normalised)
+            return compiled, frozenset().union(*map(_phrase_anchors, normalised))
 
-        spaced, joined = view(False), view(True)
-        return cls(spaced, spaced if joined == spaced else joined)
+        spaced, spaced_anchors = view(False)
+        joined, joined_anchors = view(True)
+        if joined == spaced:
+            joined, joined_anchors = spaced, spaced_anchors
+        words = tuple(dict.fromkeys(word for literal, _ in joined for word in literal.split()))
+        return cls(spaced, joined, spaced_anchors, joined_anchors, words)
 
-    def matches_any(self, chain: tuple[_CommandViews, ...], index: _ChainIndex) -> bool:
-        """:meth:`matches` for any command of a chain."""
-        return any(self.matches(chain[part]) for part in self._candidates(index))
-
-    def matching(self, chain: tuple[_CommandViews, ...], index: _ChainIndex) -> set[int]:
-        """The positions of the commands of a chain that :meth:`matches`."""
-        return {part for part in self._candidates(index) if self.matches(chain[part])}
-
-    def _candidates(self, index: _ChainIndex) -> Iterator[int]:
-        """The commands of a chain that contain the first phrase, each once.
-
-        The cost depends on how often that phrase occurs, not on how many commands there are.
-        """
-        spaced, spaced_starts, joined, joined_starts = index
-        tried: set[int] = set()
-        views = ((self.spaced[0][0], spaced, spaced_starts), (self.joined[0][0], joined, joined_starts))
-        for literal, text, starts in views:
-            position = text.find(literal)
-            while position != -1:
-                part = bisect.bisect_right(starts, position) - 1
-                if part not in tried:
-                    tried.add(part)
-                    yield part
-                if part + 1 == len(starts):
-                    break
-                position = text.find(literal, starts[part + 1])
-            if joined is spaced and self.joined is self.spaced:
-                break
-
-    def matches(self, views: _CommandViews) -> bool:
-        """Every phrase occurs in the same view of the command line."""
-        spaced, joined = views
-        if _contains_all(self.spaced, spaced):
+    def matches(self, view: _View) -> bool:
+        """Every phrase occurs in the same view of the command."""
+        if _contains_all(self.spaced, view.spaced, view.spaced_memo):
             return True
-        if joined is spaced and self.joined is self.spaced:
+        if view.same:
+            return self.joined is not self.spaced and _contains_all(
+                self.joined, view.spaced, view.spaced_memo
+            )
+        # Before computing the joined view: each word of each phrase must occur in the command.
+        deleted = view.deleted
+        if not all(word in deleted for word in self.joined_words):
             return False
-        return _contains_all(self.joined, joined)
+        joined = view.joined
+        if joined is view.spaced:
+            return self.joined is not self.spaced and _contains_all(self.joined, joined, view.spaced_memo)
+        return _contains_all(self.joined, joined, view.joined_memo)
+
+
+class _ListIndex:
+    """Phrase lists filed under one of their anchors, so a command is only tested against lists
+    whose anchors all occur in it."""
+
+    def __init__(self, lists: Iterable[_PhraseList]) -> None:
+        self.lists = tuple(dict.fromkeys(lists))
+        self.anchors = frozenset().union(*(p.spaced_anchors | p.joined_anchors for p in self.lists))
+        self._filed: dict[str, list[tuple[frozenset[str], _PhraseList]]] = {}
+        always: dict[int, _PhraseList] = {}
+        for phrases in self.lists:
+            # Under the anchors of the spaced phrases, and of the joined ones if they differ.
+            for anchors in dict.fromkeys((phrases.spaced_anchors, phrases.joined_anchors)):
+                if anchors:
+                    # The longest anchor: short ones ("c", "exe") occur in most commands.
+                    key = max(sorted(anchors), key=len)
+                    self._filed.setdefault(key, []).append((anchors, phrases))
+                else:
+                    always[id(phrases)] = phrases
+        self._keys = frozenset(self._filed)
+        self._always = tuple(always.values())
+
+    def matching(self, command: str) -> list[_PhraseList]:
+        """The lists that match ``command``."""
+        view = _View(command)
+        candidates = self._candidates(self.anchors.intersection(view.spaced_runs()), {})
+        if view.merges:
+            # The joined view has word runs the spaced one does not.
+            self._candidates(self.anchors.intersection(_word_runs(view.joined)), candidates)
+        return [p for p in candidates.values() if p.matches(view)]
+
+    def _candidates(self, present: frozenset[str], into: dict[int, _PhraseList]) -> dict[int, _PhraseList]:
+        for key in self._keys.intersection(present):
+            for anchors, phrases in self._filed[key]:
+                if anchors <= present:
+                    into[id(phrases)] = phrases
+        for phrases in self._always:
+            into[id(phrases)] = phrases
+        return into
+
+
+class _CommandMatcher:
+    """Finds the lines and chained commands that the phrase lists of a set of rules match."""
+
+    def __init__(self, rules: Iterable[Rule]) -> None:
+        rules = list(rules)
+        command_lists = [p for r in rules for p in (*r._command_lists, *r._exclusion_lists)]
+        line_lists = [p for r in rules for p in r._chained_lists]
+        self._commands = _ListIndex(command_lists)
+        self._lines = _ListIndex(line_lists)
+        self._single = _ListIndex([*command_lists, *line_lists])  # a line of one command
+
+    def match(self, commands: Iterable[str]) -> tuple[_CommandHits, _LineHits]:
+        command_hits: _CommandHits = {}
+        line_hits: _LineHits = {}
+        # Reports repeat commands; the result depends only on the text.
+        single: dict[str, list[_PhraseList]] = {}
+        chained: dict[str, list[_PhraseList]] = {}
+        for number, line in enumerate(commands):
+            parts = _split_chain(line)
+            if len(parts) <= 1:
+                found = single.get(line)
+                if found is None:
+                    found = single[line] = self._single.matching(line)
+                for phrases in found:
+                    command_hits.setdefault(id(phrases), []).append((number, 0))
+                    line_hits.setdefault(id(phrases), []).append(number)
+                continue
+            for part_number, part in enumerate(parts):
+                found = chained.get(part)
+                if found is None:
+                    found = chained[part] = self._commands.matching(part)
+                for phrases in found:
+                    command_hits.setdefault(id(phrases), []).append((number, part_number))
+            if self._lines.lists:
+                for phrases in self._line_matches(line):
+                    line_hits.setdefault(id(phrases), []).append(number)
+        return command_hits, line_hits
+
+    def _line_matches(self, line: str) -> list[_PhraseList]:
+        """The chained_commands lists that match a line of several commands as a whole."""
+        # Every word run of either view of the line occurs in the line with carets and quotes
+        # deleted: a cheap test before normalising the whole line again.
+        text = _CARET_RE.sub("", line) if "^" in line else line
+        if text.isascii():
+            text = _ascii_lower_deleting(text, b"\"'")
+        else:
+            text = text.lower().translate(_QUOTES_DELETED)
+        candidates = [
+            p
+            for p in self._lines.lists
+            if all(a in text for a in p.spaced_anchors) or all(a in text for a in p.joined_anchors)
+        ]
+        if not candidates:
+            return []
+        view = _View(line)
+        return [p for p in candidates if p.matches(view)]
 
 
 def _printable(text: str) -> str:
@@ -440,40 +711,21 @@ class Rule:
         if self.commands or self.chained_commands:
             # Each command of a chained line is matched on its own; an exclusion drops only the
             # commands it matches. chained_commands match the whole line, unless a part is excluded.
-            lines: Iterable[tuple[str, _CommandViews, tuple[_CommandViews, ...], _ChainIndex | None, bool]]
-            if self.exclude_commands:
-                exclusions = self._exclusion_lists
-                lines = []
-                for number, (original, views, chain, index) in enumerate(prepared.commands):
-                    if index is None:
-                        excluded = {0} if any(x.matches(chain[0]) for x in exclusions) else set()
-                    else:
-                        excluded = set()
-                        for exclusion in exclusions:
-                            memo = (id(exclusion), number)
-                            if (matched := prepared.excluded.get(memo)) is None:
-                                matched = prepared.excluded[memo] = exclusion.matching(chain, index)
-                            excluded |= matched
-                    if excluded:
-                        chain = tuple(c for part, c in enumerate(chain) if part not in excluded)
-                        index = _chain_index(chain) if len(chain) > 1 else None
-                    lines.append((original, views, chain, index, not excluded))
-            else:
-                lines = [(*command, True) for command in prepared.commands]
+            excluded: set[tuple[int, int]] = set()
+            for exclusion in self._exclusion_lists:
+                excluded.update(prepared.command_hits.get(id(exclusion), ()))
             for phrases in self._command_lists:
-                for original, _, chain, index, _ in lines:
-                    if index is not None:
-                        found = phrases.matches_any(chain, index)
-                    else:  # one command, or none left after exclusions
-                        found = bool(chain) and phrases.matches(chain[0])
-                    if found:
-                        evidence.append(f"command: {original}")
+                for line, part in prepared.command_hits.get(id(phrases), ()):
+                    if (line, part) not in excluded:
+                        evidence.append(f"command: {behavior.commands[line]}")
                         break
-            for phrases in self._chained_lists:
-                for original, views, _, _, whole in lines:
-                    if whole and phrases.matches(views):
-                        evidence.append(f"command: {original}")
-                        break
+            if self._chained_lists:
+                broken = {line for line, _ in excluded}
+                for phrases in self._chained_lists:
+                    for line in prepared.line_hits.get(id(phrases), ()):
+                        if line not in broken:
+                            evidence.append(f"command: {behavior.commands[line]}")
+                            break
         for parts in self.registry:
             for original, key in zip(behavior.registry_writes, prepared.registry_writes, strict=True):
                 if all(part in key for part in parts):
@@ -619,6 +871,10 @@ def _rule_files(path: Path | Traversable) -> list[Path | Traversable]:
 class RuleSet:
     rules: list[Rule]
     warnings: list[str] = field(default_factory=list)
+    # The command matcher for the rules it was built from (kept, so their ids stay unique).
+    _matcher: tuple[tuple[Rule, ...], _CommandMatcher] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
 
     @classmethod
     def empty(cls) -> RuleSet:
@@ -665,10 +921,19 @@ class RuleSet:
         self.warnings.extend(other.warnings)
 
     def evaluate(self, behavior: Behavior) -> list[tuple[Rule, list[str]]]:
+        rules = tuple(self.rules)
+        if (
+            self._matcher is None
+            or len(self._matcher[0]) != len(rules)
+            or any(a is not b for a, b in zip(self._matcher[0], rules, strict=True))
+        ):
+            self._matcher = (rules, _CommandMatcher(rules))
+        command_hits, line_hits = self._matcher[1].match(behavior.commands)
         prepared = _PreparedBehavior(
             apis=frozenset(a.lower() for a in behavior.apis),
-            commands=tuple(_prepare_command(c) for c in behavior.commands),
             registry_writes=tuple(k.lower() for k in behavior.registry_writes),
+            command_hits=command_hits,
+            line_hits=line_hits,
         )
         results = []
         for rule in self.rules:

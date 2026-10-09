@@ -47,16 +47,18 @@ their advisory.
   switch obfuscation does not hide them. Commands chained with `&`, `&&` or `||` are matched one by
   one, and `chained_commands` covers idioms that span them (`ping ... & del`). `exclude_commands`
   lets a rule ignore commands such as `net user ... /add` or `ipconfig /flushdns`, and `<arg>`
-  stands for one argument (`net start <arg>`, `net share <arg>=`).
+  stands for one argument (`net start <arg>`, `net share <arg>=`). Phrase lists are indexed by the
+  word runs every match contains, so each command is tested only against lists that can match it.
 - Normalisation of revoked ATT&CK IDs through the revocation history (for example `T1086` →
   `T1059.001`, `T1562.001` → `T1685`), for IDs in reports and in CAPE's own signature TTPs.
 - Output as JSON, CSV and STIX 2.1 bundles (indicators, vulnerabilities, attack patterns).
 - Default allowlist for platform root domains, sandbox background traffic, OCSP/CRL hosts and
   reference sites, plus custom allowlists; reserved and documentation values filtered by default.
 - `ttprism validate-rules` for rule authors.
-- Security hardening: linear-time regexes with a ReDoS test suite (pathological 1 MB inputs),
+- Security hardening: linear-time regexes with a ReDoS test suite (pathological 1 MB inputs, cost per MB),
   chunked input reading with a size limit, JSON nesting limit, strict YAML schemas with aliases
-  and duplicate keys rejected, per-report caps on rule inputs, an indexed IP allowlist, atomic
+  and duplicate keys rejected, per-report caps on rule inputs (at most 8 Mi characters of
+  commands go to rule matching), an indexed IP allowlist, atomic
   `-o` writes (in place where a new file cannot replace the old one), CSV formula escaping,
   control/bidi-character sanitisation of all output and messages, explicit
   reserved-IP tables independent of the Python version (IPv6 outside `2000::/3` is reserved),

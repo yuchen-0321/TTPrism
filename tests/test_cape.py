@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import copy
-import time
+import json
 from typing import Any
 
 import pytest
 
+from timing import seconds_per_mb, size_mb
 from ttprism import AnalysisOptions, AttackCatalog, IOCType, analyze_cape
 from ttprism.cape import MAX_ITEMS, MAX_SIGNATURE_CHARS, looks_like_cape, parse_cape
 
@@ -136,15 +137,30 @@ def test_oversized_behaviour_lists_are_capped_and_fast() -> None:
         "signatures": [{"name": f"sig_{i}"} for i in range(count)],
         "ttps": [{"signature": "s", "ttps": [f"T{9000 + i % 1000}" for i in range(count)]}],
     }
-    start = time.perf_counter()
-    result = analyze_cape(report)
-    assert time.perf_counter() - start < 30
+    results = []
+    assert seconds_per_mb(lambda: results.append(analyze_cape(report)), size_mb(json.dumps(report))) < 2
+    result = results[0]
     assert result.suppressed["truncated_commands"] == count - MAX_ITEMS
     assert result.suppressed["truncated_registry_writes"] == count - MAX_ITEMS
     assert result.suppressed["truncated_signatures"] == count - MAX_ITEMS
     assert result.suppressed["truncated_apis"] == count - MAX_ITEMS
     (warning,) = [w for w in result.warnings if "not in ATT&CK" in w]
     assert warning.endswith("and 980 more")
+
+
+def test_rule_matching_sees_a_bounded_amount_of_commands(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("ttprism.cape.MAX_RULE_COMMAND_CHARS", 1000)
+    commands = [f"cmd /c echo {i:03d} " + "x" * 280 for i in range(5)]
+    commands.append("vssadmin delete shadows /all http://late.example.net/a")
+    report = {"info": {}, "behavior": {"summary": {"executed_commands": commands}}}
+    parsed = parse_cape(report)
+    assert parsed.behavior.commands == commands[:3]
+    assert parsed.stats["truncated_rule_commands"] == 3
+    # IOCs still come from every command; the rules do not see the last ones.
+    assert (IOCType.URL, "http://late.example.net/a") in {(t, v) for t, v, _ in parsed.iocs}
+    result = analyze_cape(report)
+    assert result.suppressed["truncated_rule_commands"] == 3
+    assert "T1490" not in {t.technique_id for t in result.techniques}
 
 
 def test_dropped_api_names_are_counted_once() -> None:
@@ -175,8 +191,8 @@ def test_long_ttp_signatures_do_not_amplify_work() -> None:
     # Every catalog ID paired with 8 KiB signatures used to sanitise each signature once per ID.
     ids = sorted(AttackCatalog.default().techniques)
     report = {"info": {}, "ttps": [{"signature": f"{i:06d}" + "A" * 8186, "ttps": ids} for i in range(40)]}
-    start = time.perf_counter()
-    result = analyze_cape(report)
-    assert time.perf_counter() - start < 10
+    results = []
+    assert seconds_per_mb(lambda: results.append(analyze_cape(report)), size_mb(json.dumps(report))) < 2
+    result = results[0]
     assert result.suppressed["truncated_ttps"] == 40 * len(ids) - MAX_ITEMS
     assert all(len(e) <= 200 for t in result.techniques for e in t.evidence)

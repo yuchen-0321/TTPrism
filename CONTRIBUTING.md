@@ -52,7 +52,7 @@ Guidelines:
 
 - **Regexes run on attacker-controlled input.** Start patterns with a negative lookbehind so they
   can only match at a token boundary, bound every repetition, and add a pathological case to
-  `tests/test_redos.py` for any new pattern.
+  `tests/test_redos.py` for any new pattern; its limits are in seconds per MB.
 - Add a positive and a negative test case for every new IOC form.
 - Keep runtime dependencies minimal; each one is supply-chain risk for every user.
 - Update `CHANGELOG.md` under *Unreleased* for user-visible changes.

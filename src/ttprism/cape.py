@@ -22,6 +22,10 @@ MAX_FIELD_CHARS = 8192
 # stay far below these; a crafted report cannot make matching cost explode.
 MAX_ITEMS = 10_000
 MAX_SIGNATURE_CHARS = 200
+# Rule matching looks at the first commands up to this many characters in total (8 Mi, about 1,000
+# commands of MAX_FIELD_CHARS); the rest are counted under suppressed as truncated_rule_commands.
+# IOCs are still extracted from every command.
+MAX_RULE_COMMAND_CHARS = 8 * 1024 * 1024
 _HASH_FIELDS = (("md5", IOCType.MD5), ("sha1", IOCType.SHA1), ("sha256", IOCType.SHA256))
 _DNS_ADDRESS_TYPES = {"A", "AAAA"}
 
@@ -152,11 +156,12 @@ def parse_cape(report: Mapping[str, Any]) -> CapeReport:
                 dropped_apis.add(api)
     if dropped_apis:
         stats["truncated_apis"] += len(dropped_apis)
-    behavior.commands = _capped(list(commands), "commands", stats)
+    command_lines = _capped(list(commands), "commands", stats)
+    behavior.commands = _size_capped(command_lines, stats)
     behavior.registry_writes = _capped(
         list(dict.fromkeys(_strings(summary.get("write_keys")))), "registry_writes", stats
     )
-    for command in behavior.commands:
+    for command in command_lines:
         # Download cradles and C2 URLs often appear only on the command line.
         extract_into(iocs, refang(command), "cape:commands", stats)
 
@@ -179,6 +184,17 @@ def _capped(items: list[_T], name: str, stats: Counter[str]) -> list[_T]:
         stats[f"truncated_{name}"] += len(items) - MAX_ITEMS
         return items[:MAX_ITEMS]
     return items
+
+
+def _size_capped(commands: list[str], stats: Counter[str]) -> list[str]:
+    """The first ``commands`` that total at most MAX_RULE_COMMAND_CHARS characters."""
+    total = 0
+    for kept, command in enumerate(commands):
+        total += len(command)
+        if total > MAX_RULE_COMMAND_CHARS:
+            stats["truncated_rule_commands"] += len(commands) - kept
+            return commands[:kept]
+    return commands
 
 
 def _host_without_port(host: str | None) -> str | None:

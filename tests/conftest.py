@@ -1,14 +1,23 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
 import pytest
+from hypothesis import HealthCheck, settings
 
 from ttprism import Allowlist, AnalysisOptions, RuleSet
 
 DATA = Path(__file__).parent / "data"
+
+# Property-based tests run 200 examples each; HYPOTHESIS_PROFILE=fuzz runs 20,000.
+settings.register_profile("ci", max_examples=200, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+settings.register_profile(
+    "fuzz", max_examples=20_000, deadline=None, suppress_health_check=[HealthCheck.too_slow]
+)
+settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "ci"))
 
 
 @pytest.fixture
