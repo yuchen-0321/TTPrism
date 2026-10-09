@@ -40,7 +40,7 @@ domains, IPv4 and MD5 only.
 
 - **Input.** pypdf 6.20.0 turns each PDF into text, page headers and footers included; all tools
   read the same text. Versions: iocextract 1.16.1, ioc-finder 9.4.1, Python 3.11.4; TTPrism at
-  d53b3ed (baseline) and 6c655c8 (after the fixes; the first fix commit, 6d0012d, gave the same
+  d53b3ed (baseline) and 60a0d1f (after the fixes; the first fix commit, 6d0012d, gave the same
   output, see section 4).
 - **TTPrism settings.** *default* (the main numbers) and *raw* (`--include-reserved
   --no-default-allowlist`). Comparisons with the other tools use raw.
@@ -150,7 +150,7 @@ of the rules were refined later (see below); the table describes them as they ar
 | Certificate serial numbers (`SerialNumber:` + 32 hex) read as MD5 (all three tools) | 3 c | Hex values right after a serial-number label (`serial`, `serial number`, `序列号`, `序列號`, `證書序號`, `憑證序號`, or a bare `序號` with a colon) are counted as `certificate_serial` |
 | GUIDs whose hyphens the PDF converter wrote as soft hyphens read as MD5 | 2 c | Soft hyphens between the groups of a GUID become hyphens before format characters are deleted |
 | Names wrapped at a hyphen next to a dot (`serveuser.-` / `com`) missed | 7 recall | Joined without the hyphen |
-| URLs wrapped after one of their own hyphens (`KB-Auto-win-` / `update.exe`) cut | 6 c | Joined keeping the hyphen, when a URL on the line runs up to the hyphen |
+| URLs wrapped after one of their own hyphens (`KB-Auto-win-` / `update.exe`) cut | 6 c | Joined keeping the hyphen, when a URL on the line runs up to the hyphen (also over several lines) |
 | The rest of a name after any other hyphen at a line end (`daters.com`, `dns.net`) | 14 c | Dropped as a fragment (`line_wrap_fragment`); the hyphen may or may not belong to the name |
 | Masked names (`wiki.xxxx.com`, `mail.cass.xxxx.net`) reported | 19 masked | Names with a label of three or more `x` are dropped (`masked_name`) |
 | Detection name `Backdoor.Win32.Ht` reported as a domain | 1 c | Names of the form type.platform.family are dropped (`detection_name`) |
@@ -167,7 +167,7 @@ joined with the next line, and a name at the start of a line after a line ending
 digit and `-` (`2019-` / `example.com`) is dropped as a fragment.
 
 **Changes made before the freeze from reading the code, not from these data** (6857503, then
-6c655c8 after an adversarial review of it):
+6c655c8 and 60a0d1f after two rounds of adversarial review):
 
 - A soft hyphen right before a line break, also with spaces, bidi controls or other format
   characters between, is read as `-`, so the line-break rules apply to it exactly as to `-`. It used
@@ -177,11 +177,12 @@ digit and `-` (`2019-` / `example.com`) is dropped as a fragment.
   every hyphen as a soft hyphen and the value then loses its hyphens (`KB-Auto` read as `KBAuto`).
 - A bare `序號` is a serial-number label only with a colon, since it also heads the row-number
   column of tables; `證書序號` and `憑證序號` need none.
-- A line ending in `<letter or digit>-` is joined with the next line as part of a URL only if a URL
-  really runs up to the hyphen; before, any URL earlier on a line of Chinese text without spaces was
-  enough.
+- A line ending in `<letter or digit>-` is joined with the next line as part of a URL only if a URL,
+  as the extractor reads it, really runs up to the hyphen; before, any URL earlier on a line of
+  Chinese text without spaces was enough. A URL wrapped after its own hyphens over several lines is
+  joined at every break.
 
-None of these changed any output on the eight reports (6d0012d and 6c655c8 give identical
+None of these changed any output on the eight reports (6d0012d, 6c655c8 and 60a0d1f give identical
 results). cn01 has 46 soft hyphens inside lines, but none inside an extracted value, so it gives no
 warning.
 
