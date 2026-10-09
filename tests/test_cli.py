@@ -630,7 +630,9 @@ def test_config_values_that_yaml_cannot_build(capsys: pytest.CaptureFixture[str]
     allow = tmp_path / "allow.yaml"
     for content, message in (
         ("domains: [a.com]\ndomains: [b.com]\n", "duplicate key"),
-        ("ips: [" + "1" * 5000 + "]\n", "invalid YAML value"),
+        ("ips: [" + "1" * 5000 + "]\n", "integer longer than 100 characters"),
+        ("ips: [0x" + "f" * 4000 + "]\n", "integer longer than 100 characters"),
+        ("hashes: [1" + ":59" * 2000 + "]\n", "integer longer than 100 characters"),
         ("emails: [2026-02-30]\n", "invalid YAML value"),
     ):
         allow.write_text(content, encoding="utf-8")
@@ -671,3 +673,52 @@ def test_validate_rules_on_a_narrow_console(tmp_path: Path) -> None:
     assert "WARNING" in out
     assert "規則.yaml" in out
     assert "with warnings" in out
+
+
+def test_full_disk_keeps_the_existing_output_file(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Only a permission error means "write in place": ENOSPC must not truncate the old output.
+    output = tmp_path / "out.json"
+    output.write_text("previous", encoding="utf-8")
+
+    def full(*args: Any, **kwargs: Any) -> Any:
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr("ttprism.cli.tempfile.mkstemp", full)
+    code, _, err = run(capsys, "extract", str(_report(tmp_path)), "-o", str(output))
+    assert code == 1
+    assert "No space left on device" in err
+    assert output.read_text(encoding="utf-8") == "previous"
+
+
+def test_utf32_with_a_stray_byte_is_still_utf32(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+    report = tmp_path / "r.txt"
+    body = codecs.BOM_UTF32_LE + "evil.com\n".encode("utf-32-le")
+    for data in (body + b"\x00", body[:4] + b"\xff\xff\xff\xff" + body[4:]):
+        report.write_bytes(data)
+        code, out, err = run(capsys, "extract", str(report))
+        assert code == 0, err
+        assert [i["value"] for i in json.loads(out)["iocs"]] == ["evil.com"]
+
+
+def test_warnings_in_json_are_safe_for_terminals(tmp_path: Path) -> None:
+    from ttprism import AnalysisOptions, analyze_text, to_json
+
+    result = analyze_text("x", AnalysisOptions())
+    result.warnings.append("rules/a\u202eb\x9b.yaml: written for ATT&CK 18.0")
+    assert not set(to_json(result)) & {"\u202e", "\x9b"}
+
+
+@pytest.mark.skipif(not hasattr(os, "setxattr"), reason="needs extended attributes")
+def test_output_file_keeps_its_extended_attributes(
+    capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    output = tmp_path / "out.json"
+    output.write_text("previous", encoding="utf-8")
+    try:
+        os.setxattr(output, "user.ttprism", b"1")
+    except OSError:
+        pytest.skip("the file system does not take user attributes")
+    _extract_to(capsys, tmp_path, output)
+    assert os.getxattr(output, "user.ttprism") == b"1"

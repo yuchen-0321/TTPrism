@@ -35,7 +35,7 @@ def to_dict(result: AnalysisResult, *, defanged: bool = False) -> dict[str, Any]
         "iocs": iocs,
         "techniques": [t.to_dict() for t in result.techniques],
         "suppressed": result.suppressed,
-        "warnings": result.warnings,
+        "warnings": [printable(w) for w in result.warnings],  # may quote rule file names
     }
 
 

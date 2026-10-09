@@ -170,7 +170,7 @@ def test_rule_warnings_for_outdated_techniques(tmp_path: Path) -> None:
         (
             "- id: x\n  technique: T1059\n  match: {commands: [a]}\n  n: " + "1" * 5000 + "\n",
             '"19.2"',
-            "value",
+            "integer longer than 100 characters",
         ),
         (
             "- id: x\n  technique: T1059\n  match: {commands: [a]}\n  d: 2026-02-30\n",

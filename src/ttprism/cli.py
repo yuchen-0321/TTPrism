@@ -246,16 +246,16 @@ def _replace_file(path: Path, data: bytes) -> None:
         # Replacing needs only a writable directory; keep refusing read-only files as open() did.
         raise PermissionError(errno.EACCES, os.strerror(errno.EACCES))
     target = Path(os.path.realpath(path))  # through a symlink, replace the file it points to
-    if info is not None and (info.st_nlink > 1 or os.path.ismount(target)):
-        # Other hard links would keep the old content, and a bind-mounted file (a container
-        # volume) cannot be renamed over.
+    if info is not None and (info.st_nlink > 1 or os.path.ismount(target) or _has_xattrs(target)):
+        # Other hard links would keep the old content, a bind-mounted file (a container volume)
+        # cannot be renamed over, and a new file would not have the old one's ACL or attributes.
         _write_in_place(target, data)
         return
     mode = stat.S_IMODE(info.st_mode) if info is not None else 0o666 & ~_umask()
     try:
         # A short name: the target's own name may already be close to NAME_MAX.
         fd, temp = tempfile.mkstemp(prefix=f".{target.name[:48]}.", suffix=".tmp", dir=target.parent)
-    except OSError:
+    except PermissionError:
         if info is None:
             raise
         _write_in_place(target, data)  # a writable file in a directory that is not writable
@@ -281,6 +281,14 @@ def _replace_file(path: Path, data: bytes) -> None:
         with contextlib.suppress(OSError):
             os.unlink(temp)
         raise
+
+
+def _has_xattrs(path: Path) -> bool:
+    """True if ``path`` has extended attributes, such as a POSIX ACL (Linux only)."""
+    try:
+        return bool(os.listxattr(path))
+    except (AttributeError, OSError):
+        return False
 
 
 def _write_in_place(path: Path, data: bytes) -> None:

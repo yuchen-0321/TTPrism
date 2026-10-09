@@ -8,7 +8,7 @@ from typing import Any
 import yaml
 from yaml.composer import ComposerError
 from yaml.constructor import ConstructorError
-from yaml.nodes import MappingNode, Node
+from yaml.nodes import MappingNode, Node, ScalarNode, SequenceNode
 
 MAX_CONFIG_BYTES = 2 * 1024 * 1024
 
@@ -32,10 +32,21 @@ class _NoAliasLoader(yaml.SafeLoader):
         return super().compose_node(parent, index)
 
     def construct_mapping(self, node: MappingNode, deep: bool = False) -> dict[Any, Any]:
+        if isinstance(node, MappingNode):  # "!!map" on a list or scalar: the base class reports it
+            self._check_unique_keys(node)
+        return super().construct_mapping(node, deep)
+
+    def _check_unique_keys(self, node: MappingNode) -> None:
         seen: set[Any] = set()
-        for key_node, _ in node.value:
+        for key_node, value_node in node.value:
             if key_node.tag == "tag:yaml.org,2002:merge":
-                continue  # "<<" merges may repeat keys; explicit keys win, as YAML intends
+                # Keys merged with "<<" may repeat explicit keys (explicit ones win, as YAML
+                # intends), but each merged mapping must not repeat its own.
+                merged = value_node.value if isinstance(value_node, SequenceNode) else [value_node]
+                for mapping in merged:
+                    if isinstance(mapping, MappingNode):
+                        self._check_unique_keys(mapping)
+                continue
             key = self.construct_object(key_node, deep=True)
             try:
                 duplicate = key in seen
@@ -49,7 +60,15 @@ class _NoAliasLoader(yaml.SafeLoader):
                     key_node.start_mark,
                 )
             seen.add(key)
-        return super().construct_mapping(node, deep)
+
+    def construct_yaml_int(self, node: ScalarNode) -> int:
+        # Long integers are slow to build (base 60 is quadratic) and to print in error messages.
+        if len(str(node.value)) > 100:
+            raise ConstructorError(None, None, "integer longer than 100 characters", node.start_mark)
+        return super().construct_yaml_int(node)
+
+
+_NoAliasLoader.add_constructor("tag:yaml.org,2002:int", _NoAliasLoader.construct_yaml_int)
 
 
 def load_yaml_text(text: str, where: str, error: type[ConfigError] = ConfigError) -> Any:

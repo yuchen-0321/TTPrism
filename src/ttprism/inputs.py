@@ -102,13 +102,11 @@ def decode_text(data: bytes, encoding: str | None = None) -> tuple[str, list[str
 
 def _strict_utf32(data: bytes) -> str | None:
     """``data`` as UTF-32, or None if it is not: FF FE 00 00 also starts UTF-16 text whose first
-    character is U+0000."""
-    if len(data) % 4:
-        return None
-    try:
-        return data.decode("utf-32")
-    except UnicodeDecodeError:
-        return None
+    character is U+0000. A few bad code units or a stray last byte do not make it UTF-16; read as
+    UTF-32, UTF-16 text is nearly all invalid code units."""
+    text = data.decode("utf-32", errors="replace")
+    bad = text.count("\ufffd")
+    return text if bad <= 2 or bad * 100 <= len(text) else None
 
 
 def printable(text: str) -> str:

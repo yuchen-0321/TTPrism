@@ -217,3 +217,19 @@ def test_oversized_allowlist_rejected(tmp_path: Path) -> None:
 def test_missing_file(tmp_path: Path) -> None:
     with pytest.raises(AllowlistError, match="cannot read"):
         Allowlist.from_file(tmp_path / "missing.yaml")
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        "domains: !!map [a, b]\n",
+        "domains: !!map x\n",
+        "<<: {domains: [a.com], domains: [b.com]}\n",
+        "x: {<<: [{a: 1, a: 2}]}\n",
+    ],
+)
+def test_malformed_mappings_are_clean_errors(tmp_path: Path, content: str) -> None:
+    path = tmp_path / "allow.yaml"
+    path.write_text(content, encoding="utf-8")
+    with pytest.raises(AllowlistError):
+        Allowlist.from_file(path)
