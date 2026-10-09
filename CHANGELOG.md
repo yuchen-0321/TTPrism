@@ -28,6 +28,14 @@ their advisory.
   truncated, but emoji and right-to-left letters next to a name are not glue. A label before an
   IPv6 address (`C2:2001:db8::1`, `IPv6:2001:db8::1`) is not taken as part of it. A literal `%`
   (`LIKE '%198.51.100.7%'`) is not read as a percent escape.
+- Fixes from an evaluation on eight public Chinese-language reports
+  (`docs/research/2026-10-real-reports.md`): certificate serial numbers labelled as such
+  (`SerialNumber: 00B7...`, `序列号：`) and GUIDs whose hyphens a PDF converter wrote as soft
+  hyphens are no longer read as hashes; names and URLs broken across PDF lines are joined where
+  the hyphen at the break cannot be part of them (`evil.-` / `com`, `evil-` / `.com`) or is part of a
+  URL (`/KB-Auto-win-` / `update.exe`), and otherwise the rest of a name on the next line is dropped
+  as a fragment (`line_wrap_fragment`); masked names (`wiki.xxxx.com`) and antivirus detection
+  names (`Backdoor.Win32.Ht`) are dropped (`masked_name`, `detection_name`).
 - Refanging of common and CJK defang styles: `[.]`, `(.)`, `[dot]`, `【.】`, `〔.〕`, `[。]`,
   the same markers with a space on each side (` [.] `, ` (at) `, ` {dot} `), `[/]`, `[//]`,
   full-width characters (`．`, `［＠］`, `１９８．５１…`), `hxxp`, `hxxp[s]`, `hxxp(s)`,

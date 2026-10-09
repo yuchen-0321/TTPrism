@@ -101,6 +101,17 @@ IPV6_RE = re.compile(
     r"(?=[0-9A-Fa-f]{0,4}:)[0-9A-Fa-f:.]{2,45}(?![0-9A-Za-z:])"
 )
 HASH_RE = re.compile(r"(?<![0-9A-Za-z])(?:[0-9A-Fa-f]{64}|[0-9A-Fa-f]{40}|[0-9A-Fa-f]{32})(?![0-9A-Za-z])")
+# A certificate serial number can have the length of a hash: "SerialNumber: 00B7C6B7...".
+_SERIAL_LABEL_RE = re.compile(
+    r"(?:serial[ _-]?(?:number|no\.?)?|序列号|序列號|序號)[ \t]{0,2}[:=]?[ \t]{0,2}[\"']?\Z", re.IGNORECASE
+)
+# PDF line breaks inside a name or a URL. Next to a dot a hyphen cannot belong to the name, so
+# "evil.-\ncom" and "evil-\n.com" are joined without it. A URL that breaks after one of its own
+# hyphens ("/a-\nb.exe") is joined keeping it. Any other hyphen at the end of a line may or may not
+# belong to the name ("dynamic-\ndns.net"), so the rest of the name on the next line is dropped as
+# a fragment instead. The pattern starts with the hyphen, so the engine skips ahead to hyphens;
+# _rejoin_wrapped_lines looks at the characters around it.
+_HYPHEN_WRAP_RE = re.compile(r"-[ \t]{0,8}\r?\n[ \t]{0,8}")
 _DASH = "-\u2010\u2011\u2012\u2013\u2014\u2015\u2212"
 CVE_RE = re.compile(
     rf"(?<![A-Za-z0-9])CVE[{_DASH}]([0-9]{{4}})[{_DASH}]([0-9]{{4,7}})(?![0-9])", re.IGNORECASE
@@ -750,12 +761,90 @@ def _bare_name_noise(domain: str, written: str) -> str | None:
         return "code_identifier"
     if len(labels) == 2 and len(labels[1]) == 2 and labels[0] in SUFFIX_SECOND_LEVEL_LABELS:
         return "public_suffix"
+    if len(labels) >= 3 and labels[0] in _DETECTION_TYPES and labels[1] in _DETECTION_PLATFORMS:
+        return "detection_name"
     return None
+
+
+# Antivirus detection names whose family is also a TLD: "Backdoor.Win32.Ht", "Trojan.MSIL.Bot".
+_DETECTION_TYPES = frozenset(
+    {
+        "adware", "backdoor", "dropper", "downloader", "exploit", "hacktool", "packed", "ransom",
+        "riskware", "rootkit", "spyware", "trojan", "trojan-downloader", "trojan-dropper", "trojan-spy",
+        "trojandownloader", "trojandropper", "trojanspy", "virtool", "virus", "worm",
+    }
+)  # fmt: skip
+_DETECTION_PLATFORMS = frozenset(
+    {
+        "androidos", "linux", "macos", "msil", "msoffice", "o97m", "osx", "w32", "w64", "w97m", "win32",
+        "win64", "x97m",
+    }
+)  # fmt: skip
+
+
+def _masked_name(name: str) -> bool:
+    """True for a name that a report masked: "wiki.xxxx.com", "mail.xxx.example.net"."""
+    return any(len(label) >= 3 and not label.strip("x") for label in name.split(".")[:-1])
+
+
+def _starts_wrapped_line(text: str, start: int) -> bool:
+    """True if ``start`` begins a line and the line before ends in a hyphen after a letter or digit."""
+    index = start
+    while index > max(0, start - 8) and text[index - 1] in " \t":
+        index -= 1
+    if text[index - 1 : index] != "\n":
+        return False
+    index -= 1 + (text[index - 2 : index - 1] == "\r")
+    end = index
+    while index > max(0, end - 8) and text[index - 1] in " \t":
+        index -= 1
+    return index >= 2 and text[index - 1] == "-" and _is_alnum(text[index - 2])
+
+
+def _rejoin_wrapped_lines(text: str) -> str:
+    """Join names and URLs that a PDF line break split; see _HYPHEN_WRAP_RE."""
+    if "\n" not in text:
+        return text
+    pieces = []
+    last = 0
+    for match in _HYPHEN_WRAP_RE.finditer(text):
+        hyphen, after = match.start(), match.end()
+        before, next_char = text[hyphen - 1 : hyphen], text[after : after + 1]
+        if before == "." and _is_alnum(text[hyphen - 2 : hyphen - 1]) and _is_alnum(next_char):
+            cut = hyphen  # "evil.-\ncom"
+        elif _is_alnum(before) and next_char == "." and _is_alnum(text[after + 1 : after + 2]):
+            cut = hyphen  # "evil-\n.com"
+        elif _is_alnum(before) and _is_alnum(next_char) and "://" in _last_token(text, hyphen):
+            cut = hyphen + 1  # "http://evil.com/a-\nb.exe"
+        else:
+            continue
+        pieces.append(text[last:cut])
+        last = after
+    pieces.append(text[last:])
+    return "".join(pieces)
+
+
+def _is_alnum(char: str) -> bool:
+    return char.isascii() and char.isalnum()
+
+
+def _last_token(text: str, end: int) -> str:
+    """The run of characters before ``end`` on its line that has no space or tab."""
+    line_start = text.rfind("\n", 0, end) + 1
+    return text[
+        max(line_start, text.rfind(" ", line_start, end) + 1, text.rfind("\t", line_start, end) + 1) : end
+    ]
 
 
 def extract_into(collector: IOCCollector, text: str, source: str, stats: Counter[str] | None = None) -> None:
     """Add every IOC in already-refanged ``text`` to ``collector``."""
-    _extract(collector, text, source, stats if stats is not None else Counter(), nested=False)
+    _extract(
+        collector,
+        _rejoin_wrapped_lines(text),
+        source,
+        stats if stats is not None else Counter(),
+        nested=False,
+    )
 
 
 def _extract(collector: IOCCollector, text: str, source: str, stats: Counter[str], *, nested: bool) -> None:
@@ -786,6 +875,9 @@ def _extract(collector: IOCCollector, text: str, source: str, stats: Counter[str
         if parsed is None:
             continue
         url, _, host_ioc, tail = parsed
+        if host_ioc is not None and host_ioc[0] == IOCType.DOMAIN and _masked_name(host_ioc[1]):
+            stats["masked_name"] += 1
+            continue
         collector.add(IOCType.URL, url, source)
         if host_ioc is not None:
             collector.add(host_ioc[0], host_ioc[1], source)
@@ -795,6 +887,9 @@ def _extract(collector: IOCCollector, text: str, source: str, stats: Counter[str
     for match in EMAIL_RE.finditer(text):
         start, end = match.span()
         if _glued(text, start - 1) or _glued(text, end):
+            continue
+        if _starts_wrapped_line(text, start):
+            stats["line_wrap_fragment"] += 1
             continue
         # "ftp://user:pw@host" is userinfo, not an e-mail address.
         index = bisect.bisect_right(userinfo_ends, start)
@@ -806,16 +901,24 @@ def _extract(collector: IOCCollector, text: str, source: str, stats: Counter[str
             # An encoded quote, bracket or separator ends what comes before: "%3Cops@example.org".
             local = local[delimiters[-1].end() :]
         domain = normalize_domain(domain_part)
-        if domain is not None and _valid_local_part(local):
+        if domain is not None and _masked_name(domain):
+            stats["masked_name"] += 1
+        elif domain is not None and _valid_local_part(local):
             collector.add(IOCType.EMAIL, f"{local.lower()}@{domain}", source)
 
     for match in DOMAIN_RE.finditer(text):
         start, end = match.span()
         if _glued_before(text, start) or _glued(text, end):
             continue
+        if _starts_wrapped_line(text, start):
+            stats["line_wrap_fragment"] += 1
+            continue
         written = _after_percent_escape(text, start, match.group(0))
         domain = normalize_domain(written)
         if domain is None:
+            continue
+        if _masked_name(domain):
+            stats["masked_name"] += 1
             continue
         noise = _bare_name_noise(domain, written)
         if noise is not None:
@@ -851,6 +954,9 @@ def _extract(collector: IOCCollector, text: str, source: str, stats: Counter[str
     for match in HASH_RE.finditer(text):
         value = match.group(0).lower()
         if value.isdigit() or len(set(value)) == 1:
+            continue
+        if _SERIAL_LABEL_RE.search(text, max(0, match.start() - 24), match.start()):
+            stats["certificate_serial"] += 1
             continue
         collector.add(_HASH_TYPES[len(value)], value, source)
 

@@ -134,6 +134,20 @@ PATHOLOGICAL = {
     "bidi beside cjk": "\u3002\u200ea" * (SIZE // 3),
     "soft hyphen and bidi": "a\u00ad\u200e" * (SIZE // 3),
     "rtl letters": "a\u05d0b.com " * (SIZE // 9),
+    # Real-report evaluation: soft-hyphen GUIDs, serial labels, PDF line wraps, masks, detection names.
+    "soft-hyphen hex groups": "0123abcd\u00ad0123\u00ad" * (SIZE // 14),
+    "soft-hyphen near-guids": ("0123abcd" + "\u00ad0123" * 3 + "\u00ad0123abcd012 ") * (SIZE // 37),
+    "serial labels": ("serial: " + "a1" * 16 + " ") * (SIZE // 41),
+    "serial label prefixes": "serial no." * (SIZE // 10) + "a1" * 16,
+    "dot-hyphen wraps": "a.-\n" * (SIZE // 4),
+    "hyphen-dot wraps": "a-\n." * (SIZE // 4),
+    "spaces around wraps": ("a-" + " " * 8 + "\n" + " " * 9) * (SIZE // 20),
+    "hyphen wraps in urls": "http://a.com/b-\n" * (SIZE // 16),
+    "hyphen line ends after a url": "http://a.com " + "a-\n" * (SIZE // 3),
+    "long url lines ending in hyphens": ("http://a.com/" + "a" * 4000 + "-\n") * (SIZE // 4015),
+    "names after hyphen line ends": "a-\nb.com " * (SIZE // 9),
+    "masked names": "xxxx.com " * (SIZE // 9),
+    "detection names": "Trojan.Win32.Ht " * (SIZE // 16),
 }
 
 # Command lines reach the ATT&CK rules from CAPE reports: quotes, carets and chaining, glued

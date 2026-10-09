@@ -233,3 +233,15 @@ def test_bidi_controls_separate_or_vanish() -> None:
     assert refang("\u2066evil.com\u2069\u2066example.net\u2069") == " evil.com example.net "
     assert refang("evil\u2063example.org") == "evil example.org"
     assert refang("ev\u200eil.com") == "evil.com"  # inside a name
+
+
+def test_soft_hyphens_in_a_guid_become_hyphens() -> None:
+    # Some PDF converters write every hyphen of a document as a soft hyphen.
+    guid = "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}"
+    assert refang(guid) == "{0F1E2D3C-4B5A-6978-8796-A5B4C3D2E1F0}"
+    # Soft hyphens that only allow a line break inside a hash are still deleted.
+    assert refang("d41d8cd98f00\u00adb204e9800998ecf8427e") == "d41d8cd98f00b204e9800998ecf8427e"
+    assert (
+        refang("0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0A")
+        == "0F1E2D3C4B5A69788796A5B4C3D2E1F0A"
+    )

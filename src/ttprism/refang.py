@@ -80,6 +80,17 @@ _BIDI_BREAK_RE = re.compile(
 )
 
 
+# Some PDF converters write every hyphen as a soft hyphen. In a GUID, deleting them would leave
+# 32 hex digits that read as an MD5: "{92BA1818\u00ad0119\u00ad4F79\u00ad874E\u00adE3BF79C355B8}".
+_SOFT_HYPHEN_GUID_RE = re.compile(
+    r"(?<![0-9A-Fa-f])[0-9A-Fa-f]{8}(?:\u00ad[0-9A-Fa-f]{4}){3}\u00ad[0-9A-Fa-f]{12}(?![0-9A-Fa-f])"
+)
+
+
+def _guid_hyphens(match: re.Match[str]) -> str:
+    return match.group(0).replace("\u00ad", "-")
+
+
 @functools.cache
 def _format_table() -> dict[int, str | None]:
     """Translation table that deletes the format characters other than bidi controls and U+2063."""
@@ -125,8 +136,11 @@ def refang(text: str) -> str:
     are folded to their plain equivalents, except full-width punctuation that
     cannot be part of a URL; Unicode spaces become plain spaces. Other
     compatibility characters (superscripts, circled numbers) are kept, so they
-    never merge into an adjacent IOC.
+    never merge into an adjacent IOC. Soft hyphens between the groups of a GUID
+    become hyphens.
     """
+    if "\u00ad" in text:
+        text = _SOFT_HYPHEN_GUID_RE.sub(_guid_hyphens, text)
     text = _BIDI_BREAK_RE.sub(" ", text.translate(_format_table())).translate(_fold_table())
     text = _PUNYCODE_DASH_RE.sub(r"\1--", text)
     text = _SPACED_DOT_RE.sub(".", text)

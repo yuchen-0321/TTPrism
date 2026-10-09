@@ -20,6 +20,7 @@ SKIP_DIRS = {
     ".mypy_cache",
     ".ruff_cache",
     ".pytest_cache",
+    "eval-data",  # git-ignored PDF text of the real-report evaluation
 }
 
 

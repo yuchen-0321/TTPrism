@@ -1267,3 +1267,126 @@ def test_more_credentialed_schemes(text: str) -> None:
 )
 def test_more_double_extensions(name: str) -> None:
     assert pairs(name) == []
+
+
+# --------------------------------------------------------------------------- PDF text and labelled values
+# Found by the evaluation on real reports (docs/research/2026-10-real-reports.md).
+
+
+def test_guid_written_with_soft_hyphens_is_not_an_md5() -> None:
+    assert pairs("{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}.dll") == []
+    assert values("MD5 d41d8cd98f00\u00adb204e9800998ecf8427e", IOCType.MD5) == [
+        "d41d8cd98f00b204e9800998ecf8427e"
+    ]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        'SerialNumber:"00B68E6DB2BB7412FABCBAA2192394AD"',
+        "Serial Number: 00b68e6db2bb7412fabcbaa2192394ad",
+        "serial_no=00b68e6db2bb7412fabcbaa2192394ad",
+        "序列号：00B68E6DB2BB7412FABCBAA2192394AD",
+        "證書序號 00b68e6db2bb7412fabcbaa2192394ad5f3e2d1c",
+    ],
+)
+def test_certificate_serial_numbers_are_not_hashes(text: str) -> None:
+    assert pairs(refang(text)) == []
+    assert stats_for(refang(text))["certificate_serial"] == 1
+
+
+def test_values_after_other_labels_are_still_hashes() -> None:
+    text = (
+        "Thumbprint: 1C3CBEAADDC4AAA8F3B743F4D7E8537F4C1EA597\n"
+        "SerialNumber: 7, MD5 d41d8cd98f00b204e9800998ecf8427e"
+    )
+    assert values(text, IOCType.SHA1) == ["1c3cbeaaddc4aaa8f3b743f4d7e8537f4c1ea597"]
+    assert values(text, IOCType.MD5) == ["d41d8cd98f00b204e9800998ecf8427e"]
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("c2.example.-\ncom", ["c2.example.com"]),
+        ("files.example-\n.net", ["files.example.net"]),
+        ("c2.example.- \r\n  org 198.51.100.7", ["c2.example.org"]),
+        ("download\n.example.-\ncom", ["example.com"]),  # a line break without a hyphen is not joined
+    ],
+)
+def test_names_split_next_to_a_dot_are_joined(text: str, expected: list[str]) -> None:
+    assert values(text, IOCType.DOMAIN) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("http://198.51.100.7/1/update-\nwin.exe", "http://198.51.100.7/1/update-win.exe"),
+        (
+            "下载：https://www.example.com/a/first-\nsecond.pdf 其他",
+            "https://www.example.com/a/first-second.pdf",
+        ),
+        ("hxxp://files.example[.]org/covid-  \n19/a.exe", "http://files.example.org/covid-19/a.exe"),
+    ],
+)
+def test_url_broken_after_its_own_hyphen_is_joined(text: str, expected: str) -> None:
+    assert values(text, IOCType.URL) == [expected]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "files.dynamic-\nexample.net",  # "dynamic-example.net" or "dynamicexample.net"
+        "androidup\u2010\nexample.com",  # a typographic hyphen, folded to "-"
+        "ops-\nteam@example.org",
+        "update-\n  example.com",
+    ],
+)
+def test_name_after_a_hyphen_at_a_line_end_is_a_fragment(text: str) -> None:
+    assert pairs(refang(text)) == []
+    assert stats_for(refang(text))["line_wrap_fragment"] == 1
+
+
+@pytest.mark.parametrize(
+    "text", ["C2 -\nexample.com", "C2:\nexample.com", "end.\nexample.com", "a--\nexample.com"]
+)
+def test_names_after_other_line_ends_are_kept(text: str) -> None:
+    assert values(text, IOCType.DOMAIN) == ["example.com"]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "wiki.xxxx.com",
+        "mail.xxx.example.net",
+        "XXXXXX.com",
+        "ops@xxxx.example.org",
+        "http://xxxx.example.com/a",
+    ],
+)
+def test_masked_names_are_dropped(text: str) -> None:
+    assert pairs(text) == []
+    assert stats_for(text)["masked_name"] == 1
+
+
+def test_names_with_x_runs_that_are_not_masks_are_kept() -> None:
+    assert values("example.xxx taxxx.example.com xx.example.com", IOCType.DOMAIN) == [
+        "example.xxx",
+        "taxxx.example.com",
+        "xx.example.com",
+    ]
+
+
+@pytest.mark.parametrize(
+    "name", ["Backdoor.Win32.Ht", "Trojan.MSIL.Bot", "virus.win32.sality.ms", "Worm.Linux.Ms"]
+)
+def test_detection_names_are_not_domains(name: str) -> None:
+    assert pairs(name) == []
+    assert stats_for(name)["detection_name"] == 1
+
+
+def test_names_like_detection_names_are_kept() -> None:
+    assert values("trojan.example.ht win32.example.com backdoor.example.com", IOCType.DOMAIN) == [
+        "backdoor.example.com",
+        "trojan.example.ht",
+        "win32.example.com",
+    ]
