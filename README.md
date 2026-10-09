@@ -6,9 +6,13 @@
 way a prism splits light into a spectrum.
 
 - **Extracts IOCs** (URLs, domains, IPv4/IPv6, emails, MD5/SHA-1/SHA-256, CVE IDs) from report text
-  and from CAPE sandbox reports, and **undoes defanging**, including the full-width and CJK forms
-  common in Chinese-language reports (`evil【.】com`, `evil．com`, `attacker［＠］mail．com`,
-  `１９８．５１．１００．２３`) that English-oriented extractors miss.
+  and from CAPE sandbox reports, and **undoes defanging**: ASCII forms (`evil[.]com`, `hxxp://`) and
+  full-width and CJK forms (`evil【.】com`, `evil．com`, `attacker［＠］mail．com`,
+  `１９８．５１．１００．２３`), which English-oriented extractors missed in a synthetic test. None of
+  the eight real Simplified-Chinese reports [evaluated so far](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-real-reports.md) used the full-width or CJK
+  forms; there TTPrism's measured advantages were repairing names and URLs split across PDF lines
+  and reporting fewer wrong values (partly through fixes made on those same reports; a held-out
+  Traditional-Chinese set is next).
 - **Maps sandbox behaviour to ATT&CK** with YAML rules for CAPE signatures, command lines, API call
   sequences and registry writes. It also **normalises outdated technique IDs**: about a quarter of
   the TTP labels in CAPE's signatures point at techniques ATT&CK has since revoked.
@@ -78,7 +82,7 @@ From a CAPE report, each technique says why it was assigned:
 | Input | How it is read |
 | --- | --- |
 | Plain text, Markdown | IOC extraction plus the ATT&CK technique IDs written in the text |
-| PDF reports | Convert to text first (for example `pdftotext report.pdf`); TTPrism does not parse PDFs |
+| PDF reports | Convert to text first (for example `pdftotext report.pdf`); TTPrism does not parse PDFs. The [evaluation on real reports](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-real-reports.md) used pypdf (`page.extract_text()`), headers and footers included; converters differ in how they break lines and write hyphens |
 | CAPE `report.json` | Detected automatically (input that looks like JSON but does not parse is analysed as text, with a warning); network, files, commands, API calls, registry, signatures |
 
 Non-UTF-8 text (for example Big5 or GB18030) needs `--encoding big5`.
@@ -129,20 +133,33 @@ TTPrism does not guess techniques from report prose. The bundled catalog is Ente
 
 ## Filtering
 
-By default TTPrism drops:
+By default TTPrism drops (the name in brackets is the key under `suppressed`):
 
-- **Reserved values**: private, loopback and documentation IP ranges, IPv6 addresses outside
-  the global unicast block `2000::/3`, and `example.com`, `.test`, `.example`, `.invalid`,
+- **Reserved values** (`reserved`): private, loopback and documentation IP ranges, IPv6 addresses
+  outside the global unicast block `2000::/3`, and `example.com`, `.test`, `.example`, `.invalid`,
   `.local` names.
-- **Allowlisted values**: the root domains of large platforms (`google.com`, but not
+- **Allowlisted values** (`allowlisted`): the root domains of large platforms (`google.com`, but not
   `drive.google.com` or URLs on it), sandbox background traffic, certificate revocation hosts,
   reference sites such as `attack.mitre.org`, and empty-file hashes. See
   [`allowlist.yaml`](https://github.com/yuchen-0321/TTPrism/blob/main/src/ttprism/data/allowlist.yaml).
-- **File names that look like domains**: `payload.zip` or `setup.py` written without a URL.
-- **Public suffixes**: `co.uk`, `com.tw` or `gov.tw` written without a URL (names under them,
-  such as `evil.co.uk`, are kept).
-- **Code identifiers**: COM and .NET names such as `WScript.Shell` or `System.Net.Security`.
-- **Browser versions**: `Chrome/120.0.0.0` in a User-Agent string is not an IPv4 address.
+- **File names that look like domains** (`filename_like_domain`): `payload.zip` or `setup.py`
+  written without a URL.
+- **Public suffixes** (`public_suffix`): `co.uk`, `com.tw` or `gov.tw` written without a URL (names
+  under them, such as `evil.co.uk`, are kept).
+- **Code identifiers** (`code_identifier`): COM and .NET names such as `WScript.Shell` or
+  `System.Net.Security`.
+- **Browser versions** (`version_like`): `Chrome/120.0.0.0` in a User-Agent string is not an IPv4
+  address.
+- **Certificate serial numbers** (`certificate_serial`): hex right after a serial-number label
+  (`SerialNumber:`, `Serial Number`, `序列号`, `序號：`) has the length of a hash but is not one.
+  `序號` counts only with a colon, since it also heads the row-number column of a table.
+- **Masked names** (`masked_name`): names, e-mail addresses and URL hosts with a label of three or
+  more `x` (`wiki.xxxx.com`), which reports use to hide the real value.
+- **Antivirus detection names** (`detection_name`): `Backdoor.Win32.Ht` or `Trojan.MSIL.Bot`, whose
+  family happens to be a TLD.
+- **Fragments of names broken across lines** (`line_wrap_fragment`): the part of a name or e-mail
+  address that starts a line when the line before ends in a letter or digit and a hyphen
+  (`dynamic-` / `dns.net`), since that hyphen may or may not belong to the name. See Limitations.
 
 Counts of what was dropped are reported under `suppressed`, so nothing disappears silently.
 
@@ -166,13 +183,27 @@ Counts of what was dropped are reported under `suppressed`, so nothing disappear
 - ATT&CK command rules split a line at cmd.exe's `&`, `&&` and `||` only: PowerShell statements
   joined by `;` are matched as one command.
 - `--defang` changes the scheme, host and `@` only; URL paths are left as they are.
+- Names and URLs broken across lines (as PDF converters leave them) are joined only where the
+  hyphen at the break cannot belong to them (`evil.-` / `com`, `evil-` / `.com`) or where a URL
+  breaks after one of its own hyphens (`/KB-Auto-win-` / `update.exe`). This misjudges two cases: a
+  URL that really ends in `-` at the end of a line is joined with the start of the next line, and a
+  name at the start of a line after a line ending in a letter or digit and `-` (`2019-` /
+  `evil.com`) is dropped as a fragment. A break without a hyphen (`mp.weixi` / `n.qq.com`) gives no
+  sign that the line continues, so such names and URLs are not joined, and the part on each line
+  may be reported on its own.
+- A soft hyphen (U+00AD) between two letters or digits is deleted as a break hint. A converter
+  that writes every hyphen as a soft hyphen therefore makes names and URLs lose their hyphens
+  (`KB-Auto` read as `KBAuto`); TTPrism warns when that happens inside a name or URL. Soft hyphens
+  between the groups of a GUID and at the end of a line are read as hyphens.
 - CAPE is the only sandbox format so far.
 
 ## Security
 
 TTPrism only parses input statically. It never executes, unpacks or downloads samples, and this
 repository contains no malware. Test data uses reserved names, documentation IP ranges and hashes
-of harmless strings.
+of harmless strings. The evaluation results under `docs/research/` are different: they contain real
+IOCs (malicious domains, URLs, IP addresses and hashes) quoted from public TLP:CLEAR reports, so
+treat them as data and do not open or resolve them.
 
 Found a vulnerability? Please report it privately; see [SECURITY.md](https://github.com/yuchen-0321/TTPrism/blob/main/SECURITY.md). False positives
 and missed IOCs are not vulnerabilities; open a *Detection quality* issue instead.
@@ -184,7 +215,7 @@ TLP:CLEAR material.
 
 ## 繁體中文簡介
 
-TTPrism 從威脅報告與沙箱輸出中抽取 IOC，並把行為對應到 MITRE ATT&CK。它特別處理中文報告常見的全形與中日韓括號 defang 寫法，例如 `【.】`、`．`、`［＠］`、全形數字，以及緊接中文字、沒有空白的網域。既有的英文導向工具常漏掉這些寫法，比較結果見[研究紀錄](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-existing-tools.md)。ATT&CK 對應規則以 YAML 撰寫，分析師不必寫程式也能貢獻。安全漏洞請依 [SECURITY.md](https://github.com/yuchen-0321/TTPrism/blob/main/SECURITY.md) 私下回報；誤報、漏報請開公開 issue。
+TTPrism 從威脅報告與沙箱輸出中抽取 IOC，並把行為對應到 MITRE ATT&CK。除了 ASCII 的 defang 寫法，它也處理全形與中日韓括號寫法，例如 `【.】`、`．`、`［＠］`、全形數字，以及緊接中文字、沒有空白的網域；在合成測試中，既有的英文導向工具漏掉了這些寫法（見[研究紀錄](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-existing-tools.md)）。不過目前評估的 8 份真實簡體中文報告都沒有用到全形或中日韓括號寫法；在這些報告上，TTPrism 量到的優勢是修復被 PDF 斷行切開的網域與 URL，以及抽出較少錯誤的值，其中一部分來自針對同一批報告所做的修正，保留不看的繁體中文報告尚待量測（見[真實報告評估](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-real-reports.md)）。ATT&CK 對應規則以 YAML 撰寫，分析師不必寫程式也能貢獻。安全漏洞請依 [SECURITY.md](https://github.com/yuchen-0321/TTPrism/blob/main/SECURITY.md) 私下回報；誤報、漏報請開公開 issue。
 
 ## License
 

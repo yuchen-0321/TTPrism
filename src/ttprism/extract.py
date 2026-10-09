@@ -101,9 +101,12 @@ IPV6_RE = re.compile(
     r"(?=[0-9A-Fa-f]{0,4}:)[0-9A-Fa-f:.]{2,45}(?![0-9A-Za-z:])"
 )
 HASH_RE = re.compile(r"(?<![0-9A-Za-z])(?:[0-9A-Fa-f]{64}|[0-9A-Fa-f]{40}|[0-9A-Fa-f]{32})(?![0-9A-Za-z])")
-# A certificate serial number can have the length of a hash: "SerialNumber: 00B7C6B7...".
+# A certificate serial number can have the length of a hash: "SerialNumber: 00B7C6B7...". "序號"
+# also heads the row-number column of a table, so it counts only with a colon.
 _SERIAL_LABEL_RE = re.compile(
-    r"(?:serial[ _-]?(?:number|no\.?)?|序列号|序列號|序號)[ \t]{0,2}[:=]?[ \t]{0,2}[\"']?\Z", re.IGNORECASE
+    r"(?:(?:serial[ _-]?(?:number|no\.?)?|序列号|序列號)[ \t]{0,2}[:：=]?|序號[ \t]{0,2}[:：])"
+    r"[ \t]{0,2}[\"']?\Z",
+    re.IGNORECASE,
 )
 # PDF line breaks inside a name or a URL. Next to a dot a hyphen cannot belong to the name, so
 # "evil.-\ncom" and "evil-\n.com" are joined without it. A URL that breaks after one of its own

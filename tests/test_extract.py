@@ -1287,12 +1287,25 @@ def test_guid_written_with_soft_hyphens_is_not_an_md5() -> None:
         "Serial Number: 00b68e6db2bb7412fabcbaa2192394ad",
         "serial_no=00b68e6db2bb7412fabcbaa2192394ad",
         "序列号：00B68E6DB2BB7412FABCBAA2192394AD",
-        "證書序號 00b68e6db2bb7412fabcbaa2192394ad5f3e2d1c",
+        "證書序號：00b68e6db2bb7412fabcbaa2192394ad5f3e2d1c",
+        "序號: 00b68e6db2bb7412fabcbaa2192394ad",
     ],
 )
 def test_certificate_serial_numbers_are_not_hashes(text: str) -> None:
     assert pairs(refang(text)) == []
     assert stats_for(refang(text))["certificate_serial"] == 1
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "序號 d41d8cd98f00b204e9800998ecf8427e",  # the row-number column of a table
+        "序號\td41d8cd98f00b204e9800998ecf8427e",
+        "序號 1 d41d8cd98f00b204e9800998ecf8427e",
+    ],
+)
+def test_row_number_heading_is_not_a_serial_label(text: str) -> None:
+    assert values(text, IOCType.MD5) == ["d41d8cd98f00b204e9800998ecf8427e"]
 
 
 def test_values_after_other_labels_are_still_hashes() -> None:
@@ -1390,3 +1403,63 @@ def test_names_like_detection_names_are_kept() -> None:
         "trojan.example.ht",
         "win32.example.com",
     ]
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        # A soft hyphen at a line end is read as a hyphen there, so the line-break rules apply.
+        ("update\u00ad\ncheck-server.example.com", []),
+        ("update\u00ad \u200b\r\n  check-server.example.com", []),
+        ("c2.example.\u00ad\ncom", [("domain", "c2.example.com")]),
+        ("files.example\u00ad\n.net", [("domain", "files.example.net")]),
+        (
+            "http://198.51.100.7/1/update\u00ad\nwin.exe",
+            [("url", "http://198.51.100.7/1/update-win.exe"), ("ipv4", "198.51.100.7")],
+        ),
+    ],
+)
+def test_soft_hyphen_at_a_line_end_is_a_hyphen(text: str, expected: list[tuple[str, str]]) -> None:
+    assert everything(text) == expected
+
+
+def test_soft_hyphen_at_a_line_end_leaves_a_fragment() -> None:
+    assert stats_for(refang("update\u00ad\ncheck-server.example.com"))["line_wrap_fragment"] == 1
+
+
+def soft_hyphen_warnings(text: str) -> list[str]:
+    result = analyze_text(text, AnalysisOptions(include_reserved=True))
+    return [w for w in result.warnings if "U+00AD" in w]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "C2: KB\u00adAuto.example.com",
+        "http://198.51.100.7/1/KB\u00adAuto\u00adwin\u00adupdate.exe",
+        "mail ops\u00adteam@example.org now",
+        "c2.up\u00addate.example.net",
+    ],
+)
+def test_soft_hyphens_inside_names_and_urls_are_reported(text: str) -> None:
+    assert len(soft_hyphen_warnings(text)) == 1
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Hyphen\u00adation in prose, and c2.example.com",
+        "please up\u00addate now: http://198.51.100.7/update.exe",  # the word touches no name punctuation
+        "MD5 d41d8cd98f00\u00adb204e9800998ecf8427e",  # hashes have no hyphens to lose
+        "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",
+        "update\u00ad\ncheck-server.example.com",
+        "\u00adexample.com and example.org\u00ad",
+    ],
+)
+def test_other_soft_hyphens_are_not_reported(text: str) -> None:
+    assert soft_hyphen_warnings(text) == []
+
+
+def test_soft_hyphen_warning_counts_the_values() -> None:
+    (warning,) = soft_hyphen_warnings("a\u00adb.example.com c\u00add.example.net e.example.org")
+    assert warning.startswith("2 name(s)")

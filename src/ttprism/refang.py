@@ -91,6 +91,44 @@ def _guid_hyphens(match: re.Match[str]) -> str:
     return match.group(0).replace("\u00ad", "-")
 
 
+# A soft hyphen at the end of a line is where a word was broken, as a hyphen there is, so it is
+# read as one and the line-break rules of the extractor decide what it joins. Spaces and other
+# format characters may stand between it and the line break.
+_SOFT_HYPHEN_BREAK_RE = re.compile(r"\u00ad(?=[ \t\u00a0\u3000\u200b-\u200f\u2060\ufeff]{0,8}\r?\n)")
+
+# Soft hyphens between two ASCII letters or digits are deleted, as break hints. That is wrong when a
+# converter wrote every hyphen as one ("KB\u00adAuto" becomes "KBAuto"); see soft_hyphen_words.
+_ASCII_ALNUM = frozenset("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+_WORD_OR_SOFT_HYPHEN = _ASCII_ALNUM | {"\u00ad"}
+_WORD_RUN_RE = re.compile(r"[0-9A-Za-z\u00ad]*")
+_NAME_PUNCTUATION = frozenset("./\\:@-_%?=&#~")
+
+
+def soft_hyphen_words(text: str) -> set[str]:
+    """The lower-cased words that :func:`refang` joins by deleting a soft hyphen between two ASCII
+    letters or digits, where the word touches name or URL punctuation ("KB\u00adAuto.exe" gives
+    "kbauto"; "hyphen\u00adation " gives nothing)."""
+    words: set[str] = set()
+    covered = 0
+    index = text.find("\u00ad")
+    while index != -1:
+        if (
+            index >= covered
+            and text[index - 1 : index] in _ASCII_ALNUM
+            and text[index + 1 : index + 2] in _ASCII_ALNUM
+        ):
+            start = index
+            while start > covered and text[start - 1] in _WORD_OR_SOFT_HYPHEN:
+                start -= 1
+            match = _WORD_RUN_RE.match(text, index)
+            end = match.end() if match else index + 1
+            covered = end
+            if text[start - 1 : start] in _NAME_PUNCTUATION or text[end : end + 1] in _NAME_PUNCTUATION:
+                words.add(text[start:end].replace("\u00ad", "").lower())
+        index = text.find("\u00ad", max(index + 1, covered))
+    return words
+
+
 @functools.cache
 def _format_table() -> dict[int, str | None]:
     """Translation table that deletes the format characters other than bidi controls and U+2063."""
@@ -137,10 +175,11 @@ def refang(text: str) -> str:
     cannot be part of a URL; Unicode spaces become plain spaces. Other
     compatibility characters (superscripts, circled numbers) are kept, so they
     never merge into an adjacent IOC. Soft hyphens between the groups of a GUID
-    become hyphens.
+    and at the end of a line become hyphens.
     """
     if "\u00ad" in text:
         text = _SOFT_HYPHEN_GUID_RE.sub(_guid_hyphens, text)
+        text = _SOFT_HYPHEN_BREAK_RE.sub("-", text)
     text = _BIDI_BREAK_RE.sub(" ", text.translate(_format_table())).translate(_fold_table())
     text = _PUNYCODE_DASH_RE.sub(r"\1--", text)
     text = _SPACED_DOT_RE.sub(".", text)

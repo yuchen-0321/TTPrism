@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from ttprism import IOCType, defang, refang
+from ttprism.refang import soft_hyphen_words
 
 
 @pytest.mark.parametrize(
@@ -245,3 +246,34 @@ def test_soft_hyphens_in_a_guid_become_hyphens() -> None:
         refang("0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0A")
         == "0F1E2D3C4B5A69788796A5B4C3D2E1F0A"
     )
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("update\u00ad\ncheck", "update-\ncheck"),
+        ("update\u00ad  \r\ncheck", "update-  \r\ncheck"),
+        ("update\u00ad\u200b\u00a0\ncheck", "update- \ncheck"),
+        ("a\u00ad\u00ad\nb", "a-\nb"),  # only the last one before the break
+        ("update\u00adcheck\u00ad", "updatecheck"),  # not at a line end
+        ("update\u00ad" + " " * 9 + "\ncheck", "update" + " " * 9 + "\ncheck"),
+    ],
+)
+def test_soft_hyphen_at_a_line_end_becomes_a_hyphen(text: str, expected: str) -> None:
+    assert refang(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("KB\u00adAuto.exe", {"kbauto"}),
+        ("/1/KB\u00adAuto\u00adwin\u00adupdate.exe", {"kbautowinupdate"}),
+        ("c2.up\u00addate.example.net", {"update"}),
+        ("ops\u00adteam@example.org", {"opsteam"}),
+        ("hyphen\u00adation in prose", set()),
+        ("\u00adword. and word\u00ad.", set()),  # not between two letters or digits
+        ("caf\u00e9\u00adbar.com", set()),
+    ],
+)
+def test_soft_hyphen_words(text: str, expected: set[str]) -> None:
+    assert soft_hyphen_words(text) == expected

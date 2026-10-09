@@ -148,6 +148,14 @@ PATHOLOGICAL = {
     "names after hyphen line ends": "a-\nb.com " * (SIZE // 9),
     "masked names": "xxxx.com " * (SIZE // 9),
     "detection names": "Trojan.Win32.Ht " * (SIZE // 16),
+    # Soft hyphens at line ends and inside names (the warning about deleted ones).
+    "soft hyphens at line ends": "a\u00ad\n" * (SIZE // 3),
+    "soft hyphens before long gaps": ("a\u00ad" + "\u200b" * 9 + "\n") * (SIZE // 12),
+    "soft hyphens inside words": "a\u00adb " * (SIZE // 4),
+    "soft hyphens inside names": "a\u00adb." * (SIZE // 4),
+    "soft hyphen runs": "a\u00adb" * (SIZE // 3),
+    "soft hyphens in url paths": ("http://a.com/" + "b\u00adc" * 500 + " ") * (SIZE // 1514),
+    "soft hyphens after long words": ("a" * 1000 + "\u00adb.") * (SIZE // 1003),
 }
 
 # Command lines reach the ATT&CK rules from CAPE reports: quotes, carets and chaining, glued

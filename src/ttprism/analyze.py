@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -21,7 +22,7 @@ from ttprism.inputs import (
     read_bytes,
 )
 from ttprism.models import IOC, AnalysisResult, IOCCollector, IOCType, sort_iocs
-from ttprism.refang import refang
+from ttprism.refang import refang, soft_hyphen_words
 
 
 @dataclass
@@ -94,7 +95,34 @@ def analyze_text(text: str, options: AnalysisOptions | None = None) -> AnalysisR
     techniques = TechniqueAccumulator(options.catalog)
     for technique_id in find_technique_ids(refanged):
         techniques.add_reported(technique_id, f"named in text: {technique_id}")
-    return _finish("text", collector, techniques, options, stats, [])
+    result = _finish("text", collector, techniques, options, stats, [])
+    if "\u00ad" in text:
+        result.warnings.extend(_soft_hyphen_warning(text, result.iocs))
+    return result
+
+
+_NAME_TYPES = (IOCType.URL, IOCType.DOMAIN, IOCType.EMAIL)
+_WORD_RE = re.compile(r"[a-z0-9]+")
+
+
+def _soft_hyphen_warning(text: str, iocs: list[IOC]) -> list[str]:
+    """A warning when names or URLs contain soft hyphens that refang deleted between two letters or
+    digits: some PDF converters write every hyphen that way, so the values may have lost hyphens."""
+    words = soft_hyphen_words(text)
+    if not words:
+        return []
+    count = sum(
+        1
+        for ioc in iocs
+        if ioc.type in _NAME_TYPES and not words.isdisjoint(_WORD_RE.findall(ioc.value.lower()))
+    )
+    if not count:
+        return []
+    return [
+        f"{count} name(s), e-mail address(es) or URL(s) contained soft hyphens (U+00AD) between letters "
+        "or digits, which were deleted; some PDF converters write every hyphen as a soft hyphen, so these "
+        "values may have lost hyphens (KB-Auto read as KBAuto)"
+    ]
 
 
 def analyze_cape(report: Mapping[str, Any], options: AnalysisOptions | None = None) -> AnalysisResult:

@@ -35,7 +35,11 @@ their advisory.
   the hyphen at the break cannot be part of them (`evil.-` / `com`, `evil-` / `.com`) or is part of a
   URL (`/KB-Auto-win-` / `update.exe`), and otherwise the rest of a name on the next line is dropped
   as a fragment (`line_wrap_fragment`); masked names (`wiki.xxxx.com`) and antivirus detection
-  names (`Backdoor.Win32.Ht`) are dropped (`masked_name`, `detection_name`).
+  names (`Backdoor.Win32.Ht`) are dropped (`masked_name`, `detection_name`). A soft hyphen at the
+  end of a line is read as a hyphen, so these line-break rules apply to it; soft hyphens deleted
+  between two letters or digits inside a name or URL (`KB\u00adAuto`) give a warning, since some
+  converters write every hyphen that way. `序號` counts as a serial-number label only with a colon,
+  since it also heads the row-number column of tables.
 - Refanging of common and CJK defang styles: `[.]`, `(.)`, `[dot]`, `【.】`, `〔.〕`, `[。]`,
   the same markers with a space on each side (` [.] `, ` (at) `, ` {dot} `), `[/]`, `[//]`,
   full-width characters (`．`, `［＠］`, `１９８．５１…`), `hxxp`, `hxxp[s]`, `hxxp(s)`,
