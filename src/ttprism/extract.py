@@ -23,7 +23,7 @@ import unicodedata
 from collections import Counter
 from collections.abc import Iterator
 from importlib import resources
-from urllib.parse import unquote
+from urllib.parse import unquote, unquote_plus
 
 from ttprism.models import IOC, IOCCollector, IOCType, sort_iocs
 from ttprism.refang import refang
@@ -55,28 +55,36 @@ EMAIL_RE = re.compile(
 )
 
 _URL_SCHEMES = (
-    # Compound schemes first, so that "stratum+tcp" is not read as "tcp".
-    r"stratum2?\+(?:tcp|ssl|tls)|(?:git|svn)\+ssh|mongodb\+srv"
-    r"|https?|ftps?|sftp|wss?|ldaps?|rmi|iiop|dns|tcp|udp|smb|file|ssh|telnet|irc|rtsp"
-    r"|smtps?|imaps?|pop3s?|socks[45][ah]?|rediss?|mongodb|mysql|postgres(?:ql)?|amqps?|mqtts?"
+    r"https?|ftps?|sftp|wss?|ldaps?|rmi|iiop|dns|tcp|udp|ssl|tls|smb|file|ssh|telnet|irc|rtsp"
+    r"|smtps?|imaps?|pop3s?|socks[45]?[ah]?|rediss?|mongodb|mysql|mssql|postgres(?:ql)?|amqps?|mqtts?"
+    r"|rsync|git|svn|vnc|rdp"
 )
+# Compound schemes keep their prefix: "stratum+tcp://", "git+https://", "mongodb+srv://".
+_URL_SCHEME = rf"(?:mongodb\+srv|(?:[A-Za-z][A-Za-z0-9]{{0,15}}\+)?(?:{_URL_SCHEMES}))"
 _URL_PATH_CHARS = r"A-Za-z0-9\-._~:/?#\[\]@!$&'()*+,;=%"
 # A path ends before a separator that starts the next URL ("/a,http://b/") and
 # at a shell "&&". '"', '|', '<' and '>' are not path characters at all.
-_URL_PATH_STOP = rf"[,;'()\[\]][*_~]{{0,2}}(?:{_URL_SCHEMES})://|&&"
-URL_RE = re.compile(
-    # Not after "+", "." or "-": "x+tcp://" is an unknown compound scheme, skipped rather than cut.
-    rf"(?<![A-Za-z0-9+.-])(?P<scheme>{_URL_SCHEMES})://"
-    # Without ",", ";" and "&", which join lists: "http://192.0.2.1,ops@example.org".
-    r"(?P<userinfo>[A-Za-z0-9\-._~!$'()*+=%:]{1,256}@)?"
+_URL_PATH_STOP = rf"[,;'()\[\]][*_~]{{0,2}}{_URL_SCHEME}://|&&"
+_URL_AFTER_USERINFO = (
     # "_" is accepted in URL host labels (S3 buckets, internal names), but not as
     # the last character, so "_http://evil.com_." keeps its host.
     r"(?P<host>\[[0-9A-Fa-f:.]{2,45}\]|[A-Za-z0-9._-]{0,251}[A-Za-z0-9-]\.?)"
     # Wider than a port so that ":443123" is rejected instead of truncated.
     r"(?::(?P<port>[0-9]{1,10}))?"
-    rf"(?P<rest>[/?#](?:(?!{_URL_PATH_STOP})[{_URL_PATH_CHARS}]){{0,2048}})?",
-    re.IGNORECASE,
+    rf"(?P<rest>[/?#](?:(?!{_URL_PATH_STOP})[{_URL_PATH_CHARS}]){{0,2048}})?"
 )
+# Not right after a letter or digit, nor after a word and a dot ("foo.tcp://"); "1.http://" and
+# "e.g.https://" are fine.
+_URL_START = rf"(?<![A-Za-z0-9+])(?<![A-Za-z]{{2}}\.)(?P<scheme>{_URL_SCHEME})://"
+# Userinfo first without ",", ";" and "&", which also join lists ("http://192.0.2.1,ops@x.org");
+# _url_matches retries with them when the text is not such a list ("ftp://u:Pa;ss@host").
+URL_RE = re.compile(
+    _URL_START + r"(?P<userinfo>[A-Za-z0-9\-._~!$'()*+=%:]{1,256}@)?" + _URL_AFTER_USERINFO, re.IGNORECASE
+)
+_URL_WIDE_USERINFO_RE = re.compile(
+    _URL_START + r"(?P<userinfo>[A-Za-z0-9\-._~!$&'()*+,;=%:]{1,256}@)" + _URL_AFTER_USERINFO, re.IGNORECASE
+)
+_LIST_SEPARATOR_RE = re.compile(r"[,;&]")
 
 _OCTET = r"(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])"
 IPV4_RE = re.compile(
@@ -85,9 +93,11 @@ IPV4_RE = re.compile(
     rf"(?:{_OCTET}\.){{3}}{_OCTET}(?![0-9]|\.[A-Za-z0-9])"
 )
 IPV6_RE = re.compile(
-    # Also after a label colon whose label ends in a letter that is not a hex digit, so the label
-    # cannot be read as a group: "IP:2001:db8::1", "IPv6:2001:db8::1".
-    r"(?:(?<![0-9A-Za-z:.])|(?<=[G-Zg-z]:)|(?<=[G-Zg-z][0-9]:))"
+    # Also after a label colon, when the label has a letter that is not a hex digit at most four
+    # characters before the colon, so the label cannot be read as a group: "IP:2001:db8::1",
+    # "IPv6:...", "src:...", "Interface:...". All-hex labels ("C2:") go to _drop_label_group.
+    r"(?:(?<![0-9A-Za-z:.])|(?<=[G-Zg-z]:)|(?<=[G-Zg-z][0-9A-Fa-f]:)|(?<=[G-Zg-z][0-9A-Fa-f]{2}:)"
+    r"|(?<=[G-Zg-z][0-9A-Fa-f]{3}:)|(?<=[G-Zg-z][0-9A-Fa-f]{4}:))"
     r"(?=[0-9A-Fa-f]{0,4}:)[0-9A-Fa-f:.]{2,45}(?![0-9A-Za-z:])"
 )
 HASH_RE = re.compile(r"(?<![0-9A-Za-z])(?:[0-9A-Fa-f]{64}|[0-9A-Fa-f]{40}|[0-9A-Fa-f]{32})(?![0-9A-Za-z])")
@@ -141,6 +151,7 @@ FILE_EXTENSION_TLDS = frozenset(
 _INNER_FILE_EXTENSIONS = frozenset(
     {
         "7z",
+        "apk",
         "bat",
         "chm",
         "cmd",
@@ -165,6 +176,7 @@ _INNER_FILE_EXTENSIONS = frozenset(
         "lnk",
         "msi",
         "msix",
+        "one",
         "pdf",
         "png",
         "ppt",
@@ -172,9 +184,11 @@ _INNER_FILE_EXTENSIONS = frozenset(
         "pptx",
         "ps1",
         "psm1",
+        "py",
         "rar",
         "rtf",
         "scr",
+        "sh",
         "svg",
         "txt",
         "vbe",
@@ -184,7 +198,9 @@ _INNER_FILE_EXTENSIONS = frozenset(
         "wsf",
         "xls",
         "xlsm",
+        "xll",
         "xlsx",
+        "zip",
     }
 )
 # COM ProgIDs and .NET names that end in a real TLD. As bare names they are code
@@ -357,6 +373,14 @@ def is_reserved_domain(domain: str) -> bool:
     return any(domain == d or domain.endswith("." + d) for d in RESERVED_DOMAINS)
 
 
+def embedded_ipv4(address: ipaddress.IPv6Address) -> ipaddress.IPv4Address | None:
+    """The IPv4 address an IPv4-mapped (::ffff:0:0/96) or NAT64 (64:ff9b::/96) address carries."""
+    if address.ipv4_mapped is not None:
+        return address.ipv4_mapped
+    number = int(address)
+    return ipaddress.IPv4Address(number & 0xFFFFFFFF) if number >> 32 == _NAT64_PREFIX else None
+
+
 def is_reserved_ip(value: str) -> bool:
     """True for special-purpose, private, documentation and multicast addresses.
 
@@ -364,12 +388,10 @@ def is_reserved_ip(value: str) -> bool:
     """
     address: ipaddress.IPv4Address | ipaddress.IPv6Address = ipaddress.ip_address(value)
     if isinstance(address, ipaddress.IPv6Address):
-        number = int(address)
-        if address.ipv4_mapped is not None:
-            address = address.ipv4_mapped
-        elif number >> 32 == _NAT64_PREFIX:  # judged by the IPv4 address it carries
-            address = ipaddress.IPv4Address(number & 0xFFFFFFFF)
-        elif number >> 125 != 1:
+        inner = embedded_ipv4(address)  # judged by the IPv4 address it carries
+        if inner is not None:
+            address = inner
+        elif int(address) >> 125 != 1:
             return True
     table = _RESERVED_IPV4 if address.version == 4 else _RESERVED_IPV6
     number = int(address)
@@ -424,14 +446,31 @@ def _url_matches(text: str) -> Iterator[re.Match[str]]:
     pos = 0
     while (match := URL_RE.search(text, pos)) is not None:
         start, pos = match.span()
+        end = len(text)
         quote = text[start - 1 : start]
         if quote in ("'", '"') and (close := text.find(quote, start, pos)) != -1:
             # Scanning resumes at the quote, so a URL glued after it is still found.
-            pos = close
+            pos = end = close
             match = URL_RE.match(text, start, close)
             if match is None:
                 continue
+        if match.group("userinfo") is None and text[match.end("host") : match.end("host") + 1] in tuple(
+            ":,;&"
+        ):
+            wide = _URL_WIDE_USERINFO_RE.match(text, start, end)
+            if wide is not None and not _joins_list(wide.group("userinfo")):
+                match = wide
+                pos = max(pos, wide.end())
         yield match
+
+
+def _joins_list(userinfo: str) -> bool:
+    """True if a userinfo with ",", ";" or "&" is really a host and a list separator.
+
+    "198.51.100.5,ops@" in "http://198.51.100.5,ops@example.org" is; "backup:Pa;ss@" is not.
+    """
+    head = _LIST_SEPARATOR_RE.split(userinfo, 1)[0]
+    return ":" not in head and (normalize_ip(head) is not None or normalize_domain(head) is not None)
 
 
 def _parse_url(
@@ -461,6 +500,10 @@ def _parse_url(
     elif host.lower() == "localhost":
         clean_host = "localhost"
         host_ioc = None
+    elif (webdav := _webdav_host(match)) is not None:
+        # "file://host@SSL/DavWWWRoot/x" in .url and .lnk files: the host is before the "@".
+        clean_host = host.lower()
+        host_ioc = webdav
     elif (legacy := _legacy_ipv4(host)) is not None:
         # "http://3221225985/" or "http://0xC0000201/": kept as written, the address reported.
         clean_host = host.lower()
@@ -475,6 +518,19 @@ def _parse_url(
     url = authority + (f":{port}" if port is not None else "") + (match.group("rest") or "")
     url = _strip_url_tail(url, strikethrough=strikethrough, underscores=underscores)
     return url, clean_host, host_ioc, url[len(authority) :]
+
+
+def _webdav_host(match: re.Match[str]) -> tuple[IOCType, str] | None:
+    """The real host of a WebDAV URL written "file://host@SSL/..." or "file://host@80/..."."""
+    userinfo, host = match.group("userinfo"), match.group("host").lower()
+    if not userinfo or not (host == "ssl" or (host.isdigit() and len(host) <= 5)):
+        return None
+    name = userinfo[:-1]
+    address = normalize_ip(name)
+    if address is not None:
+        return address
+    domain = normalize_domain(name, allow_underscore=True)
+    return (IOCType.DOMAIN, domain) if domain is not None else None
 
 
 def host_address(host: str) -> str | None:
@@ -544,20 +600,28 @@ def _glued(text: str, index: int) -> bool:
             base -= 1
         if base < 0:
             return False
+        index = base
         char = text[base]
         if char <= "\x7f":
             return char.isalpha()
         category = unicodedata.category(char)
-    return category[0] == "L" and _joins_latin(char)
+    return category[0] == "L" and _joins_latin(text, index)
 
 
-def _joins_latin(letter: str) -> bool:
-    """True if a non-ASCII letter next to a name can be part of it (an IDN or a homograph).
+def _joins_latin(text: str, index: int) -> bool:
+    """True if the non-ASCII letter ``text[index]`` next to a name can be part of it.
 
-    Letters of scripts written without spaces touch IOCs in running text, and letters of
-    right-to-left scripts (Arabic "\u0648" prefixed to a word) cannot share a label with Latin ones.
+    Letters of scripts written without spaces touch IOCs in running text. A right-to-left letter
+    is a prefix or suffix of the word ("\u0648evil.com"), unless it sits inside a Latin word,
+    as a homograph does ("secure-l\u05e1gin.example.com").
     """
-    return _SPACELESS_SCRIPT_RE.match(letter) is None and unicodedata.bidirectional(letter) not in ("R", "AL")
+    letter = text[index]
+    if _SPACELESS_SCRIPT_RE.match(letter) is not None:
+        return False
+    if unicodedata.bidirectional(letter) not in ("R", "AL"):
+        return True
+    before, after = text[index - 1 : index], text[index + 1 : index + 2]
+    return before.isascii() and before.isalnum() and after.isascii() and after.isalnum()
 
 
 def _glued_before(text: str, start: int) -> bool:
@@ -569,12 +633,26 @@ def _glued_before(text: str, start: int) -> bool:
     return _glued(text, start - 1)
 
 
-# Percent escapes of characters that end a name: controls, space, quotes, brackets and the
-# separators of URLs and queries.
+# Percent escapes of characters that end a name: every ASCII character except letters, digits and
+# controls (tab and line breaks do end one). Escapes of bytes from 80 up are UTF-8 text, which
+# ends a name too, but only in a run of escapes: "%cafe-cdn.example.com" after a SQL LIKE wildcard
+# is a name.
 _SEPARATOR_ESCAPES = frozenset(
-    {"09", "0A", "0D", "20", "22", "23", "26", "27", "28", "29", "2B", "2C", "2F"}
-    | {"3A", "3B", "3C", "3D", "3E", "3F", "40", "5B", "5C", "5D", "7B", "7C", "7D"}
+    f"{byte:02X}"
+    for byte in range(0x80)
+    if not chr(byte).isalnum() and (byte >= 0x20 or byte in (0x09, 0x0A, 0x0D)) and byte != 0x7F
 )
+_HIGH_ESCAPES = frozenset(f"{byte:02X}" for byte in range(0x80, 0x100))
+
+
+def _ends_name(text: str, percent: int, pair: str, width: int = 3) -> bool:
+    """True if the escape of ``pair`` at ``text[percent : percent + width]`` ("%2F", or "%252F" with
+    ``width`` 5) is a separator before a name."""
+    pair = pair.upper()
+    if pair in _SEPARATOR_ESCAPES:
+        return True
+    before = text[max(0, percent - width) : percent]
+    return pair in _HIGH_ESCAPES and before[:1] == "%" and len(before) == width and _is_hex_pair(before[-2:])
 
 
 def _after_percent_escape(text: str, start: int, value: str) -> str:
@@ -585,23 +663,36 @@ def _after_percent_escape(text: str, start: int, value: str) -> str:
     """
     if text[start - 1 : start] != "%":
         return value
-    end = start + len(value)
-    if text[end : end + 1] == "%" and not _is_hex_pair(text[end + 1 : end + 3]):
-        return value  # "%...%": literal wildcards
     skip = 0
     while value[skip : skip + 2] == "25" and _is_hex_pair(value[skip + 2 : skip + 4]):
         skip += 2
-    if len(value) > skip + 2 and value[skip : skip + 2].upper() in _SEPARATOR_ESCAPES:
+    pair = value[skip : skip + 2]
+    if len(value) <= skip + 2 or not _is_hex_pair(pair):
+        return value
+    end = start + len(value)
+    if (
+        not skip
+        and pair.upper() not in _SEPARATOR_ESCAPES
+        and text[end : end + 1] == "%"
+        and not _is_hex_pair(text[end + 1 : end + 3])
+    ):
+        return value  # "%cafe.example.com%": literal wildcards around a name
+    if _ends_name(text, start - 1, pair, 3 + skip):
         return value[skip + 2 :]
+    if skip:
+        return value[2:]  # "%25" is an escaped "%", which ends a name too: "%25cafe.example.com"
     return value
 
 
-def _escape_before(text: str, start: int) -> str | None:
-    """The hex pair of a "%2F" or "%252F" escape that ends right before ``start``, if any."""
+def _escape_before(text: str, start: int) -> tuple[str, bool] | None:
+    """The hex pair of a "%2F" or "%252F" escape that ends right before ``start``, if any, and
+    whether it is a separator."""
     if text[start - 3 : start - 2] == "%" and _is_hex_pair(text[start - 2 : start]):
-        return text[start - 2 : start].upper()
+        pair = text[start - 2 : start].upper()
+        return pair, _ends_name(text, start - 3, pair)
     if text[start - 5 : start - 2] == "%25" and _is_hex_pair(text[start - 2 : start]):
-        return text[start - 2 : start].upper()
+        pair = text[start - 2 : start].upper()
+        return pair, _ends_name(text, start - 5, pair, 5)
     return None
 
 
@@ -614,8 +705,8 @@ def _product_version(text: str, start: int, value: str) -> bool:
     if _VERSION_LIKE_RE.fullmatch(value) is None:
         return False
     if text[start - 1 : start] == "/":
-        before = start - 2
-    elif _escape_before(text, start) == "2F":
+        before = start - 2 - (text[start - 2 : start - 1] == "\\")  # also JSON's "Chrome\\/120.0.0.0"
+    elif (escape := _escape_before(text, start)) is not None and escape[0] == "2F":
         before = text.rindex("%", 0, start) - 1
     else:
         return False
@@ -625,7 +716,7 @@ def _product_version(text: str, start: int, value: str) -> bool:
 # Escapes of characters that cannot appear unquoted in an e-mail local part, or end one in a URL
 # ("%3Cops@example.org%3E", "?to%3Dops@..."), single or double encoded.
 _LOCAL_PART_DELIMITER_RE = re.compile(
-    r"%(?:25){0,4}(?:[01][0-9A-Fa-f]|2[026-9CcFf]|3[A-Fa-f]|40|5[BCDbcd]|7[Ff])"
+    r"%(?:25){0,4}(?:[01][0-9A-Fa-f]|2[026-9CcFf]|3[A-Fa-f]|40|5[BCDbcd]|7[Ff]|[89A-Fa-f][0-9A-Fa-f])"
 )
 
 
@@ -649,9 +740,12 @@ def _bare_name_noise(domain: str, written: str) -> str | None:
         len(labels) == 2 or (len(labels) == 3 and labels[1] in _INNER_FILE_EXTENSIONS)
     ):
         return "filename_like_domain"
-    if any(".".join(labels[:size]) in CODE_IDENTIFIERS for size in range(2, len(labels) + 1)):
+    if domain in CODE_IDENTIFIERS:
         return "code_identifier"
     original = written.split(".")
+    in_code_style = not original[0].islower()  # "System.Net.Security"; "asp.net.example.org" is a name
+    if in_code_style and any(".".join(labels[:size]) in CODE_IDENTIFIERS for size in range(2, len(labels))):
+        return "code_identifier"
     if original[0] in _NAMESPACE_ROOTS and all(label[:1].isupper() for label in original):
         return "code_identifier"
     if len(labels) == 2 and len(labels[1]) == 2 and labels[0] in SUFFIX_SECOND_LEVEL_LABELS:
@@ -696,10 +790,7 @@ def _extract(collector: IOCCollector, text: str, source: str, stats: Counter[str
         if host_ioc is not None:
             collector.add(host_ioc[0], host_ioc[1], source)
         if not nested and ("%" in tail or "://" in tail):
-            # Open redirects and wrapped links: "?url=https%3A%2F%2Fevil.com&data=05". Each query
-            # parameter is decoded on its own, so the wrapper's "&data=05" stays out of the target.
-            pieces = _QUERY_SEPARATOR_RE.split(tail)
-            decoded_tails.append(" ".join(unquote(p) for p in pieces if "%" in p or "://" in p))
+            decoded_tails.append(_decoded_tail(tail))
 
     for match in EMAIL_RE.finditer(text):
         start, end = match.span()
@@ -735,7 +826,7 @@ def _extract(collector: IOCCollector, text: str, source: str, stats: Counter[str
     for match in IPV4_RE.finditer(text):
         start, value = match.start(), match.group(0)
         escape = _escape_before(text, start)
-        if escape is not None and escape not in _SEPARATOR_ESCAPES:
+        if escape is not None and not escape[1]:
             continue  # "%41198.51.100.7" decodes to "A198.51.100.7"
         stripped = _after_percent_escape(text, start, value)
         if stripped != value and IPV4_RE.fullmatch(stripped) is None:
@@ -772,6 +863,20 @@ def _extract(collector: IOCCollector, text: str, source: str, stats: Counter[str
     # stats are not counted, as the raw tail was already scanned above.
     for tail in decoded_tails:
         _extract(collector, tail, source, Counter(), nested=True)
+
+
+def _decoded_tail(tail: str) -> str:
+    """The URL tail with its query parameters decoded one by one, for a second scan.
+
+    Open redirects and wrapped links ("?url=https%3A%2F%2Fevil.com&data=05") carry the target in
+    one parameter, so the wrapper's "&data=05" stays out of it, and "+" in a value is a space. A
+    URL in the path ("/web/2020/http://evil.com/a?x=1&y=2") keeps its own query.
+    """
+    path, mark, query = tail.partition("?")
+    if "://" in path or not mark:
+        return unquote(tail)
+    pieces = [unquote_plus(p) for p in _QUERY_SEPARATOR_RE.split(query) if "%" in p or "://" in p]
+    return " ".join([unquote(path), *pieces])
 
 
 def find_technique_ids(text: str) -> list[str]:

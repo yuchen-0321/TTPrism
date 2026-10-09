@@ -67,17 +67,24 @@ def _fold_table() -> dict[int, str | None]:
     return table
 
 
-# Bidi controls are deleted inside a name ("ev\u200eil.com"), but where they are not between two
-# name characters they separate, like a space: "\u2066evil.com\u2069\u2066example.net\u2069", or a
-# name next to Hebrew text. So does U+2063 INVISIBLE SEPARATOR.
+# Bidi controls are deleted inside an IOC ("ev\u200eil.com", "ops@\u200eexample.org"), but next to
+# whitespace, the start or end of the text, or a non-ASCII letter (Hebrew text around a name) they
+# separate, like a space; so do an isolate or embedding that ends and the next that begins
+# ("\u2066evil.com\u2069\u2066example.net\u2069"), and U+2063 INVISIBLE SEPARATOR. Other format
+# characters are deleted first, so that "ev\u00ad\u200eil.com" stays one name.
+_BIDI_CODES = (0x061C, 0x200E, 0x200F, *range(0x202A, 0x202F), *range(0x2066, 0x206A))
 _BIDI = "\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069"
-_NAME_OR_BIDI = "A-Za-z0-9.\\-\uff0d\uff0e\uff10-\uff19\uff21-\uff3a\uff41-\uff5a" + _BIDI
+_INSIDE = "\x21-\x7e\uff01-\uff5e\u3001\u3002\u3008-\u3011\u3014-\u301b" + _BIDI
 _BIDI_BREAK_RE = re.compile(
-    "[\u202c\u2069][\u202a-\u202e\u2066-\u2068]"  # one isolate or embedding ends, the next begins
-    "|\u2063"
-    f"|(?<![{_NAME_OR_BIDI}])[{_BIDI}]"
-    f"|[{_BIDI}](?![{_NAME_OR_BIDI}])"
+    f"[\u202c\u2069][\u202a-\u202e\u2066-\u2068]|\u2063|(?<![{_INSIDE}])[{_BIDI}]|[{_BIDI}](?![{_INSIDE}])"
 )
+
+
+@functools.cache
+def _format_table() -> dict[int, str | None]:
+    """Translation table that deletes the format characters other than bidi controls and U+2063."""
+    keep = {*_BIDI_CODES, 0x2063}
+    return {code: None for code, value in _fold_table().items() if value is None and code not in keep}
 
 
 # Full-width brackets are folded to ASCII first, so only CJK brackets without an
@@ -120,7 +127,7 @@ def refang(text: str) -> str:
     compatibility characters (superscripts, circled numbers) are kept, so they
     never merge into an adjacent IOC.
     """
-    text = _BIDI_BREAK_RE.sub(" ", text).translate(_fold_table())
+    text = _BIDI_BREAK_RE.sub(" ", text.translate(_format_table())).translate(_fold_table())
     text = _PUNYCODE_DASH_RE.sub(r"\1--", text)
     text = _SPACED_DOT_RE.sub(".", text)
     text = _SPACED_AT_RE.sub("@", text)

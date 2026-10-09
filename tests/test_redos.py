@@ -12,6 +12,7 @@ import time
 import pytest
 
 from ttprism import AnalysisOptions, analyze_text
+from ttprism.attack import Behavior, RuleSet
 from ttprism.inputs import InputError, load_json
 
 SIZE = 1_000_000
@@ -110,6 +111,41 @@ PATHOLOGICAL = {
     # Public-suffix names, bare and with leading dots.
     "public suffixes": "co.uk .com.tw " * (SIZE // 14),
     "public suffix chains": "co.uk." * (SIZE // 6),
+    # Review of the fixes: compound schemes, list-like userinfo, label groups, escapes, bidi.
+    "scheme prefix runs": "a+" * (SIZE // 2),
+    "long scheme prefixes": "abcdefghijklmnop+" * (SIZE // 17) + "http://a.com",
+    "dotted schemes": "ab.http://a.com " * (SIZE // 16),
+    "comma userinfo": "http://a," * (SIZE // 9),
+    "list userinfo": "http://a,b;c&d:" * (SIZE // 15),
+    "long list userinfo": ("http://" + "a," * 200 + " ") * (SIZE // 408),
+    "list hosts": "http://a.com,b.com;c.com&" * (SIZE // 25),
+    "path stop marks": ("http://a.com/" + ",*_" * 680 + " ") * (SIZE // 2054),
+    "letter hex labels before ipv6": "gabcd:1:" * (SIZE // 8),
+    "high-byte escapes": "%C3%A9a.com " * (SIZE // 12),
+    "json-escaped versions": "Chrome\\/1.0.0.0 " * (SIZE // 16),
+    "query separators": ("http://a.com/?" + "a=%2F;" * 340 + " ") * (SIZE // 2055),
+    "bidi beside cjk": "\u3002\u200ea" * (SIZE // 3),
+    "soft hyphen and bidi": "a\u00ad\u200e" * (SIZE // 3),
+    "rtl letters": "a\u05d0b.com " * (SIZE // 9),
+}
+
+# Command lines reach the ATT&CK rules from CAPE reports: quotes, carets and chaining, glued
+# switches, switch phrases and "<arg>" phrases. One 1 MB command, although CAPE cuts commands to
+# 8 KiB, so the patterns themselves are tested.
+PATHOLOGICAL_COMMANDS = {
+    "quotes": '"' * SIZE,
+    "cmd quotes": 'cmd /c "' * (SIZE // 8),
+    "escaped chains": "^&" * (SIZE // 2),
+    "chains": "net view&" * (SIZE // 9),
+    "glued switches": "/a" * (SIZE // 2),
+    "long glued words": (" " + "a" * 32 + ("/" + "a" * 31) * 17 + "x") * (SIZE // 580),
+    "glued words after backslashes": ("\\" + "a" * 32 + ("/" + "a" * 31) * 16 + "\\") * (SIZE // 580),
+    "switch quotes": '/c"' * (SIZE // 3),
+    "glued switch quotes": 'cmd/c"' * (SIZE // 6),
+    "bare arguments": "net start " * (SIZE // 10),
+    "long arguments": ("net share " + "a" * 259 + " ") * (SIZE // 270),
+    "switch colons": "/c:" * (SIZE // 3),
+    "dashes": "\u2013e " * (SIZE // 3),
 }
 
 
@@ -118,6 +154,15 @@ def test_extraction_is_linear(text: str) -> None:
     options = AnalysisOptions(include_reserved=True)
     start = time.perf_counter()
     analyze_text(text, options)
+    elapsed = time.perf_counter() - start
+    assert elapsed < LIMIT_SECONDS, f"{elapsed:.1f}s"
+
+
+@pytest.mark.parametrize("command", PATHOLOGICAL_COMMANDS.values(), ids=PATHOLOGICAL_COMMANDS.keys())
+def test_command_matching_is_linear(command: str) -> None:
+    rules = RuleSet.default()
+    start = time.perf_counter()
+    rules.evaluate(Behavior(commands=[command]))
     elapsed = time.perf_counter() - start
     assert elapsed < LIMIT_SECONDS, f"{elapsed:.1f}s"
 

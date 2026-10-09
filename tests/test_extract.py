@@ -1018,8 +1018,13 @@ def test_compound_and_credentialed_schemes(text: str, url: str, host: str) -> No
     assert everything(text) == [("url", url), ("domain", host)]
 
 
-def test_unknown_compound_schemes_are_skipped_not_cut() -> None:
-    assert values("x+tcp://example.com foo.tcp://example.com", IOCType.URL) == []
+def test_unknown_compound_schemes_keep_their_prefix() -> None:
+    assert values("x+tcp://example.com git+https://git.example.net/a.git", IOCType.URL) == [
+        "git+https://git.example.net/a.git",
+        "x+tcp://example.com",
+    ]
+    # Not after a word and a dot: "foo.tcp" is a name, not a scheme.
+    assert values("foo.tcp://example.com", IOCType.URL) == []
 
 
 @pytest.mark.parametrize(
@@ -1094,3 +1099,171 @@ def test_typographic_dash_in_punycode_names() -> None:
 )
 def test_bidi_controls_between_names_separate_them(text: str, expected: list[tuple[str, str]]) -> None:
     assert everything(text) == expected
+
+
+# --------------------------------------------------------------------------- review of the fixes
+
+
+@pytest.mark.parametrize(
+    ("text", "url", "host"),
+    [
+        ("1.hxxp://evil[.]example[.]com/a.exe", "http://evil.example.com/a.exe", "evil.example.com"),
+        (
+            "1\uff0ehxxp://evil\u3010.\u3011example\u3010.\u3011com/a.exe",
+            "http://evil.example.com/a.exe",
+            "evil.example.com",
+        ),
+        ("e.g.https://example.org/login", "https://example.org/login", "example.org"),
+        ("...http://cdn.example.com/x.bin", "http://cdn.example.com/x.bin", "cdn.example.com"),
+        ("URL-http://example.org/x", "http://example.org/x", "example.org"),
+        (
+            "pip install git+https://git.example.net/a/b.git",
+            "git+https://git.example.net/a/b.git",
+            "git.example.net",
+        ),
+        (
+            "daemon+https://node.example.org:18081",
+            "daemon+https://node.example.org:18081",
+            "node.example.org",
+        ),
+        (
+            "ftp://backup:Pa;ss@files.example.com/up/",
+            "ftp://backup:Pa;ss@files.example.com/up/",
+            "files.example.com",
+        ),
+        (
+            "smtp://bot:a&b,c@mail.example.com:587",
+            "smtp://bot:a&b,c@mail.example.com:587",
+            "mail.example.com",
+        ),
+    ],
+)
+def test_url_starts_and_userinfo_after_the_review(text: str, url: str, host: str) -> None:
+    assert everything(text) == [("url", url), ("domain", host)]
+
+
+def test_query_values_decode_plus_as_space() -> None:
+    text = "https://search.example.com/?q=see+https://evil.example.org/x"
+    assert ("url", "https://evil.example.org/x") in everything(text)
+
+
+def test_url_in_a_path_keeps_its_query() -> None:
+    text = "https://web.archive.org/web/2020/http://evil.example.com/gate.php?id=1&cmd=2"
+    assert ("url", "http://evil.example.com/gate.php?id=1&cmd=2") in everything(text)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("q=%E8%AE%BF%E9%97%AEevil.example.com", [("domain", "evil.example.com")]),
+        ("GET /s?q=%E8%AE%BF%E9%97%AE198.51.100.7 HTTP/1.1", [("ipv4", "198.51.100.7")]),
+        ("LIKE '%cafe-cdn.example.com'", [("domain", "cafe-cdn.example.com")]),
+        (
+            "%2Eevil.example.com %2Devil2.example.com",
+            [("domain", "evil.example.com"), ("domain", "evil2.example.com")],
+        ),
+        ("%25198.51.100.7", [("ipv4", "198.51.100.7")]),
+    ],
+)
+def test_percent_escapes_after_the_review(text: str, expected: list[tuple[str, str]]) -> None:
+    assert everything(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("ops\u200f@example.org", [("email", "ops@example.org")]),
+        ("Reply-To: ops@\u200eexample.org", [("email", "ops@example.org")]),
+        ("malicious\u200e[.]example[.]com", [("domain", "malicious.example.com")]),
+        (
+            "hxxps://cdn.example.com/\u200epayload/stage2.bin",
+            [("url", "https://cdn.example.com/payload/stage2.bin"), ("domain", "cdn.example.com")],
+        ),
+        (
+            "wget http://\u200e198.51.100.7/bins.sh",
+            [("url", "http://198.51.100.7/bins.sh"), ("ipv4", "198.51.100.7")],
+        ),
+        ("C2 2001:\u200edb8:85a3::8a2e:370:7334", [("ipv6", "2001:db8:85a3::8a2e:370:7334")]),
+        ("ev\u00ad\u200eil.example.com", [("domain", "evil.example.com")]),
+    ],
+)
+def test_bidi_marks_inside_iocs_are_removed(text: str, expected: list[tuple[str, str]]) -> None:
+    assert everything(text) == expected
+
+
+def test_right_to_left_homographs_inside_names() -> None:
+    assert everything("secure-l\u05e1gin.example.com microsof\u0647t.com") == []
+    assert everything("\u05d1evil.example.com") == [("domain", "evil.example.com")]
+
+
+def test_code_identifier_prefixes_need_code_style() -> None:
+    assert values("microsoft.office.secure-login.example.com asp.net.example.org", IOCType.DOMAIN) == [
+        "asp.net.example.org",
+        "microsoft.office.secure-login.example.com",
+    ]
+    assert pairs("System.Net.Security ASP.NET.Core") == []
+
+
+@pytest.mark.parametrize("label", ["src", "Source", "Device", "remote", "Interface", "Node", "outside", "ID"])
+def test_ipv6_after_labels_ending_in_hex_letters(label: str) -> None:
+    assert values(f"{label}:2001:db8::5/443", IOCType.IPV6) == ["2001:db8::5"]
+
+
+@pytest.mark.parametrize(
+    "text", ["q=%E2%80%9Cops@example.org%E2%80%9D", "q=%C2%A0ops@example.org", "q=%25C2%25A0ops@example.org"]
+)
+def test_encoded_non_ascii_before_email_addresses(text: str) -> None:
+    assert values(text, IOCType.EMAIL) == ["ops@example.org"]
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("%25cafe.example.com", [("domain", "cafe.example.com")]),
+        ("%2Fcafe.example.com%", [("domain", "cafe.example.com")]),
+        (
+            "%7Ecafe.example.com %2Acafe2.example.com",
+            [("domain", "cafe.example.com"), ("domain", "cafe2.example.com")],
+        ),
+        ("%25E8%25AE%25BFevil.example.com", [("domain", "evil.example.com")]),
+        ('"ua": "Mozilla/5.0 Chrome\\/120.0.0.0"', []),
+    ],
+)
+def test_percent_escapes_and_versions_after_the_recheck(text: str, expected: list[tuple[str, str]]) -> None:
+    assert everything(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        (
+            "URL=file://files.example.net@SSL/DavWWWRoot/a.exe",
+            [("url", "file://files.example.net@ssl/DavWWWRoot/a.exe"), ("domain", "files.example.net")],
+        ),
+        (
+            "URL=file://files.example.net@80/share/a.lnk",
+            [("url", "file://files.example.net@80/share/a.lnk"), ("domain", "files.example.net")],
+        ),
+        (
+            "URL=file://198.51.100.20@SSL/x",
+            [("url", "file://198.51.100.20@ssl/x"), ("ipv4", "198.51.100.20")],
+        ),
+    ],
+)
+def test_webdav_file_urls(text: str, expected: list[tuple[str, str]]) -> None:
+    assert everything(text) == expected
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["socks://u:p@proxy.example.org:1080", "rsync://u:p@backup.example.org/m", "vnc://u:p@desk.example.org"],
+)
+def test_more_credentialed_schemes(text: str) -> None:
+    assert [t for t, _ in everything(text)] == ["url", "domain"]
+
+
+@pytest.mark.parametrize(
+    "name", ["Invoice.one.zip", "setup.sh.zip", "tool.py.zip", "addin.xll.zip", "app.apk.zip"]
+)
+def test_more_double_extensions(name: str) -> None:
+    assert pairs(name) == []

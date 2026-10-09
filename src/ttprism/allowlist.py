@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from ttprism._yaml import ConfigError, load_yaml_file, load_yaml_text
-from ttprism.extract import host_address, normalize_domain
+from ttprism.extract import embedded_ipv4, host_address, normalize_domain
 from ttprism.models import HASH_TYPES, IOCType
 
 _HASH_RE = re.compile(r"[0-9a-f]{32}|[0-9a-f]{40}|[0-9a-f]{64}")
@@ -101,6 +101,9 @@ class Allowlist:
     emails: set[str] = field(default_factory=set)
     _index: _NetworkIndex | None = field(default=None, init=False, repr=False, compare=False)
 
+    def __post_init__(self) -> None:
+        self.networks = tuple(self.networks)
+
     @classmethod
     def empty(cls) -> Allowlist:
         return cls()
@@ -170,14 +173,16 @@ class Allowlist:
 
     def _ip_listed(self, value: str) -> bool:
         address = ipaddress.ip_address(value)
+        if not isinstance(self.networks, tuple):  # a list assigned by a caller: freeze it
+            self.networks = tuple(self.networks)
         index = self._index
         if index is None or index.source is not self.networks:  # rebuilt after networks changed
             index = self._index = _NetworkIndex(self.networks)
         if index.contains(address):
             return True
-        # "::ffff:198.51.100.7" is 198.51.100.7, as for the reserved-address check.
-        mapped = getattr(address, "ipv4_mapped", None)
-        return mapped is not None and index.contains(mapped)
+        # "::ffff:198.51.100.7" and "64:ff9b::198.51.100.7" are 198.51.100.7, as for the reserved check.
+        inner = embedded_ipv4(address) if isinstance(address, ipaddress.IPv6Address) else None
+        return inner is not None and index.contains(inner)
 
     def matches(self, ioc_type: IOCType, value: str) -> bool:
         if ioc_type == IOCType.DOMAIN:

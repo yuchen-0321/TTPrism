@@ -175,7 +175,7 @@ def test_ip_lookups_use_an_index() -> None:
         (["203.0.113.0/24"], "::ffff:203.0.113.5", True),
         (["::ffff:0:0/96"], "::ffff:203.0.113.5", True),
         (["203.0.113.0/24"], "::cb00:7105", False),  # IPv4-compatible, deprecated
-        (["203.0.113.0/24"], "64:ff9b::cb00:7105", False),  # NAT64
+        (["203.0.113.0/24"], "64:ff9b::cb00:7105", True),  # NAT64, as for the reserved check
     ],
 )
 def test_ip_matching(ips: list[str], value: str, listed: bool) -> None:
@@ -217,6 +217,15 @@ def test_oversized_allowlist_rejected(tmp_path: Path) -> None:
 def test_missing_file(tmp_path: Path) -> None:
     with pytest.raises(AllowlistError, match="cannot read"):
         Allowlist.from_file(tmp_path / "missing.yaml")
+
+
+def test_networks_given_as_a_list_are_frozen() -> None:
+    allowlist = Allowlist(networks=[ipaddress.ip_network("192.0.2.0/24")])  # type: ignore[arg-type]
+    assert isinstance(allowlist.networks, tuple)
+    assert allowlist.matches(IOCType.IPV4, "192.0.2.7")
+    allowlist.networks = [ipaddress.ip_network("198.51.100.0/24")]  # type: ignore[assignment]
+    assert allowlist.matches(IOCType.IPV4, "198.51.100.7")
+    assert not allowlist.matches(IOCType.IPV4, "192.0.2.7")
 
 
 @pytest.mark.parametrize(
