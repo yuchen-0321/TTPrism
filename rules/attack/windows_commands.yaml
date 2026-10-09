@@ -38,20 +38,21 @@ rules:
       - https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_powershell_exe?view=powershell-5.1
       - https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_pwsh
     match:
-      # Every prefix of -EncodedCommand works, as does the -ec alias, and "/" works like "-".
+      # Every prefix of -EncodedCommand works, as does the -ec alias, and "/" works like "-". "/e"
+      # alone is left out: it is also the /E switch of robocopy and xcopy run from PowerShell.
       commands: [
         [powershell, -e], [powershell, -ec], [powershell, -en], [powershell, -enc], [powershell, -enco],
         [powershell, -encod], [powershell, -encode], [powershell, -encoded], [powershell, -encodedc],
         [powershell, -encodedco], [powershell, -encodedcom], [powershell, -encodedcomm],
         [powershell, -encodedcomma], [powershell, -encodedcomman], [powershell, -encodedcommand],
-        [powershell, /e], [powershell, /ec], [powershell, /en], [powershell, /enc], [powershell, /enco],
+        [powershell, /ec], [powershell, /en], [powershell, /enc], [powershell, /enco],
         [powershell, /encod], [powershell, /encode], [powershell, /encoded], [powershell, /encodedc],
         [powershell, /encodedco], [powershell, /encodedcom], [powershell, /encodedcomm],
         [powershell, /encodedcomma], [powershell, /encodedcomman], [powershell, /encodedcommand],
         [pwsh, -e], [pwsh, -ec], [pwsh, -en], [pwsh, -enc], [pwsh, -enco], [pwsh, -encod], [pwsh, -encode],
         [pwsh, -encoded], [pwsh, -encodedc], [pwsh, -encodedco], [pwsh, -encodedcom], [pwsh, -encodedcomm],
         [pwsh, -encodedcomma], [pwsh, -encodedcomman], [pwsh, -encodedcommand],
-        [pwsh, /e], [pwsh, /ec], [pwsh, /en], [pwsh, /enc], [pwsh, /enco], [pwsh, /encod], [pwsh, /encode],
+        [pwsh, /ec], [pwsh, /en], [pwsh, /enc], [pwsh, /enco], [pwsh, /encod], [pwsh, /encode],
         [pwsh, /encoded], [pwsh, /encodedc], [pwsh, /encodedco], [pwsh, /encodedcom], [pwsh, /encodedcomm],
         [pwsh, /encodedcomma], [pwsh, /encodedcomman], [pwsh, /encodedcommand],
       ]
@@ -63,7 +64,8 @@ rules:
     references:
       - https://attack.mitre.org/techniques/T1059/003/
     match:
-      commands: [[cmd, /c], [cmd, /k], [cmd, /r]]
+      # cmd.exe also takes the switch glued to its name: "cmd/c whoami".
+      commands: [[cmd, /c], [cmd, /k], [cmd, /r], cmd/c, cmd.exe/c, cmd/k, cmd.exe/k, cmd/r, cmd.exe/r]
 
   - id: cmd.vbscript
     technique: T1059.005
@@ -117,11 +119,15 @@ rules:
   - id: cmd.service-execution
     technique: T1569.002
     confidence: medium
-    description: Programs started as a service (PsExec, sc start, Start-Service).
+    description: Programs started as a service (PsExec, sc start, net start <service>, Start-Service).
     references:
       - https://attack.mitre.org/techniques/T1569/002/
     match:
-      commands: [psexec, psexec64, sc start, sc.exe start, start-service]
+      # A bare "net start" lists the running services instead.
+      commands: [
+        psexec, psexec64, sc start, sc.exe start, start-service,
+        net start <arg>, net.exe start <arg>, net1 start <arg>, net1.exe start <arg>,
+      ]
 
   - id: cmd.remote-service-execution
     technique: T1569.002
@@ -357,7 +363,9 @@ rules:
     references:
       - https://attack.mitre.org/techniques/T1070/004/
     match:
-      commands: [[del, /f], [del, /q], [ping, del], [timeout, del]]
+      commands: [[del, /f], [del, /q]]
+      # Self-deletion waits in one command and deletes in the next: "ping 127.0.0.1 -n 3 & del x".
+      chained_commands: [[ping, del], [timeout, del]]
 
   - id: cmd.hide-file
     technique: T1564.001
@@ -569,7 +577,11 @@ rules:
         net view, net.exe view, net1 view, net1.exe view,
         get-smbshare,
       ]
-      exclude_commands: [/delete, /del]
+      # Creating, changing or deleting a share is not discovery: "net share C=C:\ /GRANT:...".
+      exclude_commands: [
+        /delete, /del, /grant, /users, /unlimited, /remark,
+        [net share, "="], [net.exe share, "="], [net1 share, "="], [net1.exe share, "="],
+      ]
 
   # --- Lateral movement ----------------------------------------------------------
   - id: cmd.admin-shares

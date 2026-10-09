@@ -39,8 +39,9 @@ rules:
 | `signatures` | list of names, `*` and `?` allowed | Whole signature name, case-insensitive |
 | `apis` | list; `"A\|B"` means either | Any listed API was called |
 | `apis_all` | list of lists | Every entry of one inner list was called (in any order) |
-| `commands` | list of phrases or lists of phrases | Phrase appears in one command line, not as part of a longer word (see below) |
-| `exclude_commands` | same as `commands` | Not a matcher of its own: command lines that match it are ignored by this rule's `commands` |
+| `commands` | list of phrases or lists of phrases | Phrase appears in one command, not as part of a longer word (see below) |
+| `chained_commands` | same as `commands` | Like `commands`, but the phrases of one inner list may come from different commands chained on one line (`ping 127.0.0.1 -n 3 & del x`) |
+| `exclude_commands` | same as `commands` | Not a matcher of its own: commands that match it are ignored by this rule's `commands`; a line with such a command is ignored by `chained_commands` |
 | `registry` | list of substrings or lists of substrings | Substring of a written key path, case-insensitive. Use single quotes so backslashes stay literal |
 
 ### How command phrases match
@@ -55,15 +56,29 @@ Command lines and phrases are normalised the same way:
    `"a" "b"` as two words.
 5. Runs of whitespace collapsed to one space, and leading and trailing spaces removed.
 
-An inner list matches when all of its phrases occur in the same view of one command line, in
-any order and anywhere in it. A phrase matches only where it is not part of a longer word: if it
-starts with a letter, digit or `_`, the character before it must not be one, and likewise at
-the end. So `net view` does not match `Net.WebClient` or `example.net/view`, and `user` does not
-match `HKEY_CURRENT_USER`. Phrases are literal text, not patterns. Write words that must be
-adjacent as one phrase (`net user`), not as separate list items, and spell out the variants a
-tool accepts (`net.exe user`, `net1 user`; `certutil -urlcache` and `/urlcache`).
+A command line can chain several commands with cmd.exe's `&`, `&&` and `||`, or line breaks
+(`^&` is a literal `&`, and a single `|` pipe stays within one command, so PowerShell pipelines
+are not split). Each command is matched on its own: an inner list of `commands` matches when all
+of its phrases occur in the same view of one command, in any order and anywhere in it, and
+`exclude_commands` drops only the commands it matches. So in
+`net user /domain & net user x P@ss /add`, the `/add` of the second command neither excludes the
+first one from discovery nor turns it into a domain account. A line is split into at most 64
+commands; the rest stays in the last one.
 
-A phrase that is empty after normalisation (for example `'""'`) is rejected when the rules load.
+A phrase matches only where it is not part of a longer word: if it starts with a letter, digit or
+`_`, the character before it must not be one, and likewise at the end. So `net view` does not
+match `Net.WebClient` or `example.net/view`, and `user` does not match `HKEY_CURRENT_USER`. A
+phrase that starts with `-` or `/` is a switch and must start a word, after whitespace or at the
+start of the command: `/en` does not match the URL path `/en-us/`, nor `-encoded` the word
+`url-encoded`. Phrases are literal text, not patterns. Write words that must be adjacent as one
+phrase (`net user`), not as separate list items, and spell out the variants a tool accepts
+(`net.exe user`, `net1 user`; `certutil -urlcache` and `/urlcache`; `cmd /c` and `cmd/c`).
+
+A phrase ending in ` <arg>` matches only when an argument follows it: `net start <arg>` matches
+`net start updsvc` but not a bare `net start`, `net start > out.txt` or `net start /?`.
+
+A phrase that is empty after normalisation (for example `'""'`) is rejected when the rules load,
+and so is `<arg>` anywhere but at the end of a phrase.
 
 ### Choosing a confidence
 

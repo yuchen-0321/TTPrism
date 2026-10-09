@@ -56,7 +56,15 @@ _API_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_@]{0,99}")
 _CONFIDENCE = ("low", "medium", "high")
 _VERSION_RE = re.compile(r"[0-9]{1,3}(?:\.[0-9]{1,3}){0,2}")
 _RULE_KEYS = {"id", "technique", "confidence", "description", "references", "match"}
-_MATCH_KEYS = {"signatures", "apis", "apis_all", "commands", "exclude_commands", "registry"}
+_MATCH_KEYS = {
+    "signatures",
+    "apis",
+    "apis_all",
+    "commands",
+    "chained_commands",
+    "exclude_commands",
+    "registry",
+}
 MAX_EVIDENCE = 20
 MAX_EVIDENCE_CHARS = 200
 
@@ -142,6 +150,8 @@ class Behavior:
 
 
 _CommandViews = tuple[str, str]
+# (as reported, normalised views of the whole line, normalised views of each chained command)
+_PreparedCommand = tuple[str, _CommandViews, tuple[_CommandViews, ...]]
 
 
 @dataclass(frozen=True)
@@ -149,10 +159,18 @@ class _PreparedBehavior:
     """Case-folded views of a Behavior, computed once per analysis rather than per rule."""
 
     apis: frozenset[str]
-    commands: tuple[tuple[str, _CommandViews], ...]  # (as reported, normalised views)
+    commands: tuple[_PreparedCommand, ...]
     registry_writes: tuple[str, ...]
 
 
+# cmd.exe runs the commands of "a & b", "a && b" and "a || b" one after another; "^&" is a literal
+# "&". Single "|" pipes are kept together, so a PowerShell pipeline stays one command.
+_CHAIN_RE = re.compile(r"(?<!\^)(?:&&?|\|\||[\r\n]+)")
+MAX_CHAINED_COMMANDS = 64
+# A phrase ending in this needs an argument after it: "net start <arg>" but not a bare "net start".
+_ARG = " <arg>"
+# cmd /c"s""chtasks ..." runs s""chtasks: the quote after the switch must not glue the command to it.
+_SWITCH_QUOTE_RE = re.compile(r'(?:(?<![\w/])|(?<=cmd)|(?<=cmd\.exe))(/[ckr])"')
 _CARET_RE = re.compile(r"\^(?=.)")
 _SPACE_RE = re.compile(r"\s+")
 _WORD_RE = re.compile(r"\w")
@@ -167,8 +185,11 @@ def normalize_command(command: str, *, delete_quotes: bool = False) -> str:
 
     Quotes become spaces, or are deleted with ``delete_quotes``.
     """
-    table = _QUOTES_DELETED if delete_quotes else _QUOTES_AS_SPACES
-    command = _CARET_RE.sub("", command.lower()).translate(table)
+    command = _CARET_RE.sub("", command.lower())
+    if delete_quotes:
+        command = _SWITCH_QUOTE_RE.sub(r"\1 ", command).translate(_QUOTES_DELETED)
+    else:
+        command = command.translate(_QUOTES_AS_SPACES)
     return _SPACE_RE.sub(" ", command).strip()
 
 
@@ -179,17 +200,39 @@ def _command_views(command: str) -> _CommandViews:
     return (spaced, spaced if joined == spaced else joined)
 
 
+def _prepare_command(command: str) -> _PreparedCommand:
+    views = _command_views(command)
+    parts = [p for p in _CHAIN_RE.split(command, maxsplit=MAX_CHAINED_COMMANDS - 1) if p.strip()]
+    if len(parts) <= 1:
+        return command, views, (views,)
+    return command, views, tuple(_command_views(p) for p in parts)
+
+
 def _phrase_re(phrase: str) -> re.Pattern[str]:
     """Regex for a normalised phrase that is not part of a longer word ("_" counts as a letter).
 
     Same as (?<!\\w)phrase(?!\\w), but with the literal first so the regex engine uses its fast
-    literal search. The phrase is escaped, so matching is linear. "" never matches.
+    literal search. A phrase starting with "-" or "/" is a switch and must start a word: it follows
+    whitespace or the start of the command, so "/en" in a URL path or "-encoded" in "url-encoded"
+    does not match. A phrase ending in " <arg>" must be followed by an argument. The phrase is
+    escaped, so matching is linear. "" never matches.
     """
-    if not phrase:
+    text = phrase.removesuffix(_ARG)
+    if not text:
         return _NEVER_RE
-    literal = re.escape(phrase)
-    left = rf"(?<!\w{literal})" if _WORD_RE.match(phrase[0]) else ""
-    right = r"(?!\w)" if _WORD_RE.match(phrase[-1]) else ""
+    literal = re.escape(text)
+    if text[0] in "-/":
+        left = rf"(?<!\S{literal})"
+    elif _WORD_RE.match(text[0]):
+        left = rf"(?<!\w{literal})"
+    else:
+        left = ""
+    if text != phrase:
+        right = r"(?= [^\s&|<>/;-])"
+    elif _WORD_RE.match(text[-1]):
+        right = r"(?!\w)"
+    else:
+        right = ""
     return re.compile(literal + left + right)
 
 
@@ -212,7 +255,7 @@ class _PhraseList:
     def compile(cls, phrases: tuple[str, ...]) -> _PhraseList:
         def view(delete_quotes: bool) -> _Phrases:
             normalised = (normalize_command(p, delete_quotes=delete_quotes) for p in phrases)
-            return tuple((p, _phrase_re(p)) for p in normalised)
+            return tuple((p.removesuffix(_ARG), _phrase_re(p)) for p in normalised)
 
         spaced, joined = view(False), view(True)
         return cls(spaced, spaced if joined == spaced else joined)
@@ -250,6 +293,7 @@ class Rule:
     apis: tuple[frozenset[str], ...] = ()
     apis_all: tuple[tuple[frozenset[str], ...], ...] = ()
     commands: tuple[tuple[str, ...], ...] = ()  # phrases as written in the rule file
+    chained_commands: tuple[tuple[str, ...], ...] = ()
     exclude_commands: tuple[tuple[str, ...], ...] = ()
     registry: tuple[tuple[str, ...], ...] = ()
     source: str = ""
@@ -261,6 +305,10 @@ class Rule:
     @functools.cached_property
     def _command_lists(self) -> tuple[_PhraseList, ...]:
         return tuple(_PhraseList.compile(phrases) for phrases in self.commands)
+
+    @functools.cached_property
+    def _chained_lists(self) -> tuple[_PhraseList, ...]:
+        return tuple(_PhraseList.compile(phrases) for phrases in self.chained_commands)
 
     @functools.cached_property
     def _exclusion_lists(self) -> tuple[_PhraseList, ...]:
@@ -281,14 +329,25 @@ class Rule:
             hits = [alternatives & apis_lower for alternatives in group]
             if all(hits):
                 evidence.append("apis: " + ", ".join(sorted(frozenset().union(*hits))))
-        if self.commands:
-            commands = prepared.commands
+        if self.commands or self.chained_commands:
+            # Each command of a chained line is matched on its own; an exclusion drops only the
+            # commands it matches. chained_commands match the whole line, unless a part is excluded.
+            lines: Iterable[tuple[str, _CommandViews | None, tuple[_CommandViews, ...]]] = prepared.commands
             if self.exclude_commands:
                 exclusions = self._exclusion_lists
-                commands = tuple((o, v) for o, v in commands if not any(x.matches(v) for x in exclusions))
+                lines = [
+                    (original, views if len(kept) == len(chain) else None, kept)
+                    for original, views, chain in prepared.commands
+                    for kept in [tuple(c for c in chain if not any(x.matches(c) for x in exclusions))]
+                ]
             for phrases in self._command_lists:
-                for original, views in commands:
-                    if phrases.matches(views):
+                for original, _, chain in lines:
+                    if any(phrases.matches(c) for c in chain):
+                        evidence.append(f"command: {original}")
+                        break
+            for phrases in self._chained_lists:
+                for original, whole, _ in lines:
+                    if whole is not None and phrases.matches(whole):
                         evidence.append(f"command: {original}")
                         break
         for parts in self.registry:
@@ -334,8 +393,12 @@ def _phrase_lists(value: Any, where: str) -> list[tuple[str, ...]]:
 def _command_phrase_lists(value: Any, where: str) -> tuple[tuple[str, ...], ...]:
     lists = _phrase_lists(value, where)
     for phrase in (p for phrases in lists for p in phrases):
-        if not normalize_command(phrase) or not normalize_command(phrase, delete_quotes=True):
-            raise RuleError(f"{where}: phrase {phrase!r} is empty once quotes and ^ are removed")
+        for normalised in (normalize_command(phrase), normalize_command(phrase, delete_quotes=True)):
+            text = normalised.removesuffix(_ARG)
+            if "<arg>" in text:
+                raise RuleError(f"{where}: phrase {phrase!r}: '<arg>' may only end a phrase")
+            if not text.strip():
+                raise RuleError(f"{where}: phrase {phrase!r} is empty once quotes and ^ are removed")
     return tuple(lists)
 
 
@@ -366,7 +429,7 @@ def _parse_rule(raw: Any, where: str, source: str) -> Rule:
     unknown = set(match) - _MATCH_KEYS
     if unknown:
         raise RuleError(f"{where}: unknown matchers: {', '.join(sorted(map(repr, unknown)))}")
-    if "exclude_commands" in match and "commands" not in match:
+    if "exclude_commands" in match and "commands" not in match and "chained_commands" not in match:
         raise RuleError(f"{where}: 'exclude_commands' only applies together with 'commands'")
 
     signatures = _string_list(match["signatures"], f"{where}: signatures") if "signatures" in match else []
@@ -387,6 +450,11 @@ def _parse_rule(raw: Any, where: str, source: str) -> Rule:
             entries = _string_list(group, f"{where}: apis_all")
             apis_all.append(tuple(_api_alternatives(e, f"{where}: apis_all") for e in entries))
     commands = _command_phrase_lists(match["commands"], f"{where}: commands") if "commands" in match else ()
+    chained_commands = (
+        _command_phrase_lists(match["chained_commands"], f"{where}: chained_commands")
+        if "chained_commands" in match
+        else ()
+    )
     exclude_commands = (
         _command_phrase_lists(match["exclude_commands"], f"{where}: exclude_commands")
         if "exclude_commands" in match
@@ -411,6 +479,7 @@ def _parse_rule(raw: Any, where: str, source: str) -> Rule:
         apis=apis,
         apis_all=tuple(apis_all),
         commands=commands,
+        chained_commands=chained_commands,
         exclude_commands=exclude_commands,
         registry=tuple(registry),
         source=source,
@@ -475,7 +544,7 @@ class RuleSet:
     def evaluate(self, behavior: Behavior) -> list[tuple[Rule, list[str]]]:
         prepared = _PreparedBehavior(
             apis=frozenset(a.lower() for a in behavior.apis),
-            commands=tuple((c, _command_views(c)) for c in behavior.commands),
+            commands=tuple(_prepare_command(c) for c in behavior.commands),
             registry_writes=tuple(k.lower() for k in behavior.registry_writes),
         )
         results = []

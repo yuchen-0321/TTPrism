@@ -41,9 +41,12 @@ their advisory.
 - ATT&CK mapping rules in YAML (`rules/attack/`, 111 rules) for CAPE signatures, command lines,
   API call sequences and registry writes, written against Enterprise ATT&CK 19.2, each with a
   confidence level and reference. Command phrases match on word boundaries (`_` counts as part of
-  a word) in two views of each command line, quotes removed and quotes as spaces, so cmd.exe
-  quote and caret obfuscation does not hide them. `exclude_commands` lets a rule ignore lines
-  such as `net user ... /add` or `ipconfig /flushdns`.
+  a word; switches such as `-enc` must start a word) in two views of each command, quotes removed
+  and quotes as spaces, so cmd.exe quote and caret obfuscation does not hide them. Commands chained
+  with `&`, `&&` or `||` are matched one by one, and `chained_commands` covers idioms that span
+  them (`ping ... & del`). `exclude_commands` lets a rule ignore commands such as
+  `net user ... /add` or `ipconfig /flushdns`, and `<arg>` requires an argument
+  (`net start <arg>`).
 - Normalisation of revoked ATT&CK IDs through the revocation history (for example `T1086` →
   `T1059.001`, `T1562.001` → `T1685`), for IDs in reports and in CAPE's own signature TTPs.
 - Output as JSON, CSV and STIX 2.1 bundles (indicators, vulnerabilities, attack patterns).

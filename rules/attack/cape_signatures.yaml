@@ -167,8 +167,11 @@ rules:
   # --- Persistence and privilege escalation -------------------------------------
   - id: cape.persistence-autorun
     technique: T1547.001
-    confidence: high
-    description: Autorun registry keys or startup folder entries created.
+    confidence: medium
+    description: >-
+      Autostart entry written. Besides Run keys and the Startup folder, the signature also fires on
+      Winlogon, IFEO debuggers, AppInit_DLLs, Active Setup and auto-start services, which the reg.*,
+      api.* and cmd.* rules map to their own techniques.
     references:
       - https://attack.mitre.org/techniques/T1547/001/
     match:

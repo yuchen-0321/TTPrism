@@ -10,6 +10,7 @@ import pytest
 
 from ttprism import AttackCatalog, Behavior, RuleError, RuleSet
 from ttprism.attack import (
+    MAX_CHAINED_COMMANDS,
     MAX_EVIDENCE_CHARS,
     TechniqueAccumulator,
     _phrase_re,
@@ -270,7 +271,7 @@ def test_attack_version_formats(tmp_path: Path, version: str) -> None:
 
 
 def _reference_contains(haystack: str, phrase: str) -> bool:
-    """The original find() loop, with "_" as a word character."""
+    """The original find() loop, with "_" as a word character and switches starting a word."""
 
     def word(c: str) -> bool:
         return c.isalnum() or c == "_"
@@ -278,7 +279,10 @@ def _reference_contains(haystack: str, phrase: str) -> bool:
     start = 0
     while (index := haystack.find(phrase, start)) != -1:
         end = index + len(phrase)
-        left_ok = not word(phrase[0]) or index == 0 or not word(haystack[index - 1])
+        if phrase[0] in "-/":
+            left_ok = index == 0 or haystack[index - 1].isspace()
+        else:
+            left_ok = not word(phrase[0]) or index == 0 or not word(haystack[index - 1])
         right_ok = not word(phrase[-1]) or end == len(haystack) or not word(haystack[end])
         if left_ok and right_ok:
             return True
@@ -288,7 +292,22 @@ def _reference_contains(haystack: str, phrase: str) -> bool:
 
 def test_phrase_regex_matches_reference_semantics() -> None:
     # Letters, digits (incl. non-ASCII ones that isalnum() accepts), "_", separators.
-    alphabet = ["a", "b", "1", "_", " ", ".", "\\", "-", "$", chr(0xE9), chr(0x663), chr(0xB2), chr(0x216B)]
+    alphabet = [
+        "a",
+        "b",
+        "1",
+        "_",
+        " ",
+        ".",
+        "\\",
+        "-",
+        "/",
+        "$",
+        chr(0xE9),
+        chr(0x663),
+        chr(0xB2),
+        chr(0x216B),
+    ]
     rng = random.Random(1)  # noqa: S311 (reproducible test data)
     for _ in range(20000):
         phrase = "".join(rng.choices(alphabet, k=rng.randint(1, 3)))
@@ -336,8 +355,10 @@ def test_exclude_commands(tmp_path: Path) -> None:
     assert not evaluate(tmp_path, rule, Behavior(commands=["net localgroup administrators x /add"]))
     assert not evaluate(tmp_path, rule, Behavior(commands=["net localgroup admins x /delete"]))
     assert evaluate(tmp_path, rule, Behavior(commands=["net localgroup users x /delete"]))
-    # The exclusion applies to every command phrase of the rule, line by line.
-    assert not evaluate(tmp_path, rule, Behavior(commands=["whoami /all & net user x /add"]))
+    # The exclusion applies to every command phrase of the rule, but only to the commands of a
+    # chained line that it matches.
+    assert evaluate(tmp_path, rule, Behavior(commands=["whoami /all & net user x /add"]))
+    assert not evaluate(tmp_path, rule, Behavior(commands=["net localgroup a x /add & whoami"]))
     behavior = Behavior(commands=["net localgroup a x /add", "net localgroup administrators"])
     assert evaluate(tmp_path, rule, behavior) == ["command: net localgroup administrators"]
 
@@ -400,6 +421,29 @@ def fired(**behavior: Any) -> dict[str, str]:
 WEBCLIENT = "powershell -nop -w hidden -c \"IEX (New-Object Net.WebClient).DownloadString('{}')\""
 
 COMMAND_HITS = [
+    # Second review: chained lines are matched command by command.
+    ("cmd.service-execution", "net start updsvc"),
+    ("cmd.service-execution", "C:\\Windows\\system32\\net1  start updsvc"),
+    ("cmd.service-execution", 'net start "Upd Svc"'),
+    ("cmd.service-execution", 'cmd /c sc create x binPath= "C:\\x.exe" start= auto && net start x'),
+    (
+        "cmd.remote-service-execution",
+        "sc \\\\fs01 create updsvc binPath= x start= auto && sc \\\\fs01 start updsvc",
+    ),
+    ("cmd.create-local-account", "cmd.exe /c net user /domain & net user support P@ss1 /add"),
+    ("cmd.domain-account-discovery", "cmd.exe /c net user /domain & net user support P@ss1 /add"),
+    ("cmd.share-discovery", "cmd.exe /c net share & net share tmp /delete"),
+    ("cmd.cmd-shell", "cmd/c whoami"),
+    ("cmd.cmd-shell", "C:\\Windows\\system32\\cmd.exe/c whoami"),
+    ("cmd.scheduled-task", 'cmd.exe /c"s""chtasks /create /tn x /tr y"'),
+    ("cmd.scheduled-task", 'cmd.exe /k"s""chtasks /create /tn x /tr y"'),
+    ("cmd.powershell-encoded", 'cmd.exe /c"p""owershell -nop -w hidden -enc SQBFAFgA"'),
+    ("cmd.inhibit-recovery", 'cmd.exe /c"v""ssadmin delete shadows /all /quiet"'),
+    ("cmd.file-deletion", "cmd /c ping 127.0.0.1 -n 3 > nul & del C:\\Users\\a\\x.exe"),
+    ("cmd.file-deletion", "cmd /c timeout 3 && del x.exe"),
+    ("cmd.powershell-encoded", "powershell -nop -w hidden -e SQBFAFgA"),
+    ("cmd.powershell-encoded", 'powershell "-enc" SQBFAFgA'),
+    ("cmd.powershell-encoded", "pwsh /ec SQBFAFgA"),
     ("cmd.powershell", "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell_ise.exe x.ps1"),
     ("cmd.powershell", 'cmd /c power""shell -c whoami'),
     ("cmd.scheduled-task", 'cmd /c s"c"htasks /create /tn x /tr c:\\x.exe'),
@@ -537,6 +581,41 @@ COMMAND_MISSES = [
     ("cmd.download", "powershell -c iwr"),
     ("cmd.powershell-encoded", "powershell -ExecutionPolicy Bypass -File a.ps1"),
     ("cmd.powershell-encoded", "powershell -ep bypass -enx x"),
+    # Second review: switch phrases start a word, so URL paths and other tools' switches stay out.
+    (
+        "cmd.powershell-encoded",
+        'powershell.exe -NoProfile -Command "Invoke-WebRequest -Uri https://www.example.com/en-us/download/setup.exe"',
+    ),
+    ("cmd.powershell-encoded", 'pwsh -c "irm https://cdn.example.net/en/latest/install.ps1 | iex"'),
+    ("cmd.powershell-encoded", 'powershell -c "robocopy C:\\data \\\\fs01.example.com\\backup /E /R:1"'),
+    ("cmd.powershell-encoded", "powershell -NoProfile -File C:\\Tools\\Sync.ps1 /E"),
+    ("cmd.powershell-encoded", "xcopy C:\\Users\\a\\Documents\\PowerShell D:\\Backup\\PowerShell /E /I"),
+    (
+        "cmd.powershell-encoded",
+        'powershell -c "iwr https://example.com/docs/url-encoded-forms.html -OutFile f.html"',
+    ),
+    ("cmd.powershell-encoded", "powershell -c iwr https://example.com/setup-en.exe"),
+    ("cmd.powershell-encoded", "powershell -File C:\\Tools\\file-enc.ps1"),
+    ("cmd.powershell-encoded", "powershell -c iwr https://docs.example.org/document/d/e/2PACX-1vQ/pub"),
+    ("cmd.decode", "certutil -urlcache -split -f http://files.example.net/decode/tool.exe tool.exe"),
+    # Chained lines: phrases of one inner list come from one command.
+    ("cmd.create-domain-account", "cmd.exe /c net user /domain & net user support P@ss1 /add"),
+    (
+        "cmd.create-domain-account",
+        'cmd.exe /c net group "Domain Admins" /domain & net user support P@ss1 /add',
+    ),
+    ("cmd.add-to-group", 'cmd.exe /c net group "Domain Admins" /domain & net user support P@ss1 /add'),
+    ("cmd.domain-account-discovery", "cmd /c net user x P@ss1 /add & net group /domain"),
+    # Creating or changing a share is not share discovery.
+    ("cmd.share-discovery", "net share C=C:\\ /GRANT:Everyone,FULL"),
+    ("cmd.share-discovery", "net1 share Data=D:\\Data"),
+    ("cmd.share-discovery", "net share Data /unlimited"),
+    # A bare "net start" lists services; it starts none.
+    ("cmd.service-execution", "net start"),
+    ("cmd.service-execution", "net start > C:\\Users\\Public\\s.txt"),
+    ("cmd.service-execution", "net start | findstr /i defender"),
+    ("cmd.service-execution", "net start /?"),
+    ("cmd.file-deletion", "ping 127.0.0.1 -n 3"),
 ]
 
 
@@ -579,7 +658,11 @@ ENCODED_FLAGS = ["ec"] + ["encodedcommand"[:n] for n in range(1, len("encodedcom
 def test_encoded_command_spellings(host: str, dash: str) -> None:
     for flag in ENCODED_FLAGS:
         command = f"{host} -NoP -W Hidden {dash}{flag.upper()} SQBFAFgA"
-        assert "cmd.powershell-encoded" in fired(commands=[command]), command
+        if dash == "/" and flag == "e":
+            # Left out on purpose: "/E" is also robocopy's and xcopy's switch in PowerShell lines.
+            assert "cmd.powershell-encoded" not in fired(commands=[command]), command
+        else:
+            assert "cmd.powershell-encoded" in fired(commands=[command]), command
 
 
 CAPE_ANTIVM = [  # every antivm_* signature in CAPE community af2e503 except antivm_recentdocs
@@ -619,6 +702,58 @@ def test_cape_signature_mappings(signature: str, expected: dict[str, str]) -> No
 def test_autorun_tasks_signature_is_low_confidence() -> None:
     ((rule, _),) = BUNDLED.evaluate(Behavior(signatures=["persistence_autorun_tasks"]))
     assert rule.confidence == "low"
+
+
+def test_autorun_signature_is_not_high_confidence() -> None:
+    # It also fires on auto-start services, Winlogon, IFEO and more, not only Run keys.
+    ((rule, _),) = BUNDLED.evaluate(Behavior(signatures=["persistence_autorun"]))
+    assert rule.confidence == "medium"
+
+
+def test_chained_lines_use_each_command(tmp_path: Path) -> None:
+    rule = "{commands: [[a, b]], chained_commands: [[c, d]], exclude_commands: [x]}"
+    assert evaluate(tmp_path, rule, Behavior(commands=["a b & c"]))
+    assert not evaluate(tmp_path, rule, Behavior(commands=["a & b"]))
+    assert evaluate(tmp_path, rule, Behavior(commands=["a ^& b"]))  # "^&" is a literal "&"
+    assert evaluate(tmp_path, rule, Behavior(commands=["c & d"]))
+    # An excluded command drops only itself, and a chained match needs the whole line.
+    assert evaluate(tmp_path, rule, Behavior(commands=["a b x & y"])) == []
+    assert evaluate(tmp_path, rule, Behavior(commands=["x & a b"]))
+    assert not evaluate(tmp_path, rule, Behavior(commands=["c & d x"]))
+    # "||", "&&" and line breaks chain too; a single "|" is a pipe within one command.
+    assert evaluate(tmp_path, rule, Behavior(commands=["a b || z", "q && z", "a b\r\nz"]))
+    assert evaluate(tmp_path, rule, Behavior(commands=["a | b"]))
+
+
+def test_chained_lines_are_capped(tmp_path: Path) -> None:
+    line = "z & " * (MAX_CHAINED_COMMANDS + 10) + "a b"
+    rule = "{commands: [[a, b]]}"
+    # The last parts stay together in the final command, so nothing is lost.
+    assert evaluate(tmp_path, rule, Behavior(commands=[line]))
+    start = time.perf_counter()
+    BUNDLED.evaluate(Behavior(commands=["net user & " * 2000] * 100))
+    assert time.perf_counter() - start < 10
+
+
+@pytest.mark.parametrize(
+    ("phrase", "error"),
+    [
+        ("<arg>", "may only end a phrase"),
+        ("net <arg> start", "may only end a phrase"),
+        ("net start <arg> <arg>", "may only end a phrase"),
+        ('"" <arg>', "may only end a phrase"),
+    ],
+)
+def test_arg_marker_is_validated(tmp_path: Path, phrase: str, error: str) -> None:
+    path = write_rules(tmp_path, f"- id: r\n  technique: T1059\n  match: {{commands: ['{phrase}']}}\n")
+    with pytest.raises(RuleError, match=error):
+        RuleSet.load([path])
+
+
+def test_arg_marker_needs_an_argument(tmp_path: Path) -> None:
+    rule = "{commands: [net start <arg>]}"
+    assert evaluate(tmp_path, rule, Behavior(commands=["net start x"]))
+    assert not evaluate(tmp_path, rule, Behavior(commands=["net start", "net start -x", "net startx y"]))
 
 
 @pytest.mark.parametrize(
