@@ -161,6 +161,10 @@ Counts of what was dropped are reported under `suppressed`, so nothing disappear
   or none.
 - A single bidi mark between two name characters is removed as part of the name, so two IOCs
   separated only by such a mark (`198.51.100.7\u200f203.0.113.9`) are not split.
+- A full-width colon `：` is read as `:`, so a URL directly followed by `：` and ASCII text
+  (`.../a.exe：C2`) keeps that text; full-width `（），；！` do end a URL.
+- ATT&CK command rules split a line at cmd.exe's `&`, `&&` and `||` only: PowerShell statements
+  joined by `;` are matched as one command.
 - `--defang` changes the scheme, host and `@` only; URL paths are left as they are.
 - CAPE is the only sandbox format so far.
 

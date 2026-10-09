@@ -54,31 +54,37 @@ Command lines and phrases are normalised the same way:
 4. Quotes (`"` and `'`) handled in two ways, giving two views: turned into spaces, and deleted.
    cmd.exe runs `s"c"htasks` as `schtasks`, which only the second view shows; the first keeps
    `"a" "b"` as two words.
-5. Runs of whitespace collapsed to one space, and leading and trailing spaces removed.
+5. Switches glued to a command or to each other, which cmd.exe accepts, are split into words:
+   `del/f/q` becomes `del /f /q`, `cmd /q/c` becomes `cmd /q /c`. URLs and paths are left alone.
+6. Runs of whitespace collapsed to one space, and leading and trailing spaces removed.
 
-A command line can chain several commands with cmd.exe's `&`, `&&` and `||`, or line breaks
-(`^&` is a literal `&`, and a single `|` pipe stays within one command, so PowerShell pipelines
-are not split). Each command is matched on its own: an inner list of `commands` matches when all
-of its phrases occur in the same view of one command, in any order and anywhere in it, and
-`exclude_commands` drops only the commands it matches. So in
-`net user /domain & net user x P@ss /add`, the `/add` of the second command neither excludes the
-first one from discovery nor turns it into a domain account. A line is split into at most 64
+A command line can chain several commands with cmd.exe's `&`, `&&` and `||`. Each command is
+matched on its own: an inner list of `commands` matches when all of its phrases occur in the same
+view of one command, in any order and anywhere in it, and `exclude_commands` drops only the
+commands it matches. So in `net user /domain & net user x P@ss /add`, the `/add` of the second
+command neither excludes the first one from discovery nor turns it into a domain account. `^&`
+and an `&` in double quotes are literal (`net user x "P@ss&1" /add`), except in the quotes that
+`cmd /c "..."` removes. A single `|` pipe, a line break and PowerShell's `;` do not split a
+command, so PowerShell pipelines and statements stay together. A line is split into at most 32
 commands; the rest stays in the last one.
 
 A phrase matches only where it is not part of a longer word: if it starts with a letter, digit or
 `_`, the character before it must not be one, and likewise at the end. So `net view` does not
 match `Net.WebClient` or `example.net/view`, and `user` does not match `HKEY_CURRENT_USER`. A
-phrase that starts with `-` or `/` is a switch and must start a word, after whitespace or at the
-start of the command: `/en` does not match the URL path `/en-us/`, nor `-encoded` the word
-`url-encoded`. Phrases are literal text, not patterns. Write words that must be adjacent as one
-phrase (`net user`), not as separate list items, and spell out the variants a tool accepts
-(`net.exe user`, `net1 user`; `certutil -urlcache` and `/urlcache`; `cmd /c` and `cmd/c`).
+phrase that starts with `-` or `/` is a switch: it must start a word (after whitespace or at the
+start of the command) and end one (before whitespace, `:` or the end), so `/en` does not match
+the URL path `/en-us/`, nor `-encoded` the word `url-encoded`. Phrases are literal text, not
+patterns. Write words that must be adjacent as one phrase (`net user`), not as separate list
+items, and spell out the variants a tool accepts (`net.exe user`, `net1 user`;
+`certutil -urlcache` and `/urlcache`).
 
-A phrase ending in ` <arg>` matches only when an argument follows it: `net start <arg>` matches
-`net start updsvc` but not a bare `net start`, `net start > out.txt` or `net start /?`.
+`<arg>` in a phrase stands for one argument: `net start <arg>` matches `net start updsvc` but not
+a bare `net start`, `net start > out.txt`, `net start 2>nul` or `('net start')`, and
+`net share <arg>=` matches the share creation `net share C=C:\`. An argument does not start with
+`-`, `/` or a redirection and has no spaces, quotes or `= & | < > ; ( )`.
 
 A phrase that is empty after normalisation (for example `'""'`) is rejected when the rules load,
-and so is `<arg>` anywhere but at the end of a phrase.
+and so is a phrase that starts with `<arg>`.
 
 ### Choosing a confidence
 

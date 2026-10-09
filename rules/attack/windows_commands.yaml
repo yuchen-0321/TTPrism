@@ -1,17 +1,20 @@
 # Map Windows command lines seen in sandbox runs to ATT&CK techniques.
 #
-# Command lines and phrases are lower-cased, cmd.exe caret escapes are removed
-# (s^c^h^t^a^s^k^s), Unicode dashes become "-" and whitespace is collapsed.
-# Each command line is matched twice: with quotes turned into spaces and with
-# quotes deleted (cmd.exe runs s"c"htasks as schtasks). A phrase must not be
-# part of a longer word ("_" counts as a letter), so "net view" does not match
-# "Net.WebClient" or "example.net/view".
+# A command line is split into the commands chained with & && ||. Commands and
+# phrases are lower-cased, cmd.exe caret escapes are removed
+# (s^c^h^t^a^s^k^s), Unicode dashes become "-", glued switches are split
+# (del/f/q) and whitespace is collapsed. Each command is matched twice: with
+# quotes turned into spaces and with quotes deleted (cmd.exe runs s"c"htasks as
+# schtasks). A phrase must not be part of a longer word ("_" counts as a
+# letter), so "net view" does not match "Net.WebClient" or "example.net/view",
+# and a switch must be a word of its own. See rules/attack/README.md.
 #
-# An inner list means every phrase must appear in the same command line, in
-# any order, so [vssadmin, delete shadows] matches both "vssadmin delete
-# shadows" and "C:\Windows\System32\vssadmin.exe Delete Shadows /All /Quiet".
-# Use one phrase ("net user") where words must be adjacent, and
-# exclude_commands for command lines the rule must ignore.
+# An inner list means every phrase must appear in the same command, in any
+# order, so [vssadmin, delete shadows] matches both "vssadmin delete shadows"
+# and "C:\Windows\System32\vssadmin.exe Delete Shadows /All /Quiet". Use one
+# phrase ("net user") where words must be adjacent, exclude_commands for
+# commands the rule must ignore, and chained_commands for idioms that span
+# chained commands.
 #
 # Prefer specific, high-precision phrases. A rule that fires on every benign
 # use of a tool belongs at confidence: low, or not at all.
@@ -64,8 +67,7 @@ rules:
     references:
       - https://attack.mitre.org/techniques/T1059/003/
     match:
-      # cmd.exe also takes the switch glued to its name: "cmd/c whoami".
-      commands: [[cmd, /c], [cmd, /k], [cmd, /r], cmd/c, cmd.exe/c, cmd/k, cmd.exe/k, cmd/r, cmd.exe/r]
+      commands: [[cmd, /c], [cmd, /k], [cmd, /r]]  # also "cmd/c" and "cmd /q/c": glued switches split
 
   - id: cmd.vbscript
     technique: T1059.005
@@ -365,7 +367,7 @@ rules:
     match:
       commands: [[del, /f], [del, /q]]
       # Self-deletion waits in one command and deletes in the next: "ping 127.0.0.1 -n 3 & del x".
-      chained_commands: [[ping, del], [timeout, del]]
+      chained_commands: [[ping, del], [timeout, del], [choice, del]]
 
   - id: cmd.hide-file
     technique: T1564.001
@@ -580,7 +582,8 @@ rules:
       # Creating, changing or deleting a share is not discovery: "net share C=C:\ /GRANT:...".
       exclude_commands: [
         /delete, /del, /grant, /users, /unlimited, /remark,
-        [net share, "="], [net.exe share, "="], [net1 share, "="], [net1.exe share, "="],
+        net share <arg>=, net.exe share <arg>=, net1 share <arg>=, net1.exe share <arg>=,
+        [net share, /cache], [net.exe share, /cache], [net1 share, /cache], [net1.exe share, /cache],
       ]
 
   # --- Lateral movement ----------------------------------------------------------

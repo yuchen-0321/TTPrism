@@ -15,30 +15,35 @@ Rule files live in ``rules/attack/`` and look like::
           apis_all: [["VirtualAllocEx", "WriteProcessMemory|NtWriteVirtualMemory"]]
                                                           # every API in one inner list was called
           commands: ["vssadmin delete shadows", ["wmic", "shadowcopy", "delete"]]
-                                                          # command line contains the phrase
+                                                          # one command contains the phrase
                                                           # (or every phrase of an inner list)
-          exclude_commands: ["/?"]                        # command lines that match this (same
+          chained_commands: [["ping", "del"]]             # the same, over all commands chained
+                                                          # on one line with & && ||
+          exclude_commands: ["/?"]                        # commands that match this (same
                                                           # syntax) are ignored by `commands`
           registry: ['\\currentversion\\run\\']          # a written registry key contains this
                                                           # (or every part of an inner list)
 
-Command lines and phrases are lower-cased, cmd.exe caret escapes are removed,
-Unicode dashes become "-" and whitespace is collapsed. Each command line is
-then matched in two views, one with quotes turned into spaces and one with
-quotes deleted (cmd.exe runs s"c"htasks as schtasks); an inner list matches
-if all its phrases occur in the same view. A phrase must not be part of a
-longer word: where it starts or ends with a letter, digit or "_", the
-neighbouring character must not be one. Registry patterns are plain
-case-insensitive substrings.
+A command line is split into the commands cmd.exe chains with &, && and ||.
+Commands and phrases are lower-cased, cmd.exe caret escapes are removed,
+Unicode dashes become "-", glued switches are split and whitespace is
+collapsed. Each command is then matched in two views, one with quotes turned
+into spaces and one with quotes deleted (cmd.exe runs s"c"htasks as
+schtasks); an inner list matches if all its phrases occur in the same view of
+one command. A phrase must not be part of a longer word: where it starts or
+ends with a letter, digit or "_", the neighbouring character must not be one,
+and a switch ("-enc", "/c") must be a word of its own. Registry patterns are
+plain case-insensitive substrings. rules/attack/README.md has the details.
 """
 
 from __future__ import annotations
 
+import bisect
 import fnmatch
 import functools
 import json
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from importlib import resources
 from importlib.resources.abc import Traversable
@@ -151,7 +156,10 @@ class Behavior:
 
 _CommandViews = tuple[str, str]
 # (as reported, normalised views of the whole line, normalised views of each chained command)
-_PreparedCommand = tuple[str, _CommandViews, tuple[_CommandViews, ...]]
+# The views of the commands of a chained line joined by "\n", and where each one starts, for the
+# spaced and the joined view: finding a phrase there tells which commands can match it.
+_ChainIndex = tuple[str, list[int], str, list[int]]
+_PreparedCommand = tuple[str, _CommandViews, tuple[_CommandViews, ...], _ChainIndex | None]
 
 
 @dataclass(frozen=True)
@@ -161,16 +169,27 @@ class _PreparedBehavior:
     apis: frozenset[str]
     commands: tuple[_PreparedCommand, ...]
     registry_writes: tuple[str, ...]
+    # (id of an exclusion list, line number) -> commands it matches; rules share exclusion lists.
+    excluded: dict[tuple[int, int], set[int]] = field(default_factory=dict, compare=False)
 
 
-# cmd.exe runs the commands of "a & b", "a && b" and "a || b" one after another; "^&" is a literal
-# "&". Single "|" pipes are kept together, so a PowerShell pipeline stays one command.
-_CHAIN_RE = re.compile(r"(?<!\^)(?:&&?|\|\||[\r\n]+)")
-MAX_CHAINED_COMMANDS = 64
-# A phrase ending in this needs an argument after it: "net start <arg>" but not a bare "net start".
-_ARG = " <arg>"
+MAX_CHAINED_COMMANDS = 32
+# The quote right after "cmd /c" (or /k, /r) is one that cmd.exe strips: what it encloses is a
+# command line, where "&" chains commands.
+_CMD_QUOTE_RE = re.compile(r'(?:\A|[\s"\\])(?:cmd(?:\.exe)?)?/[ckr]\s*\Z', re.IGNORECASE)
+# "<arg>" in a phrase stands for one argument: "net start <arg>" matches "net start updsvc" but not a
+# bare "net start", "net start > x", "net start 2>nul" or "('net start')"; "net share <arg>=" matches
+# "net share C=C:\\". The argument cannot start like a switch or a redirection, and is bounded.
+_ARG = "<arg>"
+_ARG_RE = r"(?![0-9]?>)[^\s&|<>/;()=\-][^\s&|<>;()=]{0,259}"
 # cmd /c"s""chtasks ..." runs s""chtasks: the quote after the switch must not glue the command to it.
-_SWITCH_QUOTE_RE = re.compile(r'(?:(?<![\w/])|(?<=cmd)|(?<=cmd\.exe))(/[ckr])"')
+_SWITCH_QUOTE_RE = re.compile(r'(?:(?<![\w/:])|(?<=cmd)|(?<=cmd\.exe)|(?<=/\w)|(?<=:on)|(?<=:off))(/[ckr])"')
+# cmd.exe takes switches glued to the command or to each other: "del/f/q", "cmd /q/c",
+# "ipconfig/flushdns", "c:\\windows\\system32\\cmd.exe/c". Such a word is split, so that every switch
+# starts a word. URLs are left alone: their slashes follow a host, or a path with "." or ":".
+_GLUED_SWITCHES_RE = re.compile(
+    r"(?<![^\s&|\\])([a-z0-9_]{1,32}(?:\.exe)?)?((?:/[a-z0-9?][a-z0-9?:]{0,31}){1,16})(?![^\s&|])"
+)
 _CARET_RE = re.compile(r"\^(?=.)")
 _SPACE_RE = re.compile(r"\s+")
 _WORD_RE = re.compile(r"\w")
@@ -190,7 +209,12 @@ def normalize_command(command: str, *, delete_quotes: bool = False) -> str:
         command = _SWITCH_QUOTE_RE.sub(r"\1 ", command).translate(_QUOTES_DELETED)
     else:
         command = command.translate(_QUOTES_AS_SPACES)
+    command = _GLUED_SWITCHES_RE.sub(_split_switches, command)
     return _SPACE_RE.sub(" ", command).strip()
+
+
+def _split_switches(match: re.Match[str]) -> str:
+    return (match.group(1) or "") + match.group(2).replace("/", " /")
 
 
 def _command_views(command: str) -> _CommandViews:
@@ -202,10 +226,56 @@ def _command_views(command: str) -> _CommandViews:
 
 def _prepare_command(command: str) -> _PreparedCommand:
     views = _command_views(command)
-    parts = [p for p in _CHAIN_RE.split(command, maxsplit=MAX_CHAINED_COMMANDS - 1) if p.strip()]
+    parts = _split_chain(command)
     if len(parts) <= 1:
-        return command, views, (views,)
-    return command, views, tuple(_command_views(p) for p in parts)
+        return command, views, (views,), None
+    chain = tuple(_command_views(p) for p in parts)
+    return command, views, chain, _chain_index(chain)
+
+
+def _chain_index(chain: tuple[_CommandViews, ...]) -> _ChainIndex:
+    def with_starts(texts: list[str]) -> tuple[str, list[int]]:
+        starts, total = [], 0
+        for text in texts:
+            starts.append(total)
+            total += len(text) + 1
+        return "\n".join(texts), starts
+
+    spaced, spaced_starts = with_starts([views[0] for views in chain])
+    if all(views[1] is views[0] for views in chain):
+        return spaced, spaced_starts, spaced, spaced_starts
+    joined, joined_starts = with_starts([views[1] for views in chain])
+    return spaced, spaced_starts, joined, joined_starts
+
+
+def _split_chain(command: str) -> list[str]:
+    """The commands cmd.exe runs one after another for "a & b", "a && b" or "a || b".
+
+    "^&" and an "&" in double quotes are literal, except in the quotes that "cmd /c" strips. A single
+    "|" is a pipe within one command, so a PowerShell pipeline stays together, and a line break may
+    continue a PowerShell command, so it does not split either. At most MAX_CHAINED_COMMANDS
+    commands; the rest stays in the last one.
+    """
+    parts: list[str] = []
+    start = index = 0
+    quoted = False
+    while index < len(command) and len(parts) < MAX_CHAINED_COMMANDS - 1:
+        char = command[index]
+        if char == '"':
+            if quoted or not _CMD_QUOTE_RE.search(command, max(0, index - 16), index):
+                quoted = not quoted
+        elif quoted:
+            pass
+        elif char == "^":
+            index += 1  # escapes the next character
+        elif char == "&" or command[index : index + 2] == "||":
+            size = 2 if command[index : index + 2] in ("&&", "||") else 1
+            parts.append(command[start:index])
+            start = index = index + size
+            continue
+        index += 1
+    parts.append(command[start:])
+    return [part for part in parts if part.strip()]
 
 
 def _phrase_re(phrase: str) -> re.Pattern[str]:
@@ -214,10 +284,11 @@ def _phrase_re(phrase: str) -> re.Pattern[str]:
     Same as (?<!\\w)phrase(?!\\w), but with the literal first so the regex engine uses its fast
     literal search. A phrase starting with "-" or "/" is a switch and must start a word: it follows
     whitespace or the start of the command, so "/en" in a URL path or "-encoded" in "url-encoded"
-    does not match. A phrase ending in " <arg>" must be followed by an argument. The phrase is
-    escaped, so matching is linear. "" never matches.
+    does not match. "<arg>" stands for one argument. The phrase is escaped and every repetition is
+    bounded, so matching is linear. "" never matches.
     """
-    text = phrase.removesuffix(_ARG)
+    pieces = phrase.split(_ARG)
+    text = pieces[0]
     if not text:
         return _NEVER_RE
     literal = re.escape(text)
@@ -227,13 +298,18 @@ def _phrase_re(phrase: str) -> re.Pattern[str]:
         left = rf"(?<!\w{literal})"
     else:
         left = ""
-    if text != phrase:
-        right = r"(?= [^\s&|<>/;-])"
-    elif _WORD_RE.match(text[-1]):
-        right = r"(?!\w)"
+    rest = "".join(_ARG_RE + re.escape(piece) for piece in pieces[1:])
+    last = pieces[-1]
+    if len(pieces) == 1 and text[0] in "-/" and _WORD_RE.match(text[-1]):
+        right = r"(?![^\s:])"  # a switch ends a word: not "/en" in "'/en-us/'"
     else:
-        right = ""
-    return re.compile(literal + left + right)
+        right = r"(?!\w)" if last and _WORD_RE.match(last[-1]) else ""
+    return re.compile(literal + left + rest + right)
+
+
+def _phrase_literal(phrase: str) -> str:
+    """The text before the first "<arg>": a substring every match contains."""
+    return phrase.split(_ARG, 1)[0].strip()
 
 
 _Phrases = tuple[tuple[str, re.Pattern[str]], ...]  # (normalised phrase, its regex)
@@ -252,13 +328,45 @@ class _PhraseList:
     joined: _Phrases  # the same object as ``spaced`` unless a phrase contains quotes
 
     @classmethod
+    @functools.cache
     def compile(cls, phrases: tuple[str, ...]) -> _PhraseList:
+        """Compiled once per distinct list, so that rules with the same list share it."""
+
         def view(delete_quotes: bool) -> _Phrases:
             normalised = (normalize_command(p, delete_quotes=delete_quotes) for p in phrases)
-            return tuple((p.removesuffix(_ARG), _phrase_re(p)) for p in normalised)
+            return tuple((_phrase_literal(p), _phrase_re(p)) for p in normalised)
 
         spaced, joined = view(False), view(True)
         return cls(spaced, spaced if joined == spaced else joined)
+
+    def matches_any(self, chain: tuple[_CommandViews, ...], index: _ChainIndex) -> bool:
+        """:meth:`matches` for any command of a chain."""
+        return any(self.matches(chain[part]) for part in self._candidates(index))
+
+    def matching(self, chain: tuple[_CommandViews, ...], index: _ChainIndex) -> set[int]:
+        """The positions of the commands of a chain that :meth:`matches`."""
+        return {part for part in self._candidates(index) if self.matches(chain[part])}
+
+    def _candidates(self, index: _ChainIndex) -> Iterator[int]:
+        """The commands of a chain that contain the first phrase, each once.
+
+        The cost depends on how often that phrase occurs, not on how many commands there are.
+        """
+        spaced, spaced_starts, joined, joined_starts = index
+        tried: set[int] = set()
+        views = ((self.spaced[0][0], spaced, spaced_starts), (self.joined[0][0], joined, joined_starts))
+        for literal, text, starts in views:
+            position = text.find(literal)
+            while position != -1:
+                part = bisect.bisect_right(starts, position) - 1
+                if part not in tried:
+                    tried.add(part)
+                    yield part
+                if part + 1 == len(starts):
+                    break
+                position = text.find(literal, starts[part + 1])
+            if joined is spaced and self.joined is self.spaced:
+                break
 
     def matches(self, views: _CommandViews) -> bool:
         """Every phrase occurs in the same view of the command line."""
@@ -332,22 +440,38 @@ class Rule:
         if self.commands or self.chained_commands:
             # Each command of a chained line is matched on its own; an exclusion drops only the
             # commands it matches. chained_commands match the whole line, unless a part is excluded.
-            lines: Iterable[tuple[str, _CommandViews | None, tuple[_CommandViews, ...]]] = prepared.commands
+            lines: Iterable[tuple[str, _CommandViews, tuple[_CommandViews, ...], _ChainIndex | None, bool]]
             if self.exclude_commands:
                 exclusions = self._exclusion_lists
-                lines = [
-                    (original, views if len(kept) == len(chain) else None, kept)
-                    for original, views, chain in prepared.commands
-                    for kept in [tuple(c for c in chain if not any(x.matches(c) for x in exclusions))]
-                ]
+                lines = []
+                for number, (original, views, chain, index) in enumerate(prepared.commands):
+                    if index is None:
+                        excluded = {0} if any(x.matches(chain[0]) for x in exclusions) else set()
+                    else:
+                        excluded = set()
+                        for exclusion in exclusions:
+                            memo = (id(exclusion), number)
+                            if (matched := prepared.excluded.get(memo)) is None:
+                                matched = prepared.excluded[memo] = exclusion.matching(chain, index)
+                            excluded |= matched
+                    if excluded:
+                        chain = tuple(c for part, c in enumerate(chain) if part not in excluded)
+                        index = _chain_index(chain) if len(chain) > 1 else None
+                    lines.append((original, views, chain, index, not excluded))
+            else:
+                lines = [(*command, True) for command in prepared.commands]
             for phrases in self._command_lists:
-                for original, _, chain in lines:
-                    if any(phrases.matches(c) for c in chain):
+                for original, _, chain, index, _ in lines:
+                    if index is not None:
+                        found = phrases.matches_any(chain, index)
+                    else:  # one command, or none left after exclusions
+                        found = bool(chain) and phrases.matches(chain[0])
+                    if found:
                         evidence.append(f"command: {original}")
                         break
             for phrases in self._chained_lists:
-                for original, whole, _ in lines:
-                    if whole is not None and phrases.matches(whole):
+                for original, views, _, _, whole in lines:
+                    if whole and phrases.matches(views):
                         evidence.append(f"command: {original}")
                         break
         for parts in self.registry:
@@ -394,11 +518,10 @@ def _command_phrase_lists(value: Any, where: str) -> tuple[tuple[str, ...], ...]
     lists = _phrase_lists(value, where)
     for phrase in (p for phrases in lists for p in phrases):
         for normalised in (normalize_command(phrase), normalize_command(phrase, delete_quotes=True)):
-            text = normalised.removesuffix(_ARG)
-            if "<arg>" in text:
-                raise RuleError(f"{where}: phrase {phrase!r}: '<arg>' may only end a phrase")
-            if not text.strip():
+            if not normalised.replace(_ARG, "").strip():
                 raise RuleError(f"{where}: phrase {phrase!r} is empty once quotes and ^ are removed")
+            if not _phrase_literal(normalised):
+                raise RuleError(f"{where}: phrase {phrase!r}: '<arg>' cannot start a phrase")
     return tuple(lists)
 
 

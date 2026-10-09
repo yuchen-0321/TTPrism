@@ -12,11 +12,12 @@ their advisory.
 - IOC extraction from report text and Markdown: URLs, domains, IPv4, IPv6, email addresses,
   MD5/SHA-1/SHA-256 hashes and CVE IDs, with TLD validation against the IANA list.
 - URLs with `http(s)`, `ftp(s)`, `sftp`, `ws(s)`, `ldap(s)`, `rmi`, `iiop`, `dns`, `tcp`, `udp`,
-  `smb`, `file`, `ssh`, `telnet`, `irc`, `rtsp`, `smtp(s)`, `imap(s)`, `pop3(s)`, `socks4`/`socks5`,
-  `redis`, `mongodb`, `mysql`, `postgres(ql)`, `amqp(s)` and `mqtt(s)` schemes, plus
-  `stratum+tcp`, `git+ssh` and `mongodb+srv`; integer, hex and octal IPv4 hosts
-  (`http://3221225985/`); hosts in UNC paths (`\\host\share`, also WebDAV `\\host@SSL\...`,
-  after a label colon and JSON-escaped), protocol-relative URLs and wildcard names (`*.evil.com`);
+  `smb`, `file`, `ssh`, `telnet`, `irc`, `rtsp`, `ssl`, `tls`, `smtp(s)`, `imap(s)`, `pop3(s)`,
+  `socks`, `redis`, `mongodb`, `mysql`, `mssql`, `postgres(ql)`, `amqp(s)`, `mqtt(s)`, `rsync`,
+  `git`, `svn`, `vnc` and `rdp` schemes, also with a prefix (`stratum+tcp`, `git+https`,
+  `mongodb+srv`); integer, hex and octal IPv4 hosts (`http://3221225985/`); hosts in UNC paths
+  (`\\host\share`, also WebDAV `\\host@SSL\...` and `file://host@SSL/...`, after a label colon and
+  JSON-escaped), protocol-relative URLs and wildcard names (`*.evil.com`);
   URL lists joined by commas or quotes split into separate URLs; open-redirect targets and
   percent-encoded URLs inside a URL's query extracted as well, each query parameter on its own,
   keeping the outer URL.
@@ -41,12 +42,12 @@ their advisory.
 - ATT&CK mapping rules in YAML (`rules/attack/`, 111 rules) for CAPE signatures, command lines,
   API call sequences and registry writes, written against Enterprise ATT&CK 19.2, each with a
   confidence level and reference. Command phrases match on word boundaries (`_` counts as part of
-  a word; switches such as `-enc` must start a word) in two views of each command, quotes removed
-  and quotes as spaces, so cmd.exe quote and caret obfuscation does not hide them. Commands chained
-  with `&`, `&&` or `||` are matched one by one, and `chained_commands` covers idioms that span
-  them (`ping ... & del`). `exclude_commands` lets a rule ignore commands such as
-  `net user ... /add` or `ipconfig /flushdns`, and `<arg>` requires an argument
-  (`net start <arg>`).
+  a word; switches such as `-enc` must be a word of their own) in two views of each command, quotes
+  removed and quotes as spaces, with glued switches (`del/f/q`) split, so cmd.exe quote, caret and
+  switch obfuscation does not hide them. Commands chained with `&`, `&&` or `||` are matched one by
+  one, and `chained_commands` covers idioms that span them (`ping ... & del`). `exclude_commands`
+  lets a rule ignore commands such as `net user ... /add` or `ipconfig /flushdns`, and `<arg>`
+  stands for one argument (`net start <arg>`, `net share <arg>=`).
 - Normalisation of revoked ATT&CK IDs through the revocation history (for example `T1086` →
   `T1059.001`, `T1562.001` → `T1685`), for IDs in reports and in CAPE's own signature TTPs.
 - Output as JSON, CSV and STIX 2.1 bundles (indicators, vulnerabilities, attack patterns).
