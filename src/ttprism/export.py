@@ -8,6 +8,7 @@ import json
 from typing import Any
 
 from ttprism._version import __version__
+from ttprism.inputs import without_surrogates
 from ttprism.models import AnalysisResult
 from ttprism.refang import defang
 
@@ -23,10 +24,12 @@ def to_dict(result: AnalysisResult, *, defanged: bool = False) -> dict[str, Any]
         if defanged:
             entry["value"] = defang(ioc.value, ioc.type)
         iocs.append(entry)
+    name = result.input_name
     return {
         "tool": "ttprism",
         "version": __version__,
-        "input": {"name": result.input_name, "format": result.input_format},
+        # A name taken from a non-UTF-8 file name carries surrogates, which cannot be encoded.
+        "input": {"name": without_surrogates(name) if name else name, "format": result.input_format},
         "attack_version": result.attack_version,
         "defanged": defanged,
         "iocs": iocs,

@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from yaml.composer import ComposerError
+from yaml.nodes import Node
 
 MAX_CONFIG_BYTES = 2 * 1024 * 1024
 
@@ -14,12 +16,28 @@ class ConfigError(ValueError):
     """A rule or allowlist file is missing, too large, or malformed."""
 
 
+class _NoAliasLoader(yaml.SafeLoader):
+    """SafeLoader that rejects aliases.
+
+    An alias repeats a whole subtree, so a small file could expand into millions
+    of rule phrases (lists of lists of strings are valid in rule files).
+    """
+
+    def compose_node(self, parent: Node | None, index: int) -> Node | None:
+        if self.check_event(yaml.AliasEvent):  # check_event stores the event in current_event
+            raise ComposerError(None, None, "YAML aliases are not allowed", self.current_event.start_mark)
+        return super().compose_node(parent, index)
+
+
 def load_yaml_text(text: str, where: str, error: type[ConfigError] = ConfigError) -> Any:
     try:
-        # safe_load only builds plain scalars, lists and dicts: no object construction.
-        return yaml.safe_load(text)
+        # A SafeLoader only builds plain scalars, lists and dicts: no object construction.
+        return yaml.load(text, Loader=_NoAliasLoader)  # noqa: S506
     except yaml.YAMLError as exc:
         raise error(f"{where}: invalid YAML: {exc}") from None
+    except RecursionError:
+        # PyYAML composes nested collections recursively.
+        raise error(f"{where}: YAML nesting too deep") from None
 
 
 def load_yaml_file(path: str | Path, error: type[ConfigError] = ConfigError) -> Any:

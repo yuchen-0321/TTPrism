@@ -1,10 +1,17 @@
 # Map Windows command lines seen in sandbox runs to ATT&CK techniques.
 #
-# Phrases match case-insensitively on word boundaries after quotes and cmd.exe
-# caret escapes (s^c^h^t^a^s^k^s) are removed. An inner list means every phrase
-# must appear in the same command line, in any order, so
-# [vssadmin, delete shadows] matches both "vssadmin delete shadows" and
-# "C:\Windows\System32\vssadmin.exe Delete Shadows /All /Quiet".
+# Command lines and phrases are lower-cased, cmd.exe caret escapes are removed
+# (s^c^h^t^a^s^k^s), Unicode dashes become "-" and whitespace is collapsed.
+# Each command line is matched twice: with quotes turned into spaces and with
+# quotes deleted (cmd.exe runs s"c"htasks as schtasks). A phrase must not be
+# part of a longer word ("_" counts as a letter), so "net view" does not match
+# "Net.WebClient" or "example.net/view".
+#
+# An inner list means every phrase must appear in the same command line, in
+# any order, so [vssadmin, delete shadows] matches both "vssadmin delete
+# shadows" and "C:\Windows\System32\vssadmin.exe Delete Shadows /All /Quiet".
+# Use one phrase ("net user") where words must be adjacent, and
+# exclude_commands for command lines the rule must ignore.
 #
 # Prefer specific, high-precision phrases. A rule that fires on every benign
 # use of a tool belongs at confidence: low, or not at all.
@@ -20,23 +27,33 @@ rules:
     references:
       - https://attack.mitre.org/techniques/T1059/001/
     match:
-      commands: [powershell, pwsh]
+      commands: [powershell, pwsh, powershell_ise]
 
   - id: cmd.powershell-encoded
     technique: T1027.010
     confidence: high
-    description: PowerShell with a Base64-encoded command (-EncodedCommand or an abbreviation).
+    description: PowerShell with a Base64-encoded command (-EncodedCommand, any abbreviation, or -ec).
     references:
       - https://attack.mitre.org/techniques/T1027/010/
+      - https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_powershell_exe
     match:
-      commands:
-        - [powershell, -e]
-        - [powershell, -ec]
-        - [powershell, -en]
-        - [powershell, -enc]
-        - [powershell, -encodedcommand]
-        - [pwsh, -enc]
-        - [pwsh, -encodedcommand]
+      # Every prefix of -EncodedCommand works, as does the -ec alias, and "/" works like "-".
+      commands: [
+        [powershell, -e], [powershell, -ec], [powershell, -en], [powershell, -enc], [powershell, -enco],
+        [powershell, -encod], [powershell, -encode], [powershell, -encoded], [powershell, -encodedc],
+        [powershell, -encodedco], [powershell, -encodedcom], [powershell, -encodedcomm],
+        [powershell, -encodedcomma], [powershell, -encodedcomman], [powershell, -encodedcommand],
+        [powershell, /e], [powershell, /ec], [powershell, /en], [powershell, /enc], [powershell, /enco],
+        [powershell, /encod], [powershell, /encode], [powershell, /encoded], [powershell, /encodedc],
+        [powershell, /encodedco], [powershell, /encodedcom], [powershell, /encodedcomm],
+        [powershell, /encodedcomma], [powershell, /encodedcomman], [powershell, /encodedcommand],
+        [pwsh, -e], [pwsh, -ec], [pwsh, -en], [pwsh, -enc], [pwsh, -enco], [pwsh, -encod], [pwsh, -encode],
+        [pwsh, -encoded], [pwsh, -encodedc], [pwsh, -encodedco], [pwsh, -encodedcom], [pwsh, -encodedcomm],
+        [pwsh, -encodedcomma], [pwsh, -encodedcomman], [pwsh, -encodedcommand],
+        [pwsh, /e], [pwsh, /ec], [pwsh, /en], [pwsh, /enc], [pwsh, /enco], [pwsh, /encod], [pwsh, /encode],
+        [pwsh, /encoded], [pwsh, /encodedc], [pwsh, /encodedco], [pwsh, /encodedcom], [pwsh, /encodedcomm],
+        [pwsh, /encodedcomma], [pwsh, /encodedcomman], [pwsh, /encodedcommand],
+      ]
 
   - id: cmd.cmd-shell
     technique: T1059.003
@@ -99,11 +116,21 @@ rules:
   - id: cmd.service-execution
     technique: T1569.002
     confidence: medium
-    description: Programs started as a service (PsExec, sc start).
+    description: Programs started as a service (PsExec, sc start, Start-Service).
     references:
       - https://attack.mitre.org/techniques/T1569/002/
     match:
-      commands: [psexec, psexec64, [sc, start]]
+      commands: [psexec, psexec64, sc start, sc.exe start, start-service]
+
+  - id: cmd.remote-service-execution
+    technique: T1569.002
+    confidence: medium
+    description: Service started on another host with sc \\host start.
+    references:
+      - https://attack.mitre.org/techniques/T1569/002/
+    match:
+      commands: [['sc \\', start], ['sc.exe \\', start]]
+      exclude_commands: [start=]  # the start type of sc config / sc create, not the start command
 
   # --- System binary proxy execution ---------------------------------------
   - id: cmd.mshta
@@ -124,7 +151,12 @@ rules:
       - https://attack.mitre.org/techniques/T1218/010/
       - https://lolbas-project.github.io/lolbas/Binaries/Regsvr32/
     match:
-      commands: [[regsvr32, scrobj.dll], [regsvr32, "/i:http"]]
+      commands:
+        - [regsvr32, scrobj.dll]
+        - [regsvr32, "/i:http:"]
+        - [regsvr32, "/i:https:"]
+        - [regsvr32, "-i:http:"]
+        - [regsvr32, "-i:https:"]
 
   - id: cmd.rundll32
     technique: T1218.011
@@ -158,13 +190,14 @@ rules:
   - id: cmd.run-key
     technique: T1547.001
     confidence: high
-    description: Run or RunOnce registry value added from the command line.
+    description: Run, RunOnce or RunOnceEx registry value added from the command line.
     references:
       - https://attack.mitre.org/techniques/T1547/001/
     match:
       commands:
         - [reg, add, '\currentversion\run']
         - [reg, add, '\currentversion\runonce']
+        - [reg, add, '\currentversion\runonceex']
         - [new-itemproperty, '\currentversion\run']
         - [set-itemproperty, '\currentversion\run']
 
@@ -184,7 +217,50 @@ rules:
     references:
       - https://attack.mitre.org/techniques/T1136/001/
     match:
-      commands: [[net, user, /add], [net1, user, /add], new-localuser]
+      commands:
+        - [net user, /add]
+        - [net.exe user, /add]
+        - [net1 user, /add]
+        - [net1.exe user, /add]
+        - new-localuser
+      exclude_commands: [/domain, /dom]  # cmd.create-domain-account
+
+  - id: cmd.create-domain-account
+    technique: T1136.002
+    confidence: high
+    description: Domain user account created.
+    references:
+      - https://attack.mitre.org/techniques/T1136/002/
+    match:
+      commands:
+        - [net user, /add, /domain]
+        - [net.exe user, /add, /domain]
+        - [net1 user, /add, /domain]
+        - [net1.exe user, /add, /domain]
+        - [net user, /add, /dom]
+        - [net.exe user, /add, /dom]
+        - [net1 user, /add, /dom]
+        - [net1.exe user, /add, /dom]
+        - new-aduser
+
+  - id: cmd.add-to-group
+    technique: T1098.007
+    confidence: high
+    description: Account added to a local or domain group, such as Administrators or Domain Admins.
+    references:
+      - https://attack.mitre.org/techniques/T1098/007/
+    match:
+      commands:
+        - [net localgroup, /add]
+        - [net.exe localgroup, /add]
+        - [net1 localgroup, /add]
+        - [net1.exe localgroup, /add]
+        - [net group, /add]
+        - [net.exe group, /add]
+        - [net1 group, /add]
+        - [net1.exe group, /add]
+        - add-localgroupmember
+        - add-adgroupmember
 
   - id: cmd.bits-job
     technique: T1197
@@ -207,7 +283,9 @@ rules:
     match:
       commands:
         - [certutil, -urlcache]
+        - [certutil, /urlcache]
         - [certutil, -verifyctl]
+        - [certutil, /verifyctl]
         - [bitsadmin, /transfer]
         - start-bitstransfer
         - downloadfile
@@ -215,8 +293,10 @@ rules:
         - downloaddata
         - invoke-webrequest
         - invoke-restmethod
-        - [iwr, http]
-        - [irm, http]
+        - [iwr, "http:"]
+        - [iwr, "https:"]
+        - [irm, "http:"]
+        - [irm, "https:"]
 
   - id: cmd.decode
     technique: T1140
@@ -225,7 +305,12 @@ rules:
     references:
       - https://attack.mitre.org/techniques/T1140/
     match:
-      commands: [[certutil, -decode], [certutil, -decodehex], frombase64string]
+      commands:
+        - [certutil, -decode]
+        - [certutil, /decode]
+        - [certutil, -decodehex]
+        - [certutil, /decodehex]
+        - frombase64string
 
   # --- Defense impairment and stealth ------------------------------------------
   - id: cmd.disable-defender
@@ -324,6 +409,9 @@ rules:
       commands: [ntdsutil, ntds.dit]
 
   # --- Discovery ---------------------------------------------------------------
+  # net.exe subcommands are adjacent phrases so .NET type names (Net.WebClient)
+  # and URL paths (example.net/view) cannot match. Lines that add or delete
+  # accounts, group members, shares or sessions are not discovery.
   - id: cmd.system-info
     technique: T1082
     confidence: high
@@ -341,6 +429,11 @@ rules:
       - https://attack.mitre.org/techniques/T1016/
     match:
       commands: [ipconfig, [route, print], [netsh, interface, show]]
+      # ipconfig switches that change state rather than query it
+      exclude_commands: [
+        /flushdns, /registerdns, /release, /release6, /renew, /renew6,
+        -flushdns, -registerdns, -release, -release6, -renew, -renew6,
+      ]
 
   - id: cmd.user-discovery
     technique: T1033
@@ -349,7 +442,7 @@ rules:
     references:
       - https://attack.mitre.org/techniques/T1033/
     match:
-      commands: [whoami, quser, [query, user]]
+      commands: [whoami, quser, query user, query.exe user]
 
   - id: cmd.process-discovery
     technique: T1057
@@ -367,7 +460,7 @@ rules:
     references:
       - https://attack.mitre.org/techniques/T1018/
     match:
-      commands: [[net, view], [arp, -a], [nltest, /dclist]]
+      commands: [net view, net.exe view, net1 view, net1.exe view, [arp, -a], [nltest, /dclist]]
 
   - id: cmd.domain-account-discovery
     technique: T1087.002
@@ -376,7 +469,17 @@ rules:
     references:
       - https://attack.mitre.org/techniques/T1087/002/
     match:
-      commands: [[net, user, /domain], get-aduser]
+      commands:
+        - [net user, /domain]
+        - [net.exe user, /domain]
+        - [net1 user, /domain]
+        - [net1.exe user, /domain]
+        - [net user, /dom]
+        - [net.exe user, /dom]
+        - [net1 user, /dom]
+        - [net1.exe user, /dom]
+        - get-aduser
+      exclude_commands: [/add, /delete, /del]
 
   - id: cmd.domain-group-discovery
     technique: T1069.002
@@ -385,7 +488,17 @@ rules:
     references:
       - https://attack.mitre.org/techniques/T1069/002/
     match:
-      commands: [[net, group, /domain], get-adgroupmember]
+      commands:
+        - [net group, /domain]
+        - [net.exe group, /domain]
+        - [net1 group, /domain]
+        - [net1.exe group, /domain]
+        - [net group, /dom]
+        - [net.exe group, /dom]
+        - [net1 group, /dom]
+        - [net1.exe group, /dom]
+        - get-adgroupmember
+      exclude_commands: [/add, /delete, /del]
 
   - id: cmd.local-group-discovery
     technique: T1069.001
@@ -394,7 +507,8 @@ rules:
     references:
       - https://attack.mitre.org/techniques/T1069/001/
     match:
-      commands: [[net, localgroup], get-localgroupmember]
+      commands: [net localgroup, net.exe localgroup, net1 localgroup, net1.exe localgroup, get-localgroupmember]
+      exclude_commands: [/add, /delete, /del]
 
   - id: cmd.domain-trust-discovery
     technique: T1482
@@ -421,7 +535,7 @@ rules:
     references:
       - https://attack.mitre.org/techniques/T1124/
     match:
-      commands: [[net, time], [w32tm, /tz]]
+      commands: [net time, net.exe time, net1 time, net1.exe time, [w32tm, /tz]]
 
   - id: cmd.security-software-discovery
     technique: T1518.001
@@ -439,7 +553,8 @@ rules:
     references:
       - https://attack.mitre.org/techniques/T1049/
     match:
-      commands: [netstat, [net, session], get-nettcpconnection]
+      commands: [netstat, net session, net.exe session, net1 session, net1.exe session, get-nettcpconnection]
+      exclude_commands: [/delete, /del]
 
   - id: cmd.share-discovery
     technique: T1135
@@ -448,7 +563,12 @@ rules:
     references:
       - https://attack.mitre.org/techniques/T1135/
     match:
-      commands: [[net, share], [net, view], get-smbshare]
+      commands: [
+        net share, net.exe share, net1 share, net1.exe share,
+        net view, net.exe view, net1 view, net1.exe view,
+        get-smbshare,
+      ]
+      exclude_commands: [/delete, /del]
 
   # --- Lateral movement ----------------------------------------------------------
   - id: cmd.admin-shares
@@ -485,4 +605,13 @@ rules:
     references:
       - https://attack.mitre.org/techniques/T1489/
     match:
-      commands: [[net, stop], [net1, stop], [sc, stop], stop-service]
+      commands:
+        - net stop
+        - net.exe stop
+        - net1 stop
+        - net1.exe stop
+        - sc stop
+        - sc.exe stop
+        - ['sc \\', stop]
+        - ['sc.exe \\', stop]
+        - stop-service

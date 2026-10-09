@@ -12,7 +12,14 @@ from ttprism.allowlist import Allowlist, url_host
 from ttprism.attack import TECHNIQUE_ID_RE, AttackCatalog, RuleSet, TechniqueAccumulator
 from ttprism.cape import looks_like_cape, parse_cape
 from ttprism.extract import extract_into, find_technique_ids, is_reserved_domain, is_reserved_ip
-from ttprism.inputs import DEFAULT_MAX_BYTES, InputError, decode_text, load_json, read_bytes
+from ttprism.inputs import (
+    DEFAULT_MAX_BYTES,
+    InputError,
+    decode_text,
+    load_json,
+    read_bytes,
+    without_surrogates,
+)
 from ttprism.models import IOC, AnalysisResult, IOCCollector, IOCType, sort_iocs
 from ttprism.refang import refang
 
@@ -122,23 +129,26 @@ def analyze_file(
 
     ``input_format`` is ``"auto"``, ``"text"`` or ``"cape"``. In auto mode a
     JSON document that looks like a CAPE report is parsed as one; anything
-    else is treated as text.
+    else is treated as text, with a warning if it looked like JSON.
     """
     if input_format not in ("auto", "text", "cape"):
         raise ValueError(f"unknown input format: {input_format}")
     text, warnings = decode_text(read_bytes(path, max_bytes), encoding)
+    # A file name that is not valid UTF-8 would make the output unencodable.
+    input_name = without_surrogates(str(path))
 
     if input_format == "cape" or (input_format == "auto" and text.lstrip().startswith("{")):
         try:
             data = load_json(text)
-        except InputError:
+        except InputError as exc:
             if input_format == "cape":
                 raise
+            warnings.append(f"input looks like JSON but could not be parsed ({exc}); analyzed as text")
             data = None
         if looks_like_cape(data) and isinstance(data, Mapping):
             result = analyze_cape(data, options)
             result.warnings[:0] = warnings
-            result.input_name = str(path)
+            result.input_name = input_name
             return result
         if input_format == "cape":
             raise InputError(f"{path}: not a CAPE report (no 'info' and behaviour/network sections)")
@@ -147,5 +157,5 @@ def analyze_file(
 
     result = analyze_text(text, options)
     result.warnings[:0] = warnings
-    result.input_name = str(path)
+    result.input_name = input_name
     return result

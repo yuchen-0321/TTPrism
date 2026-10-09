@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ipaddress
 import time
 from pathlib import Path
 
@@ -83,12 +84,26 @@ def test_empty_file_is_empty_allowlist(tmp_path: Path) -> None:
         ("- evil.com\n", "mapping"),
         ("domains: [unclosed\n", "invalid YAML"),
         ("!!python/object/apply:os.system ['true']\n", "invalid YAML"),
+        ("domains: &d [evil.com]\nurl_hosts: *d\n", "aliases are not allowed"),
     ],
 )
 def test_invalid_allowlists(tmp_path: Path, content: str, message: str) -> None:
     path = tmp_path / "allow.yaml"
     path.write_text(content, encoding="utf-8")
     with pytest.raises(AllowlistError, match=message):
+        Allowlist.from_file(path)
+
+
+@pytest.mark.parametrize(
+    "content",
+    ["- " * 1000 + "x\n", "domains: " + "[" * 5000 + "]" * 5000 + "\n"],
+    ids=["block", "flow"],
+)
+def test_deep_nesting_is_a_clean_error(tmp_path: Path, content: str) -> None:
+    # PyYAML composes recursively; a RecursionError used to escape as a traceback.
+    path = tmp_path / "allow.yaml"
+    path.write_text(content, encoding="utf-8")
+    with pytest.raises(AllowlistError, match="YAML nesting too deep"):
         Allowlist.from_file(path)
 
 
@@ -105,6 +120,73 @@ def test_alias_expansion_is_rejected_quickly(tmp_path: Path) -> None:
     with pytest.raises(AllowlistError):
         Allowlist.from_file(path)
     assert time.perf_counter() - start < 2
+
+
+def test_unknown_keys_are_escaped(tmp_path: Path) -> None:
+    path = tmp_path / "allow.yaml"
+    # YAML "\e" and "\a" escapes put raw terminal control characters into the key.
+    path.write_text(
+        '"\\e]0;PWNED\\a\\e[2Jdomains": []\n' + "".join(f"k{i}: []\n" for i in range(20)), encoding="utf-8"
+    )
+    with pytest.raises(AllowlistError) as info:
+        Allowlist.from_file(path)
+    message = str(info.value)
+    assert "\x1b" not in message
+    assert "\x07" not in message
+    assert "'\\x1b]0;PWNED\\x07\\x1b[2Jdomains'" in message
+    assert message.endswith("and 11 more")
+
+
+def test_ip_lookups_use_an_index() -> None:
+    # A large analyst allowlist (cloud ranges) used to be scanned once per IP IOC.
+    networks = [f"{10 + i % 200}.{i * 7 % 256}.{i // 256}.0/24" for i in range(5000)]
+    allowlist = Allowlist.from_mapping({"ips": networks})
+    addresses = [str(ipaddress.IPv4Address(i * 2_654_435_761 % 2**32)) for i in range(5000)]
+    addresses += [n.replace(".0/24", f".{i % 256}") for i, n in enumerate(networks)]
+    start = time.perf_counter()
+    hits = [a for a in addresses if allowlist.matches(IOCType.IPV4, a)]
+    assert time.perf_counter() - start < 2  # 50 million network tests without the index
+    assert hits[-len(networks) :] == addresses[-len(networks) :]
+    parsed = [ipaddress.ip_network(n) for n in networks]
+    sample, listed = addresses[::97], set(hits)
+    assert [a for a in sample if a in listed] == [
+        a for a in sample if any(ipaddress.ip_address(a) in net for net in parsed)
+    ]
+
+
+@pytest.mark.parametrize(
+    ("ips", "value", "listed"),
+    [
+        (["0.0.0.0/0"], "203.0.113.9", True),
+        (["0.0.0.0/0"], "2001:db8::1", False),
+        (["::/0"], "2001:db8::1", True),
+        (["::/0"], "203.0.113.9", False),
+        (["203.0.113.9"], "203.0.113.9", True),
+        (["203.0.113.9"], "203.0.113.10", False),
+        (["203.0.113.9/31"], "203.0.113.8", True),  # host bits are ignored
+        (["203.0.113.128/25", "198.51.100.0/24"], "203.0.113.127", False),
+        (["203.0.113.128/25", "198.51.100.0/24"], "198.51.100.255", True),
+        (["2001:db8::1"], "2001:db8::1", True),
+        (["2001:db8::/127"], "2001:db8::1", True),
+        (["2001:db8::/127"], "2001:db8::2", False),
+        (["2001:db8::/32"], "2001:db9::", False),
+        (["::ffff:0:0/96"], "203.0.113.9", False),  # versions never mix
+    ],
+)
+def test_ip_matching(ips: list[str], value: str, listed: bool) -> None:
+    ioc_type = IOCType.IPV6 if ":" in value else IOCType.IPV4
+    allowlist = Allowlist.from_mapping({"ips": ips})
+    assert allowlist.matches(ioc_type, value) is listed
+    url = f"http://[{value}]/x" if ":" in value else f"http://{value}/x"
+    assert allowlist.matches(IOCType.URL, url) is listed
+
+
+def test_ip_index_follows_updates() -> None:
+    allowlist = Allowlist.from_mapping({"ips": ["198.51.100.0/24"]})
+    assert not allowlist.matches(IOCType.IPV4, "203.0.113.9")
+    allowlist.update(Allowlist.from_mapping({"ips": ["203.0.113.0/24"]}))
+    assert allowlist.matches(IOCType.IPV4, "203.0.113.9")
+    assert allowlist.matches(IOCType.IPV4, "198.51.100.1")
 
 
 def test_oversized_allowlist_rejected(tmp_path: Path) -> None:

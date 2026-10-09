@@ -93,3 +93,14 @@ def test_round_trip_through_text() -> None:
     result = analyze_text("hxxp://evil[.]com/x 203.0.113[.]9", AnalysisOptions(include_reserved=True))
     data = to_dict(result)
     assert [i["value"] for i in data["iocs"]] == ["http://evil.com/x", "evil.com", "203.0.113.9"]
+
+
+def test_unencodable_input_name() -> None:
+    # Python maps the bytes of a non-UTF-8 file name to lone surrogates, which UTF-8 cannot encode.
+    result = sample_result()
+    result.input_name = "n\udcffame.txt"
+    text = to_json(result)
+    text.encode("utf-8")
+    assert json.loads(text)["input"]["name"] == "n\ufffdame.txt"
+    result.input_name = None
+    assert to_dict(result)["input"]["name"] is None

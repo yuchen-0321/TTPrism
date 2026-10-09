@@ -29,6 +29,7 @@ rules:
       commands:
         - [vssadmin, delete shadows]  # every phrase in the inner list must appear
         - [wmic, shadowcopy, delete]
+      exclude_commands: ["/?"]        # command lines matching this are ignored by `commands`
 ```
 
 ### Matchers
@@ -38,8 +39,31 @@ rules:
 | `signatures` | list of names, `*` and `?` allowed | Whole signature name, case-insensitive |
 | `apis` | list; `"A\|B"` means either | Any listed API was called |
 | `apis_all` | list of lists | Every entry of one inner list was called (in any order) |
-| `commands` | list of phrases or lists of phrases | Phrase appears in one command line on word boundaries, case-insensitive, after quotes and `^` escapes are removed and spaces collapsed |
+| `commands` | list of phrases or lists of phrases | Phrase appears in one command line, not as part of a longer word (see below) |
+| `exclude_commands` | same as `commands` | Not a matcher of its own: command lines that match it are ignored by this rule's `commands` |
 | `registry` | list of substrings or lists of substrings | Substring of a written key path, case-insensitive. Use single quotes so backslashes stay literal |
+
+### How command phrases match
+
+Command lines and phrases are normalised the same way:
+
+1. Lower-cased.
+2. cmd.exe `^` escapes removed (`s^c^h^t^a^s^k^s` becomes `schtasks`).
+3. The dashes U+2013, U+2014 and U+2015, which PowerShell accepts for `-`, become `-`.
+4. Quotes (`"` and `'`) handled in two ways, giving two views: turned into spaces, and deleted.
+   cmd.exe runs `s"c"htasks` as `schtasks`, which only the second view shows; the first keeps
+   `"a" "b"` as two words.
+5. Runs of whitespace collapsed to one space, and leading and trailing spaces removed.
+
+An inner list matches when all of its phrases occur in the same view of one command line, in
+any order and anywhere in it. A phrase matches only where it is not part of a longer word: if it
+starts with a letter, digit or `_`, the character before it must not be one, and likewise at
+the end. So `net view` does not match `Net.WebClient` or `example.net/view`, and `user` does not
+match `HKEY_CURRENT_USER`. Phrases are literal text, not patterns. Write words that must be
+adjacent as one phrase (`net user`), not as separate list items, and spell out the variants a
+tool accepts (`net.exe user`, `net1 user`; `certutil -urlcache` and `/urlcache`).
+
+A phrase that is empty after normalisation (for example `'""'`) is rejected when the rules load.
 
 ### Choosing a confidence
 

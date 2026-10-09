@@ -11,13 +11,14 @@ rules:
   - id: reg.run-keys
     technique: T1547.001
     confidence: high
-    description: Run, RunOnce or policy Run value written.
+    description: Run, RunOnce, RunOnceEx or policy Run value written.
     references:
       - https://attack.mitre.org/techniques/T1547/001/
     match:
       registry:
         - '\currentversion\run\'
         - '\currentversion\runonce\'
+        - '\currentversion\runonceex\'
         - '\currentversion\policies\explorer\run\'
 
   - id: reg.winlogon
@@ -119,6 +120,7 @@ rules:
       registry:
         - '\windows nt\systemrestore\disablesr'
         - '\windows nt\systemrestore\disableconfig'
+        - '\windows nt\currentversion\systemrestore\disablesr'
 
   - id: reg.hide-files
     technique: T1564.001

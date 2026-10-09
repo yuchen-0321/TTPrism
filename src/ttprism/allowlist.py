@@ -37,6 +37,7 @@ _HASH_RE = re.compile(r"[0-9a-f]{32}|[0-9a-f]{40}|[0-9a-f]{64}")
 _KEYS = {"domains", "url_hosts", "ips", "hashes", "emails"}
 
 IPNetwork = ipaddress.IPv4Network | ipaddress.IPv6Network
+_MAX_LISTED_KEYS = 10
 
 
 class AllowlistError(ConfigError):
@@ -66,6 +67,30 @@ class _DomainSet:
         self.suffixes |= other.suffixes
 
 
+class _NetworkIndex:
+    """Networks grouped by IP version and prefix length.
+
+    A lookup costs one set probe per distinct prefix length (at most 33 for
+    IPv4, 129 for IPv6) instead of one test per network.
+    """
+
+    def __init__(self, networks: list[IPNetwork]) -> None:
+        self.source = networks
+        self.size = len(networks)
+        # version -> prefix length -> network addresses as integers
+        self.starts: dict[int, dict[int, set[int]]] = {4: {}, 6: {}}
+        for net in networks:
+            self.starts[net.version].setdefault(net.prefixlen, set()).add(int(net.network_address))
+
+    def contains(self, address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+        value, bits = int(address), address.max_prefixlen
+        for prefixlen, starts in self.starts[address.version].items():
+            shift = bits - prefixlen
+            if (value >> shift) << shift in starts:
+                return True
+        return False
+
+
 @dataclass
 class Allowlist:
     domains: _DomainSet = field(default_factory=_DomainSet)
@@ -73,6 +98,7 @@ class Allowlist:
     networks: list[IPNetwork] = field(default_factory=list)
     hashes: set[str] = field(default_factory=set)
     emails: set[str] = field(default_factory=set)
+    _index: _NetworkIndex | None = field(default=None, init=False, repr=False, compare=False)
 
     @classmethod
     def empty(cls) -> Allowlist:
@@ -97,7 +123,11 @@ class Allowlist:
             raise AllowlistError(f"{where}: expected a mapping at the top level")
         unknown = set(data) - _KEYS
         if unknown:
-            raise AllowlistError(f"{where}: unknown keys: {', '.join(sorted(map(str, unknown)))}")
+            # repr() escapes control characters, which YAML "\e" escapes can put in a key.
+            names = sorted(_short(repr(key)) for key in unknown)
+            more = len(names) - _MAX_LISTED_KEYS
+            listed = ", ".join(names[:_MAX_LISTED_KEYS]) + (f" and {more} more" if more > 0 else "")
+            raise AllowlistError(f"{where}: unknown keys: {listed}")
         result = cls()
         for key in _KEYS:
             values = data.get(key) or []
@@ -138,7 +168,11 @@ class Allowlist:
 
     def _ip_listed(self, value: str) -> bool:
         address = ipaddress.ip_address(value)
-        return any(address in net for net in self.networks if net.version == address.version)
+        index = self._index
+        # Rebuilt when networks were added (or the list replaced) since the last lookup.
+        if index is None or index.source is not self.networks or index.size != len(self.networks):
+            index = self._index = _NetworkIndex(self.networks)
+        return index.contains(address)
 
     def matches(self, ioc_type: IOCType, value: str) -> bool:
         if ioc_type == IOCType.DOMAIN:
@@ -158,6 +192,10 @@ class Allowlist:
                     pass
             return self.url_hosts.matches(host)
         return False
+
+
+def _short(text: str, limit: int = 80) -> str:
+    return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
 def url_host(url: str) -> str:

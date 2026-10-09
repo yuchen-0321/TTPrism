@@ -17,12 +17,19 @@ Rule files live in ``rules/attack/`` and look like::
           commands: ["vssadmin delete shadows", ["wmic", "shadowcopy", "delete"]]
                                                           # command line contains the phrase
                                                           # (or every phrase of an inner list)
+          exclude_commands: ["/?"]                        # command lines that match this (same
+                                                          # syntax) are ignored by `commands`
           registry: ['\\currentversion\\run\\']          # a written registry key contains this
                                                           # (or every part of an inner list)
 
-Command phrases match on word boundaries, case-insensitively, after quotes and
-cmd.exe caret escapes are removed and whitespace is collapsed. Registry
-patterns are plain case-insensitive substrings.
+Command lines and phrases are lower-cased, cmd.exe caret escapes are removed,
+Unicode dashes become "-" and whitespace is collapsed. Each command line is
+then matched in two views, one with quotes turned into spaces and one with
+quotes deleted (cmd.exe runs s"c"htasks as schtasks); an inner list matches
+if all its phrases occur in the same view. A phrase must not be part of a
+longer word: where it starts or ends with a letter, digit or "_", the
+neighbouring character must not be one. Registry patterns are plain
+case-insensitive substrings.
 """
 
 from __future__ import annotations
@@ -46,8 +53,9 @@ _RULE_ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,99}")
 _GLOB_RE = re.compile(r"[A-Za-z0-9_.*?-]{1,100}")
 _API_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_@]{0,99}")
 _CONFIDENCE = ("low", "medium", "high")
+_VERSION_RE = re.compile(r"[0-9]{1,3}(?:\.[0-9]{1,3}){0,2}")
 _RULE_KEYS = {"id", "technique", "confidence", "description", "references", "match"}
-_MATCH_KEYS = {"signatures", "apis", "apis_all", "commands", "registry"}
+_MATCH_KEYS = {"signatures", "apis", "apis_all", "commands", "exclude_commands", "registry"}
 MAX_EVIDENCE = 20
 MAX_EVIDENCE_CHARS = 200
 
@@ -132,43 +140,101 @@ class Behavior:
     registry_writes: list[str] = field(default_factory=list)
 
 
+_CommandViews = tuple[str, str]
+
+
 @dataclass(frozen=True)
 class _PreparedBehavior:
     """Case-folded views of a Behavior, computed once per analysis rather than per rule."""
 
     apis: frozenset[str]
-    commands: tuple[str, ...]
+    commands: tuple[tuple[str, _CommandViews], ...]  # (as reported, normalised views)
     registry_writes: tuple[str, ...]
 
 
 _CARET_RE = re.compile(r"\^(?=.)")
 _SPACE_RE = re.compile(r"\s+")
+_WORD_RE = re.compile(r"\w")
+_NEVER_RE = re.compile(r"(?!)")
+_DASHES = {"\u2013": "-", "\u2014": "-", "\u2015": "-"}  # PowerShell reads these as "-"
+_QUOTES_AS_SPACES = str.maketrans({**_DASHES, '"': " ", "'": " "})
+_QUOTES_DELETED = str.maketrans({**_DASHES, '"': None, "'": None})
 
 
-def normalize_command(command: str) -> str:
-    command = _CARET_RE.sub("", command.lower()).replace('"', " ").replace("'", " ")
+def normalize_command(command: str, *, delete_quotes: bool = False) -> str:
+    """Lower-case, drop cmd.exe carets, fold Unicode dashes to "-" and collapse whitespace.
+
+    Quotes become spaces, or are deleted with ``delete_quotes``.
+    """
+    table = _QUOTES_DELETED if delete_quotes else _QUOTES_AS_SPACES
+    command = _CARET_RE.sub("", command.lower()).translate(table)
     return _SPACE_RE.sub(" ", command).strip()
 
 
-def _contains_phrase(haystack: str, phrase: str) -> bool:
-    """Case-folded ``phrase`` occurs in ``haystack`` and is not part of a longer word."""
-    start = 0
-    check_left, check_right = phrase[0].isalnum(), phrase[-1].isalnum()
-    while (index := haystack.find(phrase, start)) != -1:
-        end = index + len(phrase)
-        left_ok = not check_left or index == 0 or not haystack[index - 1].isalnum()
-        right_ok = not check_right or end == len(haystack) or not haystack[end].isalnum()
-        if left_ok and right_ok:
+def _command_views(command: str) -> _CommandViews:
+    spaced = normalize_command(command)
+    joined = normalize_command(command, delete_quotes=True)
+    # Reuse the object when both views agree so matching can skip the second one.
+    return (spaced, spaced if joined == spaced else joined)
+
+
+def _phrase_re(phrase: str) -> re.Pattern[str]:
+    """Regex for a normalised phrase that is not part of a longer word ("_" counts as a letter).
+
+    Same as (?<!\\w)phrase(?!\\w), but with the literal first so the regex engine uses its fast
+    literal search. The phrase is escaped, so matching is linear. "" never matches.
+    """
+    if not phrase:
+        return _NEVER_RE
+    literal = re.escape(phrase)
+    left = rf"(?<!\w{literal})" if _WORD_RE.match(phrase[0]) else ""
+    right = r"(?!\w)" if _WORD_RE.match(phrase[-1]) else ""
+    return re.compile(literal + left + right)
+
+
+_Phrases = tuple[tuple[str, re.Pattern[str]], ...]  # (normalised phrase, its regex)
+
+
+def _contains_all(phrases: _Phrases, text: str) -> bool:
+    # The substring test is much faster than a regex search and rules out most phrases.
+    return all(phrase in text and pattern.search(text) for phrase, pattern in phrases)
+
+
+@dataclass(frozen=True)
+class _PhraseList:
+    """One inner list of command phrases, compiled for both command views."""
+
+    spaced: _Phrases
+    joined: _Phrases  # the same object as ``spaced`` unless a phrase contains quotes
+
+    @classmethod
+    def compile(cls, phrases: tuple[str, ...]) -> _PhraseList:
+        def view(delete_quotes: bool) -> _Phrases:
+            normalised = (normalize_command(p, delete_quotes=delete_quotes) for p in phrases)
+            return tuple((p, _phrase_re(p)) for p in normalised)
+
+        spaced, joined = view(False), view(True)
+        return cls(spaced, spaced if joined == spaced else joined)
+
+    def matches(self, views: _CommandViews) -> bool:
+        """Every phrase occurs in the same view of the command line."""
+        spaced, joined = views
+        if _contains_all(self.spaced, spaced):
             return True
-        start = index + 1
-    return False
+        if joined is spaced and self.joined is self.spaced:
+            return False
+        return _contains_all(self.joined, joined)
+
+
+# C0 controls except tab, DEL and C1 controls, lone surrogates (not encodable) and the bidi
+# embedding, override and isolate controls ("Trojan Source").
+_UNPRINTABLE_RE = re.compile(r"[\x00-\x08\x0a-\x1f\x7f-\x9f\ud800-\udfff\u202a-\u202e\u2066-\u2069]")
 
 
 def _printable(text: str) -> str:
     """Make attacker-controlled text safe to show in a terminal or spreadsheet."""
-    cleaned = "".join(
-        "\ufffd" if (ord(c) < 0x20 and c != "\t") or 0x7F <= ord(c) <= 0x9F else c for c in text
-    )
+    # Cut first so the cost does not grow with the input; the substitution is one-to-one.
+    cleaned = _UNPRINTABLE_RE.sub("\ufffd", text[: MAX_EVIDENCE_CHARS + 1])
     if len(cleaned) > MAX_EVIDENCE_CHARS:
         cleaned = cleaned[: MAX_EVIDENCE_CHARS - 1] + "…"
     return cleaned
@@ -187,13 +253,22 @@ class Rule:
     signatures: tuple[str, ...] = ()
     apis: tuple[frozenset[str], ...] = ()
     apis_all: tuple[tuple[frozenset[str], ...], ...] = ()
-    commands: tuple[tuple[str, ...], ...] = ()
+    commands: tuple[tuple[str, ...], ...] = ()  # phrases as written in the rule file
+    exclude_commands: tuple[tuple[str, ...], ...] = ()
     registry: tuple[tuple[str, ...], ...] = ()
     source: str = ""
 
     @functools.cached_property
     def _signature_res(self) -> tuple[re.Pattern[str], ...]:
         return tuple(re.compile(fnmatch.translate(g), re.IGNORECASE) for g in self.signatures)
+
+    @functools.cached_property
+    def _command_lists(self) -> tuple[_PhraseList, ...]:
+        return tuple(_PhraseList.compile(phrases) for phrases in self.commands)
+
+    @functools.cached_property
+    def _exclusion_lists(self) -> tuple[_PhraseList, ...]:
+        return tuple(_PhraseList.compile(phrases) for phrases in self.exclude_commands)
 
     def evaluate(self, behavior: Behavior, prepared: _PreparedBehavior) -> list[str]:
         """Return evidence strings if the rule matches ``behavior``, else []."""
@@ -209,12 +284,17 @@ class Rule:
         for group in self.apis_all:
             hits = [alternatives & apis_lower for alternatives in group]
             if all(hits):
-                evidence.append("apis: " + ", ".join(sorted(next(iter(h)) for h in hits)))
-        for phrases in self.commands:
-            for original, command in zip(behavior.commands, prepared.commands, strict=True):
-                if all(_contains_phrase(command, p) for p in phrases):
-                    evidence.append(f"command: {original}")
-                    break
+                evidence.append("apis: " + ", ".join(sorted(frozenset().union(*hits))))
+        if self.commands:
+            commands = prepared.commands
+            if self.exclude_commands:
+                exclusions = self._exclusion_lists
+                commands = tuple((o, v) for o, v in commands if not any(x.matches(v) for x in exclusions))
+            for phrases in self._command_lists:
+                for original, views in commands:
+                    if phrases.matches(views):
+                        evidence.append(f"command: {original}")
+                        break
         for parts in self.registry:
             for original, key in zip(behavior.registry_writes, prepared.registry_writes, strict=True):
                 if all(part in key for part in parts):
@@ -255,12 +335,20 @@ def _phrase_lists(value: Any, where: str) -> list[tuple[str, ...]]:
     return [_phrases(entry, where) for entry in value]
 
 
+def _command_phrase_lists(value: Any, where: str) -> tuple[tuple[str, ...], ...]:
+    lists = _phrase_lists(value, where)
+    for phrase in (p for phrases in lists for p in phrases):
+        if not normalize_command(phrase) or not normalize_command(phrase, delete_quotes=True):
+            raise RuleError(f"{where}: phrase {phrase!r} is empty once quotes and ^ are removed")
+    return tuple(lists)
+
+
 def _parse_rule(raw: Any, where: str, source: str) -> Rule:
     if not isinstance(raw, dict):
         raise RuleError(f"{where}: each rule must be a mapping")
     unknown = set(raw) - _RULE_KEYS
     if unknown:
-        raise RuleError(f"{where}: unknown keys: {', '.join(sorted(map(str, unknown)))}")
+        raise RuleError(f"{where}: unknown keys: {', '.join(sorted(map(repr, unknown)))}")
     rule_id = raw.get("id")
     if not isinstance(rule_id, str) or not _RULE_ID_RE.fullmatch(rule_id):
         raise RuleError(f"{where}: 'id' must match {_RULE_ID_RE.pattern}")
@@ -281,7 +369,9 @@ def _parse_rule(raw: Any, where: str, source: str) -> Rule:
         raise RuleError(f"{where}: 'match' must be a non-empty mapping")
     unknown = set(match) - _MATCH_KEYS
     if unknown:
-        raise RuleError(f"{where}: unknown matchers: {', '.join(sorted(map(str, unknown)))}")
+        raise RuleError(f"{where}: unknown matchers: {', '.join(sorted(map(repr, unknown)))}")
+    if "exclude_commands" in match and "commands" not in match:
+        raise RuleError(f"{where}: 'exclude_commands' only applies together with 'commands'")
 
     signatures = _string_list(match["signatures"], f"{where}: signatures") if "signatures" in match else []
     for glob in signatures:
@@ -300,13 +390,11 @@ def _parse_rule(raw: Any, where: str, source: str) -> Rule:
         for group in groups:
             entries = _string_list(group, f"{where}: apis_all")
             apis_all.append(tuple(_api_alternatives(e, f"{where}: apis_all") for e in entries))
-    commands = (
-        [
-            tuple(normalize_command(p) for p in phrases)
-            for phrases in _phrase_lists(match.get("commands"), f"{where}: commands")
-        ]
-        if "commands" in match
-        else []
+    commands = _command_phrase_lists(match["commands"], f"{where}: commands") if "commands" in match else ()
+    exclude_commands = (
+        _command_phrase_lists(match["exclude_commands"], f"{where}: exclude_commands")
+        if "exclude_commands" in match
+        else ()
     )
     registry = (
         [
@@ -326,7 +414,8 @@ def _parse_rule(raw: Any, where: str, source: str) -> Rule:
         signatures=tuple(signatures),
         apis=apis,
         apis_all=tuple(apis_all),
-        commands=tuple(commands),
+        commands=commands,
+        exclude_commands=exclude_commands,
         registry=tuple(registry),
         source=source,
     )
@@ -390,7 +479,7 @@ class RuleSet:
     def evaluate(self, behavior: Behavior) -> list[tuple[Rule, list[str]]]:
         prepared = _PreparedBehavior(
             apis=frozenset(a.lower() for a in behavior.apis),
-            commands=tuple(normalize_command(c) for c in behavior.commands),
+            commands=tuple((c, _command_views(c)) for c in behavior.commands),
             registry_writes=tuple(k.lower() for k in behavior.registry_writes),
         )
         results = []
@@ -412,6 +501,8 @@ def _load_rule_file(file: Path | Traversable, catalog: AttackCatalog) -> tuple[l
     version = data.get("attack_version")
     if not isinstance(version, str):
         raise RuleError(f"{where}: 'attack_version' must be a quoted string, e.g. \"19.2\"")
+    if not _VERSION_RE.fullmatch(version):
+        raise RuleError(f"{where}: 'attack_version' must be an ATT&CK version number such as \"19.2\"")
     raw_rules = data.get("rules")
     if not isinstance(raw_rules, list):
         raise RuleError(f"{where}: 'rules' must be a list")

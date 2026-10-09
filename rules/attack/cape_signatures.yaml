@@ -44,13 +44,36 @@ rules:
       - https://attack.mitre.org/techniques/T1497/001/
     match:
       signatures:
-        - "antivm_*"
+        # Not "antivm_*": antivm_recentdocs is a user-activity check (cape.user-activity-checks).
+        - "antivm_generic_*"
+        - "antivm_*_keys"
+        - "antivm_vbox_*"
+        - "antivm_vmware_*"
+        - "antivm_vpc_*"
+        - antivm_checks_available_memory
+        - antivm_directory_objects
+        - antivm_display
+        - antivm_network_adapters
+        - antivm_wmi
         - "antisandbox_*_files"
         - "antisandbox_*_libs"
         - "antisandbox_sboxie_*"
         - antisandbox_check_userdomain
         - antisandbox_windows_activation
         - antisandbox_system_parameters_info
+
+  - id: cape.user-activity-checks
+    technique: T1497.002
+    confidence: medium
+    description: Looks for signs of a real user (recent documents, mouse movement or hooks, window focus).
+    references:
+      - https://attack.mitre.org/techniques/T1497/002/
+    match:
+      signatures:
+        - antivm_recentdocs
+        - antisandbox_mouse_hook
+        - mouse_movement_detect
+        - antisandbox_foregroundwindows
 
   - id: cape.antisandbox-timing
     technique: T1497.003
@@ -153,8 +176,10 @@ rules:
 
   - id: cape.persistence-scheduled-task
     technique: T1053.005
-    confidence: medium
-    description: Scheduled task registered for persistence.
+    confidence: low
+    description: >-
+      Auto-start service, SharedTaskScheduler entry or legacy task file in \Windows\Tasks created.
+      Only the last is a scheduled task; service creation is mapped by api.service-create.
     references:
       - https://attack.mitre.org/techniques/T1053/005/
     match:
@@ -208,8 +233,16 @@ rules:
         - "disables_windows_defender*"
         - "removes_windows_defender_*"
         - disables_security
-        - antiav_servicestop
         - antiav_srp
+
+  - id: cape.service-stop
+    technique: T1489
+    confidence: medium
+    description: Services stopped through the Service Control Manager API (any service, not only security tools).
+    references:
+      - https://attack.mitre.org/techniques/T1489/
+    match:
+      signatures: [antiav_servicestop]
 
   - id: cape.disable-firewall
     technique: T1686
@@ -283,12 +316,12 @@ rules:
     match:
       signatures: [persistence_ads]
 
-  - id: cape.double-extension
-    technique: T1036.007
+  - id: cape.hide-file-extensions
+    technique: T1112
     confidence: medium
-    description: File names with hidden or double extensions.
+    description: Explorer's HideFileExt setting written so file extensions stay hidden (aids double-extension lures).
     references:
-      - https://attack.mitre.org/techniques/T1036/007/
+      - https://attack.mitre.org/techniques/T1112/
     match:
       signatures: [stealth_hidden_extension]
 

@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import errno
 import json
 import os
+import re
+import stat
 import sys
+import tempfile
 from collections.abc import Sequence
 from pathlib import Path
+from typing import BinaryIO
 
 from ttprism._version import __version__
 from ttprism._yaml import ConfigError
@@ -15,10 +21,17 @@ from ttprism.allowlist import Allowlist
 from ttprism.analyze import AnalysisOptions, analyze_file
 from ttprism.attack import AttackCatalog, RuleSet, default_rules_path
 from ttprism.export import to_csv, to_json
-from ttprism.inputs import DEFAULT_MAX_BYTES, InputError
+from ttprism.inputs import DEFAULT_MAX_BYTES, InputError, without_surrogates
 from ttprism.stix import to_stix_bundle
 
 EXIT_OK, EXIT_ERROR, EXIT_USAGE = 0, 1, 2
+MAX_SIZE = 16 * 1024**3
+
+# Characters a terminal may act on: C0 controls except tab and newline, DEL and C1 controls,
+# lone surrogates, and the bidi marks, embeddings, overrides and isolates ("Trojan Source").
+_TERMINAL_UNSAFE_RE = re.compile(
+    r"[\x00-\x08\x0b-\x1f\x7f-\x9f\ud800-\udfff\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]"
+)
 
 
 def _size(value: str) -> int:
@@ -32,6 +45,9 @@ def _size(value: str) -> int:
         raise argparse.ArgumentTypeError(f"not a size: {value!r} (examples: 500k, 64m)") from None
     if size <= 0:
         raise argparse.ArgumentTypeError("size must be positive")
+    if size > MAX_SIZE:
+        # Larger limits make no sense for text reports and would only allow exhausting memory.
+        raise argparse.ArgumentTypeError(f"size too large: {value!r} (at most {MAX_SIZE // 1024**3}g)")
     return size
 
 
@@ -98,8 +114,28 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _terminal_safe(message: str) -> str:
+    """Replace characters that a terminal would act on with U+FFFD.
+
+    Messages can quote rule files, allowlists and inputs. Newlines are kept
+    (PyYAML errors span several lines) but indented, so that a line cannot
+    pass itself off as a separate ttprism message.
+    """
+    return _TERMINAL_UNSAFE_RE.sub("\ufffd", message).replace("\n", "\n  ")
+
+
+def _print_stderr(message: str) -> None:
+    # With stderr closed, print(file=None) would write to stdout and corrupt the output.
+    if sys.stderr is not None:
+        print(_terminal_safe(message), file=sys.stderr)
+
+
 def _warn(message: str) -> None:
-    print(f"ttprism: warning: {message}", file=sys.stderr)
+    _print_stderr(f"ttprism: warning: {message}")
+
+
+def _error(message: str) -> None:
+    _print_stderr(f"ttprism: error: {message}")
 
 
 def _same_file(a: str, b: str) -> bool:
@@ -111,7 +147,7 @@ def _same_file(a: str, b: str) -> bool:
 
 def _cmd_extract(args: argparse.Namespace) -> int:
     if args.output and args.input != "-" and _same_file(args.input, args.output):
-        print("ttprism: error: output file is the input file", file=sys.stderr)
+        _error("output file is the input file")
         return EXIT_USAGE
 
     allowlist = Allowlist.empty() if args.no_default_allowlist else Allowlist.default()
@@ -145,34 +181,109 @@ def _cmd_extract(args: argparse.Namespace) -> int:
         for warning in result.warnings:
             _warn(warning)
 
+    data = _encode(output)
     if args.output:
         # The output path comes only from the user, never from input content.
-        with Path(args.output).open("w", encoding="utf-8", newline="") as handle:
-            handle.write(output)
+        _write_file(Path(args.output), data)
     else:
-        _write_stdout(output)
+        _write_stdout(data)
     return EXIT_OK
 
 
-def _write_stdout(text: str) -> None:
+def _encode(text: str) -> bytes:
+    try:
+        return text.encode("utf-8")
+    except UnicodeEncodeError:  # lone surrogates, e.g. from "\ud800" escapes in a JSON report
+        return without_surrogates(text).encode("utf-8")
+
+
+def _write_all(stream: BinaryIO, data: bytes) -> None:
+    """Write every byte: a pipe or a full disk can accept part of a write without an error."""
+    view = memoryview(data)
+    while view:
+        written = stream.write(view)
+        if not written:
+            raise OSError("output was cut short: a write accepted no bytes")
+        view = view[written:]
+
+
+def _write_stdout(data: bytes) -> None:
     """Write UTF-8 regardless of the console code page (e.g. cp1252 on Windows redirects)."""
-    buffer = getattr(sys.stdout, "buffer", None)
+    stdout = sys.stdout
+    if stdout is None:  # fd 1 was closed when Python started
+        raise OSError("standard output is not available")
+    buffer = getattr(stdout, "buffer", None)
     if buffer is None:
-        sys.stdout.write(text)
+        stdout.write(data.decode("utf-8"))
+        stdout.flush()
         return
-    sys.stdout.flush()
-    buffer.write(text.encode("utf-8"))
+    stdout.flush()
+    _write_all(buffer, data)
     buffer.flush()
+
+
+def _write_file(path: Path, data: bytes) -> None:
+    try:
+        _replace_file(path, data)
+    except OSError as exc:
+        raise OSError(f"cannot write {path}: {exc.strerror or exc}") from None
+
+
+def _replace_file(path: Path, data: bytes) -> None:
+    """Write ``data`` to a temporary file and move it over ``path``.
+
+    A failed run then never leaves a truncated or half-written output file.
+    """
+    try:
+        info: os.stat_result | None = path.stat()
+    except FileNotFoundError:
+        info = None
+    if info is not None and not stat.S_ISREG(info.st_mode):
+        # A device or pipe such as /dev/null: it must not be replaced and cannot be truncated.
+        with path.open("wb") as handle:
+            _write_all(handle, data)
+        return
+    if info is not None and not os.access(path, os.W_OK):
+        # Replacing needs only a writable directory; keep refusing read-only files as open() did.
+        raise PermissionError(errno.EACCES, os.strerror(errno.EACCES))
+    target = Path(os.path.realpath(path))  # through a symlink, replace the file it points to
+    mode = stat.S_IMODE(info.st_mode) if info is not None else 0o666 & ~_umask()
+    fd, temp = tempfile.mkstemp(prefix=f".{target.name}.", suffix=".tmp", dir=target.parent)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            _write_all(handle, data)
+        os.chmod(temp, mode)  # mkstemp creates the file as 0600
+        os.replace(temp, target)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.unlink(temp)
+        raise
+
+
+def _umask() -> int:
+    mask = os.umask(0)
+    os.umask(mask)
+    return mask
 
 
 def _cmd_validate_rules(args: argparse.Namespace) -> int:
     paths = args.paths or [default_rules_path()]
     ruleset = RuleSet.load(paths)
-    for warning in ruleset.warnings:
-        print(f"WARNING {warning}")
+    lines = [f"WARNING {_terminal_safe(warning)}" for warning in ruleset.warnings]
     status = "with warnings" if ruleset.warnings else "OK"
-    print(f"{len(ruleset.rules)} rules checked against ATT&CK {AttackCatalog.default().version}: {status}")
+    lines.append(
+        f"{len(ruleset.rules)} rules checked against ATT&CK {AttackCatalog.default().version}: {status}"
+    )
+    # Same UTF-8 writer as extract: print() fails on a non-ASCII rule path under a cp1252 console.
+    _write_stdout(_encode("".join(f"{line}\n" for line in lines)))
     return EXIT_ERROR if ruleset.warnings else EXIT_OK
+
+
+def _silence_stdout() -> None:
+    """Point stdout at devnull so the flush at interpreter exit cannot fail again."""
+    with contextlib.suppress(AttributeError, OSError, ValueError):
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, sys.stdout.fileno())
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -182,10 +293,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _cmd_extract(args)
         return _cmd_validate_rules(args)
     except (InputError, ConfigError) as exc:
-        print(f"ttprism: error: {exc}", file=sys.stderr)
+        _error(str(exc))
+        return EXIT_ERROR
+    except BrokenPipeError:
+        # The reader went away (e.g. `| head`): stop quietly, but do not report success.
+        _silence_stdout()
         return EXIT_ERROR
     except OSError as exc:
-        print(f"ttprism: error: {exc}", file=sys.stderr)
+        _error(str(exc))
         return EXIT_ERROR
     except KeyboardInterrupt:
         return 130

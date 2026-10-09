@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TypeVar
 
 from ttprism.attack import Behavior
 from ttprism.extract import extract_into, normalize_domain, normalize_ip
@@ -21,6 +21,7 @@ MAX_FIELD_CHARS = 8192
 # Upper bounds on what one report can feed into rule matching. Real CAPE runs
 # stay far below these; a crafted report cannot make matching cost explode.
 MAX_ITEMS = 10_000
+MAX_SIGNATURE_CHARS = 200
 _HASH_FIELDS = (("md5", IOCType.MD5), ("sha1", IOCType.SHA1), ("sha256", IOCType.SHA256))
 _DNS_ADDRESS_TYPES = {"A", "AAAA"}
 
@@ -115,7 +116,8 @@ def parse_cape(report: Mapping[str, Any]) -> CapeReport:
     for query in _dicts(network.get("dns")):
         _add_host(iocs, _str(query.get("request")), "cape:network.dns")
         for answer in _dicts(query.get("answers")):
-            if answer.get("type") in _DNS_ADDRESS_TYPES:
+            answer_type = answer.get("type")
+            if isinstance(answer_type, str) and answer_type in _DNS_ADDRESS_TYPES:
                 _add_host(iocs, _str(answer.get("data")), "cape:network.dns")
     for request in _dicts(network.get("http")):
         _add_url(iocs, _str(request.get("uri")), "cape:network.http")
@@ -135,14 +137,21 @@ def parse_cape(report: Mapping[str, Any]) -> CapeReport:
     behavior_section = _dict(report.get("behavior"))
     summary = _dict(behavior_section.get("summary"))
     commands = dict.fromkeys(_strings(summary.get("executed_commands")))
+    dropped_apis: set[str] = set()
     for process in _dicts(behavior_section.get("processes")):
         command_line = _str(_dict(process.get("environ")).get("CommandLine"))
         if command_line:
             commands[command_line] = None
         for call in _dicts(process.get("calls")):
             api = call.get("api")
-            if isinstance(api, str) and len(api) <= 100 and len(behavior.apis) < MAX_ITEMS:
+            if not isinstance(api, str) or len(api) > 100 or api in behavior.apis:
+                continue
+            if len(behavior.apis) < MAX_ITEMS:
                 behavior.apis.add(api)
+            else:
+                dropped_apis.add(api)
+    if dropped_apis:
+        stats["truncated_apis"] += len(dropped_apis)
     behavior.commands = _capped(list(commands), "commands", stats)
     behavior.registry_writes = _capped(
         list(dict.fromkeys(_strings(summary.get("write_keys")))), "registry_writes", stats
@@ -152,14 +161,20 @@ def parse_cape(report: Mapping[str, Any]) -> CapeReport:
         extract_into(iocs, refang(command), "cape:commands", stats)
 
     signatures = [
-        s for sig in _dicts(report.get("signatures")) if (s := _str(sig.get("name"))) and len(s) <= 200
+        s
+        for sig in _dicts(report.get("signatures"))
+        if (s := _str(sig.get("name"))) and len(s) <= MAX_SIGNATURE_CHARS
     ]
     behavior.signatures = _capped(signatures, "signatures", stats)
 
-    return CapeReport(iocs=iocs, behavior=behavior, reported_ttps=_reported_ttps(report), stats=stats)
+    reported_ttps = _capped(_reported_ttps(report), "ttps", stats)
+    return CapeReport(iocs=iocs, behavior=behavior, reported_ttps=reported_ttps, stats=stats)
 
 
-def _capped(items: list[str], name: str, stats: Counter[str]) -> list[str]:
+_T = TypeVar("_T")
+
+
+def _capped(items: list[_T], name: str, stats: Counter[str]) -> list[_T]:
     if len(items) > MAX_ITEMS:
         stats[f"truncated_{name}"] += len(items) - MAX_ITEMS
         return items[:MAX_ITEMS]
@@ -180,12 +195,13 @@ def _reported_ttps(report: Mapping[str, Any]) -> list[tuple[str, str]]:
     """TTPs that CAPE's own signatures attached, in either report layout.
 
     Current CAPE writes ``[{"signature": s, "ttps": [...]}]``; older versions
-    wrote one ``{"signature": s, "ttp": t}`` object per pair.
+    wrote one ``{"signature": s, "ttp": t}`` object per pair. Signature names
+    are cut to MAX_SIGNATURE_CHARS: each pair becomes a line of evidence.
     """
-    found: list[tuple[str, str]] = []
+    found: dict[tuple[str, str], None] = {}
     for entry in _dicts(report.get("ttps")):
-        signature = _str(entry.get("signature")) or "?"
+        signature = (_str(entry.get("signature")) or "?")[:MAX_SIGNATURE_CHARS]
         if isinstance(entry.get("ttp"), str):
-            found.append((entry["ttp"], signature))
-        found.extend((t, signature) for t in _strings(entry.get("ttps")))
-    return list(dict.fromkeys(found))
+            found[(entry["ttp"][:MAX_FIELD_CHARS], signature)] = None
+        found.update(((t, signature), None) for t in _strings(entry.get("ttps")))
+    return list(found)

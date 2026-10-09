@@ -40,6 +40,46 @@ PATHOLOGICAL = {
     "technique prefixes": "T1" * (SIZE // 2),
     "full-width": "１．" * (SIZE // 2),
     "zero-width": "a\u200b." * (SIZE // 3),
+    # URL boundaries: separators and quotes before schemes, "&&", other schemes.
+    "separators before schemes": ",http://a.com/" * (SIZE // 14),
+    "separator then partial scheme": "http://a.com/" + ",http:/" * (SIZE // 7),
+    "quoted urls": "'http://a.co/'" * (SIZE // 14),
+    "quote cut then glued urls": "'http://a.co/" + "'=http://a.co/" * (SIZE // 14),
+    "shell and": "http://a.com/" + "&" * SIZE,
+    "other schemes": "jndi:ldap://a." * (SIZE // 14),
+    "underscore host": "http://" + "_" * SIZE,
+    "long port": "http://a.com:" + "1" * SIZE,
+    # Hosts after UNC, protocol-relative, wildcard and leading-dot prefixes.
+    "unc prefixes": "\\\\a." * (SIZE // 4),
+    "backslashes": "\\" * SIZE,
+    "protocol-relative prefixes": "//a." * (SIZE // 4),
+    "slashes": "/" * SIZE,
+    "wildcard prefixes": "*.a" * (SIZE // 3),
+    "leading dots": " .a" * (SIZE // 3),
+    # Percent-encoding: escapes before names and IPs, decoded URL tails.
+    "percent escapes": "%2F" * (SIZE // 3),
+    "percent before names": "%2Fa.com" * (SIZE // 8),
+    "double-encoded escapes": ("%25" * 20 + "2Fa.com ") * (SIZE // 68),
+    "percent before ips": "%201.2.3.4" * (SIZE // 10),
+    "percent in url tails": ("http://a.com/?" + "%2" * 1000 + " ") * (SIZE // 2015),
+    "encoded redirects": "http://a.com/?u=" + "http%3A%2F%2Fa.com%2F%3Fu%3D" * (SIZE // 29),
+    "nested redirects": "http://a.com/?u=" * (SIZE // 16),
+    # URL tails: markup and entities.
+    "url footnotes": ("http://a.com/" + "[1]" * 680 + " ") * (SIZE // 2054),
+    "url entities": ("http://a.com/" + "&gt;" * 510 + " ") * (SIZE // 2054),
+    "url stars and tildes": ("~~http://a.com/" + "*~" * 1020 + " ") * (SIZE // 2056),
+    "userinfo and emails": "http://a:b@c.com/ b@c.com " * (SIZE // 26),
+    # Refang: space-flanked and slash markers, scheme variants, folding.
+    "spaced defang markers": "a [.] a [at] a (.) " * (SIZE // 19),
+    "slash markers": "[/][//]" * (SIZE // 7),
+    "scheme variants": "hxxp[s]h[tt]p[s]:" * (SIZE // 17),
+    "format characters": "a\u200e" * (SIZE // 2),
+    "nfkc expanders": "\ufdfa" * SIZE,
+    "ligatures": "\ufb03" * SIZE,
+    # Boundary checks against neighbouring letters and label colons.
+    "glued letters": "\u00fca.com" * (SIZE // 6),
+    "combining marks": "a\u0301" * (SIZE // 2),
+    "label colons before ipv6": "\u5740:1:2:3::" * (SIZE // 9),
 }
 
 

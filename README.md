@@ -79,7 +79,7 @@ From a CAPE report, each technique says why it was assigned:
 | --- | --- |
 | Plain text, Markdown | IOC extraction plus the ATT&CK technique IDs written in the text |
 | PDF reports | Convert to text first (for example `pdftotext report.pdf`); TTPrism does not parse PDFs |
-| CAPE `report.json` | Detected automatically; network, files, commands, API calls, registry, signatures |
+| CAPE `report.json` | Detected automatically (input that looks like JSON but does not parse is analysed as text, with a warning); network, files, commands, API calls, registry, signatures |
 
 Non-UTF-8 text (for example Big5 or GB18030) needs `--encoding big5`.
 
@@ -145,7 +145,13 @@ Counts of what was dropped are reported under `suppressed`, so nothing disappear
 
 - An ideographic full stop `。` is only treated as a dot inside brackets (`[。]`, `【。】`), since
   it also ends Chinese sentences.
-- Internationalised domain names are recognised only in punycode (`xn--`) form.
+- Internationalised domain names are recognised only in punycode (`xn--`) form. A name written
+  with non-ASCII letters (an IDN or a homograph such as a Cyrillic `о`) is skipped rather than
+  reported in truncated form.
+- Alternative-root TLDs such as `.bit` and `.i2p` are not recognised; `.onion` is.
+- A URL directly followed by `;command` (for example `wget http://x/a.sh;chmod`) keeps that
+  suffix, because `;` is legal inside URLs.
+- `--defang` changes the scheme, host and `@` only; URL paths are left as they are.
 - CAPE is the only sandbox format so far.
 
 ## Security

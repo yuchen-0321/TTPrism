@@ -6,8 +6,8 @@ from typing import Any
 
 import pytest
 
-from ttprism import AnalysisOptions, IOCType, analyze_cape
-from ttprism.cape import MAX_ITEMS, looks_like_cape, parse_cape
+from ttprism import AnalysisOptions, AttackCatalog, IOCType, analyze_cape
+from ttprism.cape import MAX_ITEMS, MAX_SIGNATURE_CHARS, looks_like_cape, parse_cape
 
 
 def test_looks_like_cape(cape_report: dict[str, Any]) -> None:
@@ -102,6 +102,11 @@ def test_old_style_string_hosts() -> None:
         lambda r: r.update(ttps=[{"signature": None, "ttps": [None, 5, "T1055"]}, "junk"]),
         lambda r: r.update(target={"file": {"md5": "zz" * 16, "sha256": 7}}),
         lambda r: r.update(dropped={"md5": "x"}, CAPE=[]),
+        # Unhashable DNS answer types used to raise TypeError in the set lookup.
+        lambda r: r.update(
+            network={"dns": [{"request": "a.com", "answers": [{"type": ["A"], "data": "1"}]}]}
+        ),
+        lambda r: r.update(network={"dns": [{"answers": [{"type": {"A": 1}, "data": "1.2.3.4"}]}]}),
     ],
 )
 def test_malformed_reports_do_not_crash(cape_report: dict[str, Any], mutation: Any) -> None:
@@ -137,5 +142,41 @@ def test_oversized_behaviour_lists_are_capped_and_fast() -> None:
     assert result.suppressed["truncated_commands"] == count - MAX_ITEMS
     assert result.suppressed["truncated_registry_writes"] == count - MAX_ITEMS
     assert result.suppressed["truncated_signatures"] == count - MAX_ITEMS
+    assert result.suppressed["truncated_apis"] == count - MAX_ITEMS
     (warning,) = [w for w in result.warnings if "not in ATT&CK" in w]
     assert warning.endswith("and 980 more")
+
+
+def test_dropped_api_names_are_counted_once() -> None:
+    calls = [{"api": f"Api{i}"} for i in range(MAX_ITEMS)]
+    # Repeats of kept names, invalid names and repeats of dropped names are not counted.
+    calls += [{"api": "Api0"}, {"api": "x" * 101}, {"api": 5}, {"api": "Late1"}, {"api": "Late2"}]
+    calls += [{"api": "Late1"}]
+    parsed = parse_cape({"info": {}, "behavior": {"processes": [{"calls": calls}, {"calls": calls}]}})
+    assert len(parsed.behavior.apis) == MAX_ITEMS
+    assert parsed.stats["truncated_apis"] == 2
+
+
+def test_dns_answer_types() -> None:
+    answers = [{"type": "A", "data": "198.51.100.1"}, {"type": "CNAME", "data": "198.51.100.2"}]
+    parsed = parse_cape({"info": {}, "network": {"dns": [{"answers": answers}]}})
+    assert {v for _, v, _ in parsed.iocs} == {"198.51.100.1"}
+
+
+def test_reported_ttps_are_capped() -> None:
+    ids = [f"T{i}" for i in range(MAX_ITEMS + 5)]
+    parsed = parse_cape({"info": {}, "ttps": [{"signature": "s" * 8000, "ttps": ids}, {"ttp": "T1"}]})
+    assert len(parsed.reported_ttps) == MAX_ITEMS
+    assert parsed.stats["truncated_ttps"] == 6
+    assert {len(signature) for _, signature in parsed.reported_ttps} == {MAX_SIGNATURE_CHARS}
+
+
+def test_long_ttp_signatures_do_not_amplify_work() -> None:
+    # Every catalog ID paired with 8 KiB signatures used to sanitise each signature once per ID.
+    ids = sorted(AttackCatalog.default().techniques)
+    report = {"info": {}, "ttps": [{"signature": f"{i:06d}" + "A" * 8186, "ttps": ids} for i in range(40)]}
+    start = time.perf_counter()
+    result = analyze_cape(report)
+    assert time.perf_counter() - start < 10
+    assert result.suppressed["truncated_ttps"] == 40 * len(ids) - MAX_ITEMS
+    assert all(len(e) <= 200 for t in result.techniques for e in t.evidence)
