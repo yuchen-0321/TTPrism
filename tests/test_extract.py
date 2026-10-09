@@ -1485,12 +1485,48 @@ def test_urls_wrapped_after_their_own_hyphens_are_joined(text: str, url: str) ->
     ("text", "url"),
     [
         ("C2: ['http://a.example.com/x.exe','dynamic-\ndns.example.net']", "http://a.example.com/x.exe"),
+        (
+            "C2: ['http://a.example.com/pa-\nth.exe','dynamic-\ndns.example.net']",
+            "http://a.example.com/pa-th.exe",
+        ),
         ("http://198.51.100.7/a-\nb c-\nevil.example.com", "http://198.51.100.7/a-b"),
+        # A URL wrapped inside its host ends where its host does.
+        ("C2: http://update-\ncheck.example.com, see-\nalso.example.net", "http://update-check.example.com"),
+        ("C2: http://update-\ncheck.example.com(see-\nalso.example.net)", "http://update-check.example.com"),
     ],
 )
 def test_urls_that_ended_before_a_line_end_hyphen_are_not_joined(text: str, url: str) -> None:
     assert [v for t, v in everything(text) if t == "url"] == [url]
     assert stats_for(refang(text))["line_wrap_fragment"] == 1
+
+
+@pytest.mark.parametrize(
+    "after_host",
+    [
+        "(ops-\nteam@example.org)",
+        ":8443(ops-\nteam@example.org)",
+        "'ops-\nteam@example.org'",
+        "=ops-\nteam@example.org",
+    ],
+)
+def test_a_url_wrapped_in_its_host_keeps_its_host(after_host: str) -> None:
+    text = "C2: http://update-\ncheck.example.com" + after_host
+    assert "update-check.example.com" in [v for t, v in everything(text) if t == "domain"]
+
+
+@pytest.mark.parametrize(
+    ("text", "url"),
+    [
+        ("'http://a.example/x-\ny-\nz.exe'", "http://a.example/x-y-z.exe"),
+        (
+            "http://update-\ncheck-\nnode.example.com/a-\nb.exe",
+            "http://update-check-node.example.com/a-b.exe",
+        ),
+        ("hxxp://update-\ncheck[.]example[.]com/a-\nb.exe", "http://update-check.example.com/a-b.exe"),
+    ],
+)
+def test_urls_wrapped_in_host_and_path_are_joined(text: str, url: str) -> None:
+    assert url in [v for t, v in everything(text) if t == "url"]
 
 
 @pytest.mark.parametrize(
@@ -1534,7 +1570,12 @@ def soft_hyphen_warnings(text: str) -> list[str]:
         "C2: \uff4b\uff42\u00ad\uff41\uff55\uff54\uff4f\uff0eexample\uff0ecom",
         "C2: KB\u00ad\uff21uto.example.com",
         "GET /%2Fkb\u00adauto.example.net",
+        "Payload: KB\u00adAuto-Update.example.com",
+        "Sender: kb\u00adauto-ops@example.org",
+        "C2: micro\u00adsoft-online-update[.]example[.]net",
         # Joined across a line break.
+        "C2: http://files.kb-auto-\n.exam\u00adple/x.exe now",
+        "C2: kb-auto-\n.exam\u00adple now",
         "下载地址：hxxp://files[.]example[.]com/download/update\u00ad\nKB\u00adAuto，随后执行",
         "payload: http://files.example.com/update-\nkb\u00adauto now",
         "C2: kb\u00adauto\u00ad\n.example.net was used",
@@ -1559,6 +1600,11 @@ def test_soft_hyphens_inside_names_and_urls_are_reported(text: str) -> None:
         "The implant can down\u00adload/execute files from http://198.51.100.7/download.php",
         "the down\u00adload-and-execute stage uses http://198.51.100.7/download.php",
         "Payload: KB\u200bAuto.example.com, see also hyphen\u00adation",  # no soft hyphen in the name
+        "Read the up\u00addate.\nSee http://198.51.100.7/update.exe",
+        "This is a self-up\u00addate.\nSee http://198.51.100.7/update.exe",
+        "Indicators\n----------\nDown\u00adload server: http://198.51.100.7/download.php",
+        "The com\u00admand-and-con\u00adtrol server: http://198.51.100.7/command.php",
+        "It can upload/down\u00adload files: http://198.51.100.7/download.php",
         "md5=00b68e6db2bb\u00ad7412fabcbaa2192394ad.",  # hashes have no hyphens to lose
         "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",
         "update\u00ad\ncheck-server.example.com",
@@ -1572,9 +1618,20 @@ def test_other_soft_hyphens_are_not_reported(text: str) -> None:
 def test_soft_hyphen_warning_counts_the_values() -> None:
     (warning,) = soft_hyphen_warnings("a\u00adb.example.com c\u00add.example.net e.example.org")
     assert warning.startswith("2 extracted name(s)")
-    # A value counts when it contains a joined word, wherever that word was joined.
+    # Only values that change count, not others with the same word.
     (warning,) = soft_hyphen_warnings("KB\u00adAuto.example.com and kbauto.example.net")
-    assert warning.startswith("2 extracted name(s)")
-    # Whole words only.
-    (warning,) = soft_hyphen_warnings("KB\u00adAuto.example.com and mykbauto.example.net")
     assert warning.startswith("1 extracted name(s)")
+    (warning,) = soft_hyphen_warnings("http://198.51.100.7/KB\u00adAuto.exe")
+    assert warning.startswith("1 extracted name(s)")  # the URL, not its address
+
+
+def test_soft_hyphen_check_reads_a_bounded_amount_of_text() -> None:
+    from ttprism import analyze
+
+    with mock.patch.object(analyze, "MAX_SOFT_HYPHEN_CHECK_CHARS", 40):
+        (warning,) = soft_hyphen_warnings(
+            "KB\u00adAuto.example.com " + "x " * 30 + "up\u00addate.example.net"
+        )
+    assert warning.startswith(
+        "1 extracted name(s), e-mail address(es) or URL(s) (in the first 40 characters)"
+    )

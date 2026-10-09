@@ -194,9 +194,10 @@ Counts of what was dropped are reported under `suppressed`, so nothing disappear
   joined, and the part on each line may be reported on its own.
 - A soft hyphen (U+00AD) between two letters or digits is deleted as a break hint. A converter
   that writes every hyphen as a soft hyphen therefore makes names and URLs lose their hyphens
-  (`KB-Auto` read as `KBAuto`); TTPrism warns when that happens inside an extracted name, e-mail
-  address or URL, defanged or not. Soft hyphens between the groups of a GUID and at the end of a
-  line are read as hyphens.
+  (`KB-Auto` read as `KBAuto`). TTPrism warns when reading those soft hyphens as hyphens would
+  change an extracted name, e-mail address or URL; to find out, it extracts the first 8 Mi
+  characters of such a text a second time. Soft hyphens between the groups of a GUID and at the end
+  of a line are read as hyphens.
 - CAPE is the only sandbox format so far.
 
 ## Security

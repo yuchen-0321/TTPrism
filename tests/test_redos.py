@@ -168,6 +168,9 @@ PATHOLOGICAL = {
     "urls wrapped at every hyphen": "http://a.com/" + "b-\n" * (SIZE // 3),
     "wrapped url lines with spaces": ("http://a.com/b-\n" + "c d-\n" * 8) * (SIZE // 56),
     "quoted urls before line-end hyphens": ("'http://a.com/x','b-\n") * (SIZE // 22),
+    "long url continuation chains": ("http://x.example/" + "a-\n" * 690 + "z ") * (SIZE // 2089),
+    "url hosts wrapped at every hyphen": "http://a-\n" + "b-\n" * (SIZE // 3),
+    "soft hyphens inside many lines of names": "a\u00adb.example.com\n" * (SIZE // 17),
 }
 
 # Command lines reach the ATT&CK rules from CAPE reports: quotes, carets and chaining, glued

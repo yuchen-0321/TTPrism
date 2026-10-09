@@ -50,6 +50,7 @@ about twice as slow. Costs are per MB of input.
 | Rule matching | Worst pathological case in `tests/test_redos.py` | 0.9 s/MB |
 | IOC extraction | CAPE command lines, everyday content | 0.8–1.1 s/MB |
 | IOC extraction | Report text (`tests/data/report_zh.md` repeated) | 0.9–1.2 s/MB |
+| IOC extraction | Report text with soft hyphens between letters (the eight evaluation reports repeated) | 1.0–1.2 s/MB, about twice the cost without them |
 | IOC extraction | Worst pathological case in `tests/test_redos.py` | 2.3–3.5 s/MB |
 
 At the default `--max-size` of 64 MiB, a whole analysis (`ttprism analyze`, reading and decoding
@@ -63,8 +64,11 @@ included) took:
 | CAPE report of 1.7 million network host entries | 14 s |
 
 Text reports are bounded only by `--max-size`, so a hostile 64 MiB text costs about four minutes of
-CPU time but no more; the CAPE caps keep a hostile report under half a minute. Faster IOC
-extraction is planned for v0.2 (issue #2).
+CPU time but no more; the CAPE caps keep a hostile report under half a minute. A text with a soft
+hyphen between two letters or digits has its first 8 Mi characters extracted a second time, to see
+whether reading the soft hyphens as hyphens changes any name or URL (`MAX_SOFT_HYPHEN_CHECK_CHARS`);
+on the worst pathological text that adds at most about half a minute. Faster IOC extraction is
+planned for v0.2 (issue #2).
 
 ## Known limitations
 

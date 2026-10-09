@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from ttprism import IOCType, defang, refang
-from ttprism.refang import soft_hyphen_words
+from ttprism.refang import show_inner_soft_hyphens
 
 
 @pytest.mark.parametrize(
@@ -271,44 +271,27 @@ def test_soft_hyphen_at_a_line_end_becomes_a_hyphen(text: str, expected: str) ->
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
-        ("KB\u00adAuto.exe", {"kbauto"}),
-        ("/1/KB\u00adAuto\u00adwin\u00adupdate.exe", {"kbautowinupdate"}),
-        ("c2.up\u00addate.example.net", {"update"}),
-        ("ops\u00adteam@example.org", {"opsteam"}),
-        ("up\u00addate[.]example[.]com", {"update"}),  # defanged names count after refanging
-        ("up\u00addate [.] example [.] com", {"update"}),
-        ("up\u00addate\uff0eexample\uff0ecom", {"update"}),
-        ("ops\u00adteam[@]example.org", {"opsteam"}),
-        ("KB\u00ad\u00adAuto.exe", {"kbauto"}),
-        ("KB\u200b\u00adAuto.exe", {"kbauto"}),
-        ("x/KB\u00adAuto", {"kbauto"}),
-        ("x?q=KB\u00adAuto&y=1", {"kbauto"}),
-        ("hyphen\u00adation in prose", set()),
-        ("hyphen\u00adation.", set()),
-        ("down\u00adload: http://198.51.100.7/download.php", set()),
-        ("(see the up\u00addate.)", set()),
-        ("\u00adword. and word\u00ad.", set()),  # not between two letters or digits
-        ("caf\u00e9\u00adbar.com", set()),
-        ("{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}", set()),  # a GUID's hyphens
-        ("x\u00ady.example a\ue000b.example", {"xy"}),  # a private-use character in the input is not a mark
-        # Words that the extractor joins across a line break.
-        ("update\u00ad\nKB\u00adAuto\uff0c", {"kbauto"}),
-        ("update-\n  kb\u00adauto now", {"kbauto"}),
-        ("kb\u00adauto\u00ad\n.example.net", {"kbauto"}),
-        ("kb\u00adauto.\n example.net", {"kbauto"}),
-        ("kb\u00adauto\nexample.net", set()),  # no hyphen or dot at the break: not joined
-        # Full-width letters and ligatures fold to ASCII; a percent escape before the word is not part of it.
-        ("\uff4b\uff42\u00ad\uff41\uff55\uff54\uff4f\uff0eexample", {"kbauto"}),
-        ("\ufb01\u00adle.example", {"file"}),
-        ("/%2Fkb\u00adauto.example.net", {"2fkbauto", "kbauto"}),
-        # Prose.
-        ("Micro\u00adsoft's", set()),
-        ("down\u00adload/execute", set()),
-        ("down\u00adload-and-execute", set()),
-        ("up\u00addate(s)", set()),
-        ("(down\u00adload)", set()),
-        ("'up\u00addate'", set()),
+        ("KB\u00adAuto.exe", "KB-Auto.exe"),
+        ("KB\u00ad\u00adAuto", "KB-Auto"),
+        ("KB\u200b\u00ad\u2060Auto", "KB-Auto"),  # one run of deleted characters, one hyphen
+        ("\uff2b\uff22\u00ad\uff21uto", "\uff2b\uff22-\uff21uto"),  # full-width letters fold to ASCII
+        ("\ufb01\u00adle", "\ufb01-le"),
+        ("a\u00adb c\u00add", "a-b c-d"),
     ],
 )
-def test_soft_hyphen_words(text: str, expected: set[str]) -> None:
-    assert soft_hyphen_words(text) == expected
+def test_inner_soft_hyphens_can_be_shown(text: str, expected: str) -> None:
+    assert show_inner_soft_hyphens(text) == expected
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "no soft hyphen",
+        "\u00adword and word\u00ad",  # not between two letters or digits
+        "caf\u00e9\u00adbar",  # a non-ASCII letter that does not fold to ASCII
+        "KB\u200bAuto",  # deleted characters without a soft hyphen
+        "line\u00ad\nbreak",  # refang reads this one as a hyphen anyway
+    ],
+)
+def test_other_soft_hyphens_are_not_shown(text: str) -> None:
+    assert show_inner_soft_hyphens(text) is None

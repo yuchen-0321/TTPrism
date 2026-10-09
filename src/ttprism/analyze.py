@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -22,7 +21,7 @@ from ttprism.inputs import (
     read_bytes,
 )
 from ttprism.models import IOC, AnalysisResult, IOCCollector, IOCType, sort_iocs
-from ttprism.refang import refang, soft_hyphen_words
+from ttprism.refang import refang, show_inner_soft_hyphens
 
 
 @dataclass
@@ -97,31 +96,38 @@ def analyze_text(text: str, options: AnalysisOptions | None = None) -> AnalysisR
         techniques.add_reported(technique_id, f"named in text: {technique_id}")
     result = _finish("text", collector, techniques, options, stats, [])
     if "\u00ad" in text:
-        result.warnings.extend(_soft_hyphen_warning(text, result.iocs))
+        result.warnings.extend(_soft_hyphen_warning(text, collector, result.iocs))
     return result
 
 
 _NAME_TYPES = (IOCType.URL, IOCType.DOMAIN, IOCType.EMAIL)
-_WORD_RE = re.compile(r"[a-z0-9]+")
+# The soft-hyphen check extracts the text a second time; it reads at most this much of it.
+MAX_SOFT_HYPHEN_CHECK_CHARS = 8 * 1024 * 1024
 
 
-def _soft_hyphen_warning(text: str, iocs: list[IOC]) -> list[str]:
-    """A warning when names, e-mail addresses or URLs contain words joined by deleting soft hyphens
-    between two letters or digits: some PDF converters write every hyphen that way, so the values may
-    have lost hyphens. A value counts when one of its words is such a word, wherever it was joined."""
-    words = soft_hyphen_words(text)
-    if not words:
+def _soft_hyphen_warning(text: str, collector: IOCCollector, iocs: list[IOC]) -> list[str]:
+    """A warning when names, e-mail addresses or URLs change if the soft hyphens deleted between two
+    letters or digits are read as hyphens: some PDF converters write every hyphen that way, so the
+    values may have lost hyphens. The other reading is extracted again, from the first
+    MAX_SOFT_HYPHEN_CHECK_CHARS characters only."""
+    checked = text[:MAX_SOFT_HYPHEN_CHECK_CHARS]
+    shown = show_inner_soft_hyphens(checked)
+    if shown is None:
         return []
-    count = sum(
-        1
-        for ioc in iocs
-        if ioc.type in _NAME_TYPES and not words.isdisjoint(_WORD_RE.findall(ioc.value.lower()))
-    )
+    if len(checked) < len(text):
+        collector = IOCCollector()
+        extract_into(collector, refang(checked), "text")
+    other = IOCCollector()
+    extract_into(other, refang(shown), "text")
+    kept = {(t, v) for t, v, _ in other if t in _NAME_TYPES}
+    changed = {(t, v) for t, v, _ in collector if t in _NAME_TYPES and (t, v) not in kept}
+    count = sum(1 for ioc in iocs if (ioc.type, ioc.value) in changed)
     if not count:
         return []
+    where = f" (in the first {MAX_SOFT_HYPHEN_CHECK_CHARS:,} characters)" if len(checked) < len(text) else ""
     return [
-        f"{count} extracted name(s), e-mail address(es) or URL(s) contain words that were joined by "
-        "deleting soft hyphens (U+00AD) between letters or digits; some PDF converters write every "
+        f"{count} extracted name(s), e-mail address(es) or URL(s){where} change if the soft hyphens "
+        "(U+00AD) deleted between letters or digits are read as hyphens; some PDF converters write every "
         "hyphen as a soft hyphen, so these values may have lost hyphens (KB-Auto read as KBAuto)"
     ]
 

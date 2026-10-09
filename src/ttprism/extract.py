@@ -813,9 +813,11 @@ def _rejoin_wrapped_lines(text: str) -> str:
     pieces = []
     last = 0
     url_line = url_rest = -1  # a line that continues a URL joined to it, and where the rest starts
+    url_state: _UrlState | None = None
     for match in _HYPHEN_WRAP_RE.finditer(text):
         hyphen, after = match.start(), match.end()
         before, next_char = text[hyphen - 1 : hyphen], text[after : after + 1]
+        state = None
         if before == "." and _is_alnum(text[hyphen - 2 : hyphen - 1]) and _is_alnum(next_char):
             cut = hyphen  # "evil.-\ncom"
         elif _is_alnum(before) and next_char == "." and _is_alnum(text[after + 1 : after + 2]):
@@ -823,12 +825,16 @@ def _rejoin_wrapped_lines(text: str) -> str:
         elif (
             _is_alnum(before)
             and _is_alnum(next_char)
-            and (_url_reaches(text, hyphen) or _continues_url(text, url_line, url_rest, hyphen))
+            and (
+                state := _url_reaches(text, hyphen)
+                or _continues_url(text, url_line, url_rest, url_state, hyphen)
+            )
         ):
             cut = hyphen + 1  # "http://evil.com/a-\nb.exe", also when the URL wraps again
-            url_line, url_rest = text.rfind("\n", hyphen, after) + 1, after
         else:
             continue
+        url_state = state
+        url_line, url_rest = (text.rfind("\n", hyphen, after) + 1, after) if state else (-1, -1)
         pieces.append(text[last:cut])
         last = after
     pieces.append(text[last:])
@@ -839,8 +845,18 @@ def _is_alnum(char: str) -> bool:
     return char.isascii() and char.isalnum()
 
 
-def _url_reaches(text: str, hyphen: int) -> bool:
-    """True if a URL on the hyphen's line runs up to the hyphen, which is then its last character.
+# Where a URL that runs up to a line-end hyphen stands: still in its host (no path or port yet), and
+# the quote before it, if any, at which _url_matches ends it.
+_UrlState = tuple[bool, str]
+
+
+def _url_state(match: re.Match[str], quote: str) -> _UrlState:
+    return match.start("rest") == -1 and match.group("port") is None, quote if quote in ("'", '"') else ""
+
+
+def _url_reaches(text: str, hyphen: int) -> _UrlState | None:
+    """The state of a URL on the hyphen's line that runs up to the hyphen, which is then its last
+    character, or None.
 
     A URL earlier on the line that has ended does not count: in Chinese text without spaces,
     "...http://a.example/x.exe，时间为2019-" ends in a date, not in the URL. The URLs are those the
@@ -848,22 +864,33 @@ def _url_reaches(text: str, hyphen: int) -> bool:
     """
     line_start = text.rfind("\n", 0, hyphen) + 1
     if text.rfind("://", line_start, hyphen) == -1:
-        return False
+        return None
     line = text[line_start : hyphen + 1]
     last = None
     for last in _url_matches(line):  # noqa: B007 (the last match is used)
         pass
-    return last is not None and last.end() == len(line)
+    if last is None or last.end() != len(line):
+        return None
+    return _url_state(last, line[last.start() - 1 : last.start()])
 
 
-def _continues_url(text: str, url_line: int, url_rest: int, hyphen: int) -> bool:
-    """True if the hyphen ends the line at ``url_line``, which continues a URL joined to it from
-    ``url_rest`` on, and URL characters run from there to the hyphen."""
-    if url_line < 0 or text.rfind("\n", 0, hyphen) + 1 != url_line:
-        return False
-    url = "http://a/" + text[url_rest : hyphen + 1]
+def _continues_url(
+    text: str, url_line: int, url_rest: int, state: _UrlState | None, hyphen: int
+) -> _UrlState | None:
+    """The new state if the hyphen ends the line at ``url_line``, which continues a URL joined to it
+    from ``url_rest`` on, and the URL runs on to the hyphen: as a host while the URL is still in its
+    host, else as a path, and not past the URL's closing quote."""
+    if state is None or text.rfind("\n", 0, hyphen) + 1 != url_line:
+        return None
+    in_host, quote = state
+    rest = text[url_rest : hyphen + 1]
+    if quote and quote in rest:
+        return None
+    url = ("http://" if in_host else "http://a/") + rest
     match = URL_RE.match(url)
-    return match is not None and match.end() == len(url)
+    if match is None or match.end() != len(url):
+        return None
+    return in_host and _url_state(match, "")[0], quote
 
 
 def extract_into(collector: IOCCollector, text: str, source: str, stats: Counter[str] | None = None) -> None:
