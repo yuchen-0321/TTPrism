@@ -42,10 +42,11 @@ their advisory.
 - Default allowlist for platform root domains, sandbox background traffic, OCSP/CRL hosts and
   reference sites, plus custom allowlists; reserved and documentation values filtered by default.
 - `ttprism validate-rules` for rule authors.
-- Security hardening: linear-time regexes with a ReDoS test suite (56 pathological 1 MB inputs),
+- Security hardening: linear-time regexes with a ReDoS test suite (pathological 1 MB inputs),
   chunked input reading with a size limit, JSON nesting limit, strict YAML schemas with aliases
-  rejected, per-report caps on rule inputs, an indexed IP allowlist, atomic `-o` writes, CSV
-  formula escaping, control/bidi-character sanitisation of all output and messages, explicit
+  and duplicate keys rejected, per-report caps on rule inputs, an indexed IP allowlist, atomic
+  `-o` writes (in place where a new file cannot replace the old one), CSV formula escaping,
+  control/bidi-character sanitisation of all output and messages, explicit
   reserved-IP tables independent of the Python version, Hypothesis fuzz tests.
 - Project governance: security policy with private vulnerability reporting, threat model,
   contributing guide, code of conduct, issue templates.

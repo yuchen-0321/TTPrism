@@ -13,6 +13,11 @@ _CHUNK_BYTES = 1024 * 1024
 _UTF32_BOMS = (b"\xff\xfe\x00\x00", b"\x00\x00\xfe\xff")  # checked first: they start like UTF-16 BOMs
 _UTF16_BOMS = (b"\xff\xfe", b"\xfe\xff")
 _SURROGATE_RE = re.compile(r"[\ud800-\udfff]")
+# Characters a terminal may act on: C0 controls except tab and newline, DEL and C1 controls, lone
+# surrogates, and the bidi marks, embeddings, overrides and isolates ("Trojan Source").
+_UNSAFE = r"\x00-\x08\x0b-\x1f\x7f-\x9f\ud800-\udfff\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069"
+TERMINAL_UNSAFE_RE = re.compile(f"[{_UNSAFE}]")
+_UNSAFE_OR_NEWLINE_RE = re.compile(rf"[\n{_UNSAFE}]")
 
 
 class InputError(ValueError):
@@ -73,8 +78,8 @@ def decode_text(data: bytes, encoding: str | None = None) -> tuple[str, list[str
             raise InputError(f"unknown encoding: {encoding}") from None
         except ValueError as exc:  # UnicodeError, or a codec that rejects errors="replace" (idna)
             raise InputError(f"cannot decode input as {encoding}: {exc}") from None
-    elif data.startswith(_UTF32_BOMS):
-        text = data.decode("utf-32", errors="replace")
+    elif data.startswith(_UTF32_BOMS) and (utf32 := _strict_utf32(data)) is not None:
+        text = utf32
     elif data.startswith(_UTF16_BOMS):
         text = data.decode("utf-16", errors="replace")
     else:
@@ -93,6 +98,25 @@ def decode_text(data: bytes, encoding: str | None = None) -> tuple[str, list[str
             "byte-order mark; pass --encoding utf-16-le (or utf-16-be, utf-32)"
         )
     return text, warnings
+
+
+def _strict_utf32(data: bytes) -> str | None:
+    """``data`` as UTF-32, or None if it is not: FF FE 00 00 also starts UTF-16 text whose first
+    character is U+0000."""
+    if len(data) % 4:
+        return None
+    try:
+        return data.decode("utf-32")
+    except UnicodeDecodeError:
+        return None
+
+
+def printable(text: str) -> str:
+    """Replace newlines and every character in :data:`TERMINAL_UNSAFE_RE` with U+FFFD.
+
+    For attacker-controlled text shown on one line: evidence, input file names.
+    """
+    return _UNSAFE_OR_NEWLINE_RE.sub("\ufffd", text)
 
 
 def without_surrogates(text: str) -> str:

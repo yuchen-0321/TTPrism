@@ -171,6 +171,11 @@ def test_ip_lookups_use_an_index() -> None:
         (["2001:db8::/127"], "2001:db8::2", False),
         (["2001:db8::/32"], "2001:db9::", False),
         (["::ffff:0:0/96"], "203.0.113.9", False),  # versions never mix
+        # ...but an IPv4-mapped address is the IPv4 address, as for the reserved check.
+        (["203.0.113.0/24"], "::ffff:203.0.113.5", True),
+        (["::ffff:0:0/96"], "::ffff:203.0.113.5", True),
+        (["203.0.113.0/24"], "::cb00:7105", False),  # IPv4-compatible, deprecated
+        (["203.0.113.0/24"], "64:ff9b::cb00:7105", False),  # NAT64
     ],
 )
 def test_ip_matching(ips: list[str], value: str, listed: bool) -> None:
@@ -187,6 +192,19 @@ def test_ip_index_follows_updates() -> None:
     allowlist.update(Allowlist.from_mapping({"ips": ["203.0.113.0/24"]}))
     assert allowlist.matches(IOCType.IPV4, "203.0.113.9")
     assert allowlist.matches(IOCType.IPV4, "198.51.100.1")
+    # The networks are a tuple, so a change is a new value, even with the same length.
+    allowlist.networks = (ipaddress.ip_network("192.0.2.0/24"), ipaddress.ip_network("203.0.113.0/24"))
+    assert allowlist.matches(IOCType.IPV4, "192.0.2.7")
+    assert not allowlist.matches(IOCType.IPV4, "198.51.100.1")
+    assert isinstance(Allowlist.default().networks, tuple)
+
+
+def test_url_hosts_with_underscores_can_be_listed() -> None:
+    allowlist = Allowlist.from_mapping({"domains": ["my_bucket.example.com"], "url_hosts": ["*.example.com"]})
+    assert allowlist.matches(IOCType.DOMAIN, "my_bucket.example.com")
+    assert allowlist.matches(IOCType.URL, "https://my_bucket.example.com/x")
+    with pytest.raises(AllowlistError, match="not a valid domain name"):
+        Allowlist.from_mapping({"domains": ["evil.co_m"]})
 
 
 def test_oversized_allowlist_rejected(tmp_path: Path) -> None:

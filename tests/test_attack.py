@@ -158,6 +158,24 @@ def test_rule_warnings_for_outdated_techniques(tmp_path: Path) -> None:
             '"19.2"',
             "duplicate rule id",
         ),
+        # A repeated key would silently replace the first value.
+        ("- id: x\n  technique: T1059\n  match: {commands: [a], commands: [b]}\n", '"19.2"', "duplicate key"),
+        (
+            "- id: x\n  technique: T1490\n  technique: T1059\n  match: {commands: [a]}\n",
+            '"19.2"',
+            "duplicate key",
+        ),
+        # Scalars that PyYAML cannot build: a clean error, not a traceback.
+        (
+            "- id: x\n  technique: T1059\n  match: {commands: [a]}\n  n: " + "1" * 5000 + "\n",
+            '"19.2"',
+            "value",
+        ),
+        (
+            "- id: x\n  technique: T1059\n  match: {commands: [a]}\n  d: 2026-02-30\n",
+            '"19.2"',
+            "out of range",
+        ),
     ],
 )
 def test_invalid_rules(tmp_path: Path, body: str, version: str, message: str) -> None:
@@ -335,7 +353,17 @@ def test_apis_all_evidence_is_deterministic(tmp_path: Path) -> None:
 
 
 def test_printable_maps_surrogates_and_bidi_controls() -> None:
-    unsafe = [chr(0xD800), chr(0xDFFF), *map(chr, range(0x202A, 0x202F)), *map(chr, range(0x2066, 0x206A))]
+    unsafe = [
+        chr(0xD800),
+        chr(0xDFFF),
+        *map(chr, range(0x202A, 0x202F)),
+        *map(chr, range(0x2066, 0x206A)),
+        "\u061c",
+        "\u200e",
+        "\u200f",
+        "\x9b",
+        "\n",
+    ]
     cleaned = _printable("a" + "".join(unsafe) + "\tb")
     assert cleaned == "a" + chr(0xFFFD) * len(unsafe) + "\tb"
     cleaned.encode("utf-8")

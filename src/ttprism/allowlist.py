@@ -51,7 +51,8 @@ class _DomainSet:
 
     def add(self, entry: str, where: str) -> None:
         wildcard = entry.startswith("*.")
-        name = normalize_domain(entry[2:] if wildcard else entry)
+        # "_" is allowed where URL hosts allow it, so that every reported domain can be listed.
+        name = normalize_domain(entry[2:] if wildcard else entry, allow_underscore=True)
         if name is None:
             raise AllowlistError(f"{where}: not a valid domain name: {entry!r}")
         (self.suffixes if wildcard else self.exact).add(name)
@@ -74,9 +75,8 @@ class _NetworkIndex:
     IPv4, 129 for IPv6) instead of one test per network.
     """
 
-    def __init__(self, networks: list[IPNetwork]) -> None:
+    def __init__(self, networks: tuple[IPNetwork, ...]) -> None:
         self.source = networks
-        self.size = len(networks)
         # version -> prefix length -> network addresses as integers
         self.starts: dict[int, dict[int, set[int]]] = {4: {}, 6: {}}
         for net in networks:
@@ -95,7 +95,8 @@ class _NetworkIndex:
 class Allowlist:
     domains: _DomainSet = field(default_factory=_DomainSet)
     url_hosts: _DomainSet = field(default_factory=_DomainSet)
-    networks: list[IPNetwork] = field(default_factory=list)
+    # A tuple, so that the index below cannot go stale: changing it means assigning a new one.
+    networks: tuple[IPNetwork, ...] = ()
     hashes: set[str] = field(default_factory=set)
     emails: set[str] = field(default_factory=set)
     _index: _NetworkIndex | None = field(default=None, init=False, repr=False, compare=False)
@@ -129,6 +130,7 @@ class Allowlist:
             listed = ", ".join(names[:_MAX_LISTED_KEYS]) + (f" and {more} more" if more > 0 else "")
             raise AllowlistError(f"{where}: unknown keys: {listed}")
         result = cls()
+        networks: list[IPNetwork] = []
         for key in _KEYS:
             values = data.get(key) or []
             if not isinstance(values, list):
@@ -136,7 +138,11 @@ class Allowlist:
             for value in values:
                 if not isinstance(value, str):
                     raise AllowlistError(f"{where}: '{key}' entries must be strings, got {value!r}")
-                result._add(key, value.strip(), f"{where}: {key}")
+                if key == "ips":
+                    networks.append(_network(value.strip(), f"{where}: {key}"))
+                else:
+                    result._add(key, value.strip(), f"{where}: {key}")
+        result.networks = tuple(networks)
         return result
 
     def _add(self, key: str, value: str, where: str) -> None:
@@ -144,11 +150,6 @@ class Allowlist:
             self.domains.add(value, where)
         elif key == "url_hosts":
             self.url_hosts.add(value, where)
-        elif key == "ips":
-            try:
-                self.networks.append(ipaddress.ip_network(value, strict=False))
-            except ValueError:
-                raise AllowlistError(f"{where}: not an IP address or CIDR range: {value!r}") from None
         elif key == "hashes":
             if not _HASH_RE.fullmatch(value.lower()):
                 raise AllowlistError(f"{where}: not an MD5/SHA-1/SHA-256 hex digest: {value!r}")
@@ -162,17 +163,21 @@ class Allowlist:
     def update(self, other: Allowlist) -> None:
         self.domains.update(other.domains)
         self.url_hosts.update(other.url_hosts)
-        self.networks.extend(other.networks)
+        if other.networks:
+            self.networks = (*self.networks, *other.networks)
         self.hashes |= other.hashes
         self.emails |= other.emails
 
     def _ip_listed(self, value: str) -> bool:
         address = ipaddress.ip_address(value)
         index = self._index
-        # Rebuilt when networks were added (or the list replaced) since the last lookup.
-        if index is None or index.source is not self.networks or index.size != len(self.networks):
+        if index is None or index.source is not self.networks:  # rebuilt after networks changed
             index = self._index = _NetworkIndex(self.networks)
-        return index.contains(address)
+        if index.contains(address):
+            return True
+        # "::ffff:198.51.100.7" is 198.51.100.7, as for the reserved-address check.
+        mapped = getattr(address, "ipv4_mapped", None)
+        return mapped is not None and index.contains(mapped)
 
     def matches(self, ioc_type: IOCType, value: str) -> bool:
         if ioc_type == IOCType.DOMAIN:
@@ -192,6 +197,13 @@ class Allowlist:
                     pass
             return self.url_hosts.matches(host)
         return False
+
+
+def _network(value: str, where: str) -> IPNetwork:
+    try:
+        return ipaddress.ip_network(value, strict=False)
+    except ValueError:
+        raise AllowlistError(f"{where}: not an IP address or CIDR range: {value!r}") from None
 
 
 def _short(text: str, limit: int = 80) -> str:

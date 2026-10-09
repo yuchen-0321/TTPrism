@@ -8,7 +8,7 @@ import json
 from typing import Any
 
 from ttprism._version import __version__
-from ttprism.inputs import without_surrogates
+from ttprism.inputs import printable
 from ttprism.models import AnalysisResult
 from ttprism.refang import defang
 
@@ -28,8 +28,8 @@ def to_dict(result: AnalysisResult, *, defanged: bool = False) -> dict[str, Any]
     return {
         "tool": "ttprism",
         "version": __version__,
-        # A name taken from a non-UTF-8 file name carries surrogates, which cannot be encoded.
-        "input": {"name": without_surrogates(name) if name else name, "format": result.input_format},
+        # Library callers may set any name: no surrogates (unencodable) or terminal controls.
+        "input": {"name": printable(name) if name else name, "format": result.input_format},
         "attack_version": result.attack_version,
         "defanged": defanged,
         "iocs": iocs,

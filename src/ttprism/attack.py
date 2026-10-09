@@ -46,6 +46,7 @@ from pathlib import Path
 from typing import Any
 
 from ttprism._yaml import ConfigError, load_yaml_file, load_yaml_text
+from ttprism.inputs import printable
 from ttprism.models import TechniqueMatch
 
 TECHNIQUE_ID_RE = re.compile(r"T[0-9]{4}(?:\.[0-9]{3})?")
@@ -226,15 +227,10 @@ class _PhraseList:
         return _contains_all(self.joined, joined)
 
 
-# C0 controls except tab, DEL and C1 controls, lone surrogates (not encodable) and the bidi
-# embedding, override and isolate controls ("Trojan Source").
-_UNPRINTABLE_RE = re.compile(r"[\x00-\x08\x0a-\x1f\x7f-\x9f\ud800-\udfff\u202a-\u202e\u2066-\u2069]")
-
-
 def _printable(text: str) -> str:
     """Make attacker-controlled text safe to show in a terminal or spreadsheet."""
     # Cut first so the cost does not grow with the input; the substitution is one-to-one.
-    cleaned = _UNPRINTABLE_RE.sub("\ufffd", text[: MAX_EVIDENCE_CHARS + 1])
+    cleaned = printable(text[: MAX_EVIDENCE_CHARS + 1])
     if len(cleaned) > MAX_EVIDENCE_CHARS:
         cleaned = cleaned[: MAX_EVIDENCE_CHARS - 1] + "…"
     return cleaned

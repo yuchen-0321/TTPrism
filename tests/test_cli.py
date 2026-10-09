@@ -277,6 +277,90 @@ def test_output_to_a_named_pipe_is_written_through(
     assert json.loads(received[0])["iocs"][0]["value"] == "evil.com"
 
 
+def _extract_to(capsys: pytest.CaptureFixture[str], tmp_path: Path, output: Path) -> None:
+    code, _, err = run(capsys, "extract", str(_report(tmp_path)), "-o", str(output))
+    assert code == 0, err
+    assert json.loads(output.read_text(encoding="utf-8"))["iocs"][0]["value"] == "evil.com"
+    assert not [p for p in tmp_path.iterdir() if p.name.endswith(".tmp")]
+
+
+@pytest.mark.skipif(not hasattr(os, "link"), reason="needs hard links")
+def test_hard_linked_output_is_written_in_place(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+    output = tmp_path / "out.json"
+    output.write_text("previous", encoding="utf-8")
+    other = tmp_path / "other.json"
+    os.link(output, other)
+    _extract_to(capsys, tmp_path, output)
+    assert other.read_text(encoding="utf-8") == output.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    "replace",
+    [
+        # A file in a directory the user cannot write to, a bind-mounted file (a container
+        # volume), or a file whose owner or group a new file would not get.
+        pytest.param(
+            {"tempfile.mkstemp": PermissionError(13, "Permission denied")}, id="read-only directory"
+        ),
+        pytest.param({"os.path.ismount": True}, id="mount point"),
+        pytest.param({"os.replace": OSError(16, "Device or resource busy")}, id="busy target"),
+        pytest.param({"_same_owner": False}, id="other owner"),
+    ],
+)
+def test_output_is_written_in_place_when_it_cannot_be_replaced(
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    replace: dict[str, Any],
+) -> None:
+    output = tmp_path / "out.json"
+    output.write_text("previous", encoding="utf-8")
+    inode = output.stat().st_ino
+    for name, value in replace.items():
+        if isinstance(value, Exception):
+
+            def fail(*args: Any, error: Exception = value, **kwargs: Any) -> Any:
+                raise error
+
+            monkeypatch.setattr(f"ttprism.cli.{name}", fail)
+        else:
+            monkeypatch.setattr(f"ttprism.cli.{name}", lambda *args, result=value: result)
+    _extract_to(capsys, tmp_path, output)
+    assert output.stat().st_ino == inode
+
+
+def test_new_output_file_in_an_unwritable_directory_is_an_error(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    def fail(*args: Any, **kwargs: Any) -> Any:
+        raise PermissionError(13, "Permission denied")
+
+    monkeypatch.setattr("ttprism.cli.tempfile.mkstemp", fail)
+    code, _, err = run(capsys, "extract", str(_report(tmp_path)), "-o", str(tmp_path / "new.json"))
+    assert code == 1
+    assert "Permission denied" in err
+
+
+@pytest.mark.skipif(os.name != "posix" or os.geteuid() != 0, reason="needs root to give a file another owner")
+def test_output_file_keeps_its_owner(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+    output = tmp_path / "out.json"
+    output.write_text("previous", encoding="utf-8")
+    os.chown(output, 4321, 4321)
+    _extract_to(capsys, tmp_path, output)
+    assert (output.stat().st_uid, output.stat().st_gid) == (4321, 4321)
+
+
+@pytest.mark.parametrize("name", ["a" * 250 + ".json", "某" * 82 + "_IOC.json"], ids=["ascii", "cjk"])
+def test_output_names_up_to_the_file_system_limit(
+    capsys: pytest.CaptureFixture[str], tmp_path: Path, name: str
+) -> None:
+    try:
+        (tmp_path / name).write_text("previous", encoding="utf-8")
+    except OSError:
+        pytest.skip("the file system does not take a name this long")
+    _extract_to(capsys, tmp_path, tmp_path / name)
+
+
 def test_rule_file_aliases_and_deep_nesting(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
     # Lists of lists are valid in rule files, so aliases used to expand to N*M phrases.
     phrases, aliases = ", ".join(["p"] * 2000), ", ".join(["*a"] * 2000)
@@ -388,6 +472,12 @@ def test_utf32_and_bomless_utf16(capsys: pytest.CaptureFixture[str], tmp_path: P
         assert err == ""
         assert [i["value"] for i in json.loads(out)["iocs"]] == ["evil.com"]
 
+    # FF FE 00 00 is also a UTF-16 byte-order mark followed by U+0000.
+    report.write_bytes(codecs.BOM_UTF16_LE + "\x00 evil.com\n".encode("utf-16-le"))
+    code, out, err = run(capsys, "extract", str(report))
+    assert code == 0, err
+    assert [i["value"] for i in json.loads(out)["iocs"]] == ["evil.com"]
+
     report.write_bytes("evil.com\n".encode("utf-16-le"))
     code, out, err = run(capsys, "extract", str(report))
     assert code == 0
@@ -497,6 +587,57 @@ def test_messages_are_safe_for_terminals(capsys: pytest.CaptureFixture[str], tmp
     assert "\u202e" not in err
     assert "x\ufffdy" in err
     assert all(line.startswith(("ttprism: error: ", "  ")) for line in err.splitlines())
+
+
+def test_argument_errors_are_safe_for_terminals(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+    # A glob can pass a second, hostile file name, which argparse quotes as unrecognized.
+    hostile = "b\x1b]0;x\x07\x1b[2J\u202etxt.exe"
+    with pytest.raises(SystemExit) as info:
+        main(["extract", str(_report(tmp_path)), hostile])
+    assert info.value.code == 2
+    err = capsys.readouterr().err
+    assert "unrecognized arguments" in err
+    assert not set(err) & {"\x1b", "\x07", "\u202e"}
+
+
+@pytest.mark.parametrize("fmt", ["json", "stix", "csv"])
+def test_input_name_and_evidence_are_safe_for_terminals(
+    capsys: pytest.CaptureFixture[str], tmp_path: Path, fmt: str
+) -> None:
+    unsafe = {"\u202e", "\u200e", "\u200f", "\u061c", "\u2066", "\x9b", "\x1b"}
+    name = "invoice\u202efdp.exe\x9b2J" if os.name == "posix" else "invoice\u202efdp.exe"
+    report = tmp_path / f"{name}.json"
+    command = "vssadmin delete shadows /all /quiet \u200f\u061c\u202e\u200e\u2066"
+    report.write_text(
+        json.dumps({"info": {}, "behavior": {"summary": {"executed_commands": [command]}}}), encoding="utf-8"
+    )
+    code, out, err = run(capsys, "extract", str(report), "-f", fmt)
+    assert code == 0, err
+    assert "T1490" in out
+    assert not set(out) & unsafe
+
+
+def test_quiet_silences_every_warning(capsys: pytest.CaptureFixture[str], data_dir: Path) -> None:
+    report = str(data_dir / "cape_report.json")
+    code, out, err = run(capsys, "extract", report, "-f", "stix", "--defang", "-q")
+    assert code == 0
+    assert json.loads(out)["type"] == "bundle"
+    assert err == ""
+
+
+def test_config_values_that_yaml_cannot_build(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+    report = _report(tmp_path)
+    allow = tmp_path / "allow.yaml"
+    for content, message in (
+        ("domains: [a.com]\ndomains: [b.com]\n", "duplicate key"),
+        ("ips: [" + "1" * 5000 + "]\n", "invalid YAML value"),
+        ("emails: [2026-02-30]\n", "invalid YAML value"),
+    ):
+        allow.write_text(content, encoding="utf-8")
+        code, _, err = run(capsys, "extract", str(report), "--allowlist", str(allow))
+        assert code == 1
+        assert message in err
+        assert "Traceback" not in err
 
 
 def test_terminal_safe() -> None:

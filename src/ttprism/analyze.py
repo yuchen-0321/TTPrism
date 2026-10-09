@@ -17,8 +17,8 @@ from ttprism.inputs import (
     InputError,
     decode_text,
     load_json,
+    printable,
     read_bytes,
-    without_surrogates,
 )
 from ttprism.models import IOC, AnalysisResult, IOCCollector, IOCType, sort_iocs
 from ttprism.refang import refang
@@ -134,8 +134,8 @@ def analyze_file(
     if input_format not in ("auto", "text", "cape"):
         raise ValueError(f"unknown input format: {input_format}")
     text, warnings = decode_text(read_bytes(path, max_bytes), encoding)
-    # A file name that is not valid UTF-8 would make the output unencodable.
-    input_name = without_surrogates(str(path))
+    # The name goes into the output as is: no surrogates (unencodable) or terminal controls.
+    input_name = printable(str(path))
 
     if input_format == "cape" or (input_format == "auto" and text.lstrip().startswith("{")):
         try:

@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from ttprism._version import __version__
+from ttprism.inputs import printable
 from ttprism.models import AnalysisResult, IOCType
 
 _PATTERNS = {
@@ -91,7 +92,9 @@ def to_stix_bundle(
         )
 
     if objects:
-        name = f"TTPrism analysis of {result.input_name}" if result.input_name else "TTPrism analysis"
+        name = (
+            f"TTPrism analysis of {printable(result.input_name)}" if result.input_name else "TTPrism analysis"
+        )
         objects.append(
             {
                 "type": "grouping",

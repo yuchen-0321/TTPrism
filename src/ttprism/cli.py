@@ -7,13 +7,12 @@ import contextlib
 import errno
 import json
 import os
-import re
 import stat
 import sys
 import tempfile
 from collections.abc import Sequence
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, NoReturn
 
 from ttprism._version import __version__
 from ttprism._yaml import ConfigError
@@ -21,17 +20,11 @@ from ttprism.allowlist import Allowlist
 from ttprism.analyze import AnalysisOptions, analyze_file
 from ttprism.attack import AttackCatalog, RuleSet, default_rules_path
 from ttprism.export import to_csv, to_json
-from ttprism.inputs import DEFAULT_MAX_BYTES, InputError, without_surrogates
+from ttprism.inputs import DEFAULT_MAX_BYTES, TERMINAL_UNSAFE_RE, InputError, without_surrogates
 from ttprism.stix import to_stix_bundle
 
 EXIT_OK, EXIT_ERROR, EXIT_USAGE = 0, 1, 2
 MAX_SIZE = 16 * 1024**3
-
-# Characters a terminal may act on: C0 controls except tab and newline, DEL and C1 controls,
-# lone surrogates, and the bidi marks, embeddings, overrides and isolates ("Trojan Source").
-_TERMINAL_UNSAFE_RE = re.compile(
-    r"[\x00-\x08\x0b-\x1f\x7f-\x9f\ud800-\udfff\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]"
-)
 
 
 def _size(value: str) -> int:
@@ -51,8 +44,14 @@ def _size(value: str) -> int:
     return size
 
 
+class _Parser(argparse.ArgumentParser):
+    def error(self, message: str) -> NoReturn:
+        # "unrecognized arguments" quotes command-line words, such as file names from a glob.
+        super().error(_terminal_safe(message))
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    parser = _Parser(
         prog="ttprism",
         description="Extract IOCs from threat reports and sandbox output and map behaviour to MITRE ATT&CK.",
     )
@@ -121,7 +120,7 @@ def _terminal_safe(message: str) -> str:
     (PyYAML errors span several lines) but indented, so that a line cannot
     pass itself off as a separate ttprism message.
     """
-    return _TERMINAL_UNSAFE_RE.sub("\ufffd", message).replace("\n", "\n  ")
+    return TERMINAL_UNSAFE_RE.sub("\ufffd", message).replace("\n", "\n  ")
 
 
 def _print_stderr(message: str) -> None:
@@ -174,7 +173,7 @@ def _cmd_extract(args: argparse.Namespace) -> int:
         output = to_csv(result, defanged=args.defang)
     else:
         if args.defang:
-            _warn("--defang is ignored for STIX output; patterns need the real values")
+            result.warnings.append("--defang is ignored for STIX output; patterns need the real values")
         output = json.dumps(to_stix_bundle(result), ensure_ascii=False, indent=2) + "\n"
 
     if not args.quiet:
@@ -232,7 +231,8 @@ def _write_file(path: Path, data: bytes) -> None:
 def _replace_file(path: Path, data: bytes) -> None:
     """Write ``data`` to a temporary file and move it over ``path``.
 
-    A failed run then never leaves a truncated or half-written output file.
+    A failed run then never leaves a truncated or half-written output file. Where a new file
+    cannot stand in for the old one, the old one is overwritten in place, as open() would.
     """
     try:
         info: os.stat_result | None = path.stat()
@@ -240,24 +240,62 @@ def _replace_file(path: Path, data: bytes) -> None:
         info = None
     if info is not None and not stat.S_ISREG(info.st_mode):
         # A device or pipe such as /dev/null: it must not be replaced and cannot be truncated.
-        with path.open("wb") as handle:
-            _write_all(handle, data)
+        _write_in_place(path, data)
         return
     if info is not None and not os.access(path, os.W_OK):
         # Replacing needs only a writable directory; keep refusing read-only files as open() did.
         raise PermissionError(errno.EACCES, os.strerror(errno.EACCES))
     target = Path(os.path.realpath(path))  # through a symlink, replace the file it points to
+    if info is not None and (info.st_nlink > 1 or os.path.ismount(target)):
+        # Other hard links would keep the old content, and a bind-mounted file (a container
+        # volume) cannot be renamed over.
+        _write_in_place(target, data)
+        return
     mode = stat.S_IMODE(info.st_mode) if info is not None else 0o666 & ~_umask()
-    fd, temp = tempfile.mkstemp(prefix=f".{target.name}.", suffix=".tmp", dir=target.parent)
+    try:
+        # A short name: the target's own name may already be close to NAME_MAX.
+        fd, temp = tempfile.mkstemp(prefix=f".{target.name[:48]}.", suffix=".tmp", dir=target.parent)
+    except OSError:
+        if info is None:
+            raise
+        _write_in_place(target, data)  # a writable file in a directory that is not writable
+        return
     try:
         with os.fdopen(fd, "wb") as handle:
             _write_all(handle, data)
         os.chmod(temp, mode)  # mkstemp creates the file as 0600
-        os.replace(temp, target)
+        if info is not None and not _same_owner(temp, info):
+            # A file shared through its group or owner would change hands.
+            os.unlink(temp)
+            _write_in_place(target, data)
+            return
+        try:
+            os.replace(temp, target)
+        except OSError as exc:
+            if info is None or exc.errno not in (errno.EBUSY, errno.EXDEV):
+                raise
+            # A mount point that ismount() cannot see, such as a bind mount within one file system.
+            os.unlink(temp)
+            _write_in_place(target, data)
     except BaseException:
         with contextlib.suppress(OSError):
             os.unlink(temp)
         raise
+
+
+def _write_in_place(path: Path, data: bytes) -> None:
+    with path.open("wb") as handle:
+        _write_all(handle, data)
+
+
+def _same_owner(temp: str, info: os.stat_result) -> bool:
+    """Give ``temp`` the owner and group in ``info`` where allowed; True if it then has both."""
+    if sys.platform == "win32":
+        return True
+    with contextlib.suppress(OSError):
+        os.chown(temp, info.st_uid if os.geteuid() == 0 else -1, info.st_gid)
+    new = os.stat(temp)
+    return (new.st_uid, new.st_gid) == (info.st_uid, info.st_gid)
 
 
 def _umask() -> int:
