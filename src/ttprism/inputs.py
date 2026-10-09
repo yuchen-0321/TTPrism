@@ -54,12 +54,14 @@ def decode_text(data: bytes, encoding: str | None = None) -> tuple[str, list[str
 
 
 def load_json(text: str) -> Any:
-    """Parse JSON. Nesting depth is bounded by the json module's recursion guard.
+    """Parse JSON. Nesting depth is bounded by the interpreter's recursion guard.
 
-    CPython's decoder raises RecursionError once nesting reaches the
-    interpreter recursion limit (about 1000 levels), before it can exhaust
-    the C stack. A separate pre-scan would add a second full pass over large
-    sandbox reports for no extra protection.
+    CPython's decoder raises RecursionError before it can exhaust the C stack:
+    at the recursion limit (about 1000 levels) on Python 3.11-3.13, and when
+    stack space runs low (tens of thousands of levels) on 3.14+. Deeper
+    documents are rejected; shallower ones are harmless because TTPrism never
+    walks parsed data recursively. An explicit depth check would cost a second
+    pass over large sandbox reports for no extra protection.
     """
     try:
         return json.loads(text)

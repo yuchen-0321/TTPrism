@@ -111,8 +111,10 @@ def test_bad_inputs(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
     assert code == 1
     assert "cannot read" in err
 
+    # Valid JSON nested deeper than the interpreter allows on every supported
+    # version: the recursion limit on 3.11-3.13, stack-space checks on 3.14+.
     deep = tmp_path / "deep.json"
-    deep.write_text("[" * 10_000, encoding="utf-8")
+    deep.write_text("[" * 1_000_000 + "]" * 1_000_000, encoding="utf-8")
     code, _, err = run(capsys, "extract", str(deep), "--input-format", "cape")
     assert code == 1
     assert "nesting too deep" in err
