@@ -1455,6 +1455,44 @@ def test_soft_hyphen_at_a_line_end_works_like_a_hyphen(template: str, gap: str) 
     assert (soft.iocs, soft.suppressed) == (hard.iocs, hard.suppressed)
 
 
+@pytest.mark.parametrize("gap", ["\r\u200b", "\r\ufeff\u2060", " \r\u200b", "\u2009\r\u200b"])
+def test_soft_hyphen_before_a_split_line_break_works_like_a_hyphen(gap: str) -> None:
+    options = AnalysisOptions(include_reserved=True)
+    soft = analyze_text(f"see http://files.example.com/a\u00ad{gap}\nb.exe now", options)
+    hard = analyze_text(f"see http://files.example.com/a-{gap}\nb.exe now", options)
+    assert (soft.iocs, soft.suppressed) == (hard.iocs, hard.suppressed)
+
+
+@pytest.mark.parametrize(
+    ("text", "url"),
+    [
+        ("ftp://u:Pa;ss@files.example.com/KB-Auto-\nwin.exe", "ftp://u:Pa;ss@files.example.com/KB-Auto-win.exe"),
+        ("ftp://u:Pa;ss@files.example.com/KB-Auto\u00ad\nwin.exe", "ftp://u:Pa;ss@files.example.com/KB-Auto-win.exe"),
+        ("ftp://backup:p,w@files.example.com/a-\nb.exe", "ftp://backup:p,w@files.example.com/a-b.exe"),
+        ("'http://files.example.com/KB-Auto-\nwin.exe'", "http://files.example.com/KB-Auto-win.exe"),
+        ("http://198.51.100.7/KB-Auto-win-update-\nservice-pack-\nx64.exe", "http://198.51.100.7/KB-Auto-win-update-service-pack-x64.exe"),
+        ("http://198.51.100.7/a-\n  b-\n  c-\n  d.exe", "http://198.51.100.7/a-b-c-d.exe"),
+        ("C2 http://files.example.com/x.exe\uff0chttp://198.51.100.7/KB-\nAuto.exe", "http://198.51.100.7/KB-Auto.exe"),
+        ("样本下载自http://files.example.com/x.exe，http://198.51.100.7/KB-\nAuto.exe", "http://198.51.100.7/KB-Auto.exe"),
+    ],
+)  # fmt: skip
+def test_urls_wrapped_after_their_own_hyphens_are_joined(text: str, url: str) -> None:
+    assert url in [v for t, v in everything(text) if t == "url"]
+    assert "line_wrap_fragment" not in analyze_text(text, AnalysisOptions(include_reserved=True)).suppressed
+
+
+@pytest.mark.parametrize(
+    ("text", "url"),
+    [
+        ("C2: ['http://a.example.com/x.exe','dynamic-\ndns.example.net']", "http://a.example.com/x.exe"),
+        ("http://198.51.100.7/a-\nb c-\nevil.example.com", "http://198.51.100.7/a-b"),
+    ],
+)
+def test_urls_that_ended_before_a_line_end_hyphen_are_not_joined(text: str, url: str) -> None:
+    assert [v for t, v in everything(text) if t == "url"] == [url]
+    assert stats_for(refang(text))["line_wrap_fragment"] == 1
+
+
 @pytest.mark.parametrize(
     "text",
     [
@@ -1491,6 +1529,15 @@ def soft_hyphen_warnings(text: str) -> list[str]:
         "http://198.51.100.7/a,kb\u00adauto",
         "KB\u00ad\u00adAuto.example.com",
         "KB\u200b\u00adAuto.example.com",
+        "http://198.51.100.7/a(kb\u00adauto)",
+        "http://198.51.100.7/a;kb\u00adauto",
+        "C2: \uff4b\uff42\u00ad\uff41\uff55\uff54\uff4f\uff0eexample\uff0ecom",
+        "C2: KB\u00ad\uff21uto.example.com",
+        "GET /%2Fkb\u00adauto.example.net",
+        # Joined across a line break.
+        "下载地址：hxxp://files[.]example[.]com/download/update\u00ad\nKB\u00adAuto，随后执行",
+        "payload: http://files.example.com/update-\nkb\u00adauto now",
+        "C2: kb\u00adauto\u00ad\n.example.net was used",
     ],
 )
 def test_soft_hyphens_inside_names_and_urls_are_reported(text: str) -> None:
@@ -1506,6 +1553,12 @@ def test_soft_hyphens_inside_names_and_urls_are_reported(text: str) -> None:
         "It impersonates Micro\u00adsoft. Phishing page: https://microsoft-login.example.net/",
         "e\u00admail: ops@example.org and https://email.example.net/",
         "Second stage (see the up\u00addate.) http://198.51.100.7/update.exe",
+        "The loader (down\u00adload) fetches http://198.51.100.7/download.php",
+        "Use the 'up\u00addate' command: http://198.51.100.7/update.exe",
+        "Micro\u00adsoft's update server is spoofed: http://microsoft.example.net/",
+        "The implant can down\u00adload/execute files from http://198.51.100.7/download.php",
+        "the down\u00adload-and-execute stage uses http://198.51.100.7/download.php",
+        "Payload: KB\u200bAuto.example.com, see also hyphen\u00adation",  # no soft hyphen in the name
         "md5=00b68e6db2bb\u00ad7412fabcbaa2192394ad.",  # hashes have no hyphens to lose
         "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",
         "update\u00ad\ncheck-server.example.com",
@@ -1522,3 +1575,6 @@ def test_soft_hyphen_warning_counts_the_values() -> None:
     # A value counts when it contains a joined word, wherever that word was joined.
     (warning,) = soft_hyphen_warnings("KB\u00adAuto.example.com and kbauto.example.net")
     assert warning.startswith("2 extracted name(s)")
+    # Whole words only.
+    (warning,) = soft_hyphen_warnings("KB\u00adAuto.example.com and mykbauto.example.net")
+    assert warning.startswith("1 extracted name(s)")

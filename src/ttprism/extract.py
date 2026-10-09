@@ -111,10 +111,11 @@ _SERIAL_LABEL_RE = re.compile(
 )
 # PDF line breaks inside a name or a URL. Next to a dot a hyphen cannot belong to the name, so
 # "evil.-\ncom" and "evil-\n.com" are joined without it. A URL that breaks after one of its own
-# hyphens ("/a-\nb.exe") is joined keeping it. Any other hyphen at the end of a line may or may not
-# belong to the name ("dynamic-\ndns.net"), so the rest of the name on the next line is dropped as
-# a fragment instead. The pattern starts with the hyphen, so the engine skips ahead to hyphens;
-# _rejoin_wrapped_lines looks at the characters around it.
+# hyphens ("/a-\nb.exe"), over as many lines as it takes, is joined keeping them. Any other
+# hyphen at the end of a line may or may not belong to the name ("dynamic-\ndns.net"), so the rest
+# of the name on the next line is dropped as a fragment instead. The pattern starts with the
+# hyphen, so the engine skips ahead to hyphens; _rejoin_wrapped_lines looks at the characters
+# around it.
 _HYPHEN_WRAP_RE = re.compile(r"-[ \t]{0,8}\r?\n[ \t]{0,8}")
 _DASH = "-\u2010\u2011\u2012\u2013\u2014\u2015\u2212"
 CVE_RE = re.compile(
@@ -811,6 +812,7 @@ def _rejoin_wrapped_lines(text: str) -> str:
         return text
     pieces = []
     last = 0
+    url_line = url_rest = -1  # a line that continues a URL joined to it, and where the rest starts
     for match in _HYPHEN_WRAP_RE.finditer(text):
         hyphen, after = match.start(), match.end()
         before, next_char = text[hyphen - 1 : hyphen], text[after : after + 1]
@@ -818,8 +820,13 @@ def _rejoin_wrapped_lines(text: str) -> str:
             cut = hyphen  # "evil.-\ncom"
         elif _is_alnum(before) and next_char == "." and _is_alnum(text[after + 1 : after + 2]):
             cut = hyphen  # "evil-\n.com"
-        elif _is_alnum(before) and _is_alnum(next_char) and _url_reaches(text, hyphen):
-            cut = hyphen + 1  # "http://evil.com/a-\nb.exe"
+        elif (
+            _is_alnum(before)
+            and _is_alnum(next_char)
+            and (_url_reaches(text, hyphen) or _continues_url(text, url_line, url_rest, hyphen))
+        ):
+            cut = hyphen + 1  # "http://evil.com/a-\nb.exe", also when the URL wraps again
+            url_line, url_rest = text.rfind("\n", hyphen, after) + 1, after
         else:
             continue
         pieces.append(text[last:cut])
@@ -836,15 +843,27 @@ def _url_reaches(text: str, hyphen: int) -> bool:
     """True if a URL on the hyphen's line runs up to the hyphen, which is then its last character.
 
     A URL earlier on the line that has ended does not count: in Chinese text without spaces,
-    "...http://a.example/x.exe，时间为2019-" ends in a date, not in the URL.
+    "...http://a.example/x.exe，时间为2019-" ends in a date, not in the URL. The URLs are those the
+    extractor reads (_url_matches), so a URL that ended at its closing quote does not count either.
     """
     line_start = text.rfind("\n", 0, hyphen) + 1
     if text.rfind("://", line_start, hyphen) == -1:
         return False
+    line = text[line_start : hyphen + 1]
     last = None
-    for last in URL_RE.finditer(text, line_start, hyphen + 1):  # noqa: B007 (the last match is used)
+    for last in _url_matches(line):  # noqa: B007 (the last match is used)
         pass
-    return last is not None and last.end() == hyphen + 1
+    return last is not None and last.end() == len(line)
+
+
+def _continues_url(text: str, url_line: int, url_rest: int, hyphen: int) -> bool:
+    """True if the hyphen ends the line at ``url_line``, which continues a URL joined to it from
+    ``url_rest`` on, and URL characters run from there to the hyphen."""
+    if url_line < 0 or text.rfind("\n", 0, hyphen) + 1 != url_line:
+        return False
+    url = "http://a/" + text[url_rest : hyphen + 1]
+    match = URL_RE.match(url)
+    return match is not None and match.end() == len(url)
 
 
 def extract_into(collector: IOCCollector, text: str, source: str, stats: Counter[str] | None = None) -> None:

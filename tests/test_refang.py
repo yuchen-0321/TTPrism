@@ -260,6 +260,8 @@ def test_soft_hyphens_in_a_guid_become_hyphens() -> None:
         ("update\u00ad\u2069\ncheck", "update- \ncheck"),  # a bidi control before the break
         ("update\u00ad\u2009\u3000\ncheck", "update-  \ncheck"),
         ("update\u00ad" + "\u2009" * 1025 + "\ncheck", "update" + " " * 1025 + "\ncheck"),
+        ("update\u00ad\r\u200b\ncheck", "update-\r\ncheck"),  # deleted characters between CR and LF
+        ("update\u00ad\r \ncheck", "update\r \ncheck"),  # a space there ends the line break
     ],
 )
 def test_soft_hyphen_at_a_line_end_becomes_a_hyphen(text: str, expected: str) -> None:
@@ -288,7 +290,24 @@ def test_soft_hyphen_at_a_line_end_becomes_a_hyphen(text: str, expected: str) ->
         ("\u00adword. and word\u00ad.", set()),  # not between two letters or digits
         ("caf\u00e9\u00adbar.com", set()),
         ("{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}", set()),  # a GUID's hyphens
-        ("\ue000a\u00adb.example", {"ab"}),  # a private-use character in the input is not a mark
+        ("x\u00ady.example a\ue000b.example", {"xy"}),  # a private-use character in the input is not a mark
+        # Words that the extractor joins across a line break.
+        ("update\u00ad\nKB\u00adAuto\uff0c", {"kbauto"}),
+        ("update-\n  kb\u00adauto now", {"kbauto"}),
+        ("kb\u00adauto\u00ad\n.example.net", {"kbauto"}),
+        ("kb\u00adauto.\n example.net", {"kbauto"}),
+        ("kb\u00adauto\nexample.net", set()),  # no hyphen or dot at the break: not joined
+        # Full-width letters and ligatures fold to ASCII; a percent escape before the word is not part of it.
+        ("\uff4b\uff42\u00ad\uff41\uff55\uff54\uff4f\uff0eexample", {"kbauto"}),
+        ("\ufb01\u00adle.example", {"file"}),
+        ("/%2Fkb\u00adauto.example.net", {"2fkbauto", "kbauto"}),
+        # Prose.
+        ("Micro\u00adsoft's", set()),
+        ("down\u00adload/execute", set()),
+        ("down\u00adload-and-execute", set()),
+        ("up\u00addate(s)", set()),
+        ("(down\u00adload)", set()),
+        ("'up\u00addate'", set()),
     ],
 )
 def test_soft_hyphen_words(text: str, expected: set[str]) -> None:

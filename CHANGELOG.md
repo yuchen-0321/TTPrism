@@ -38,12 +38,13 @@ their advisory.
   names (`Backdoor.Win32.Ht`) are dropped (`masked_name`, `detection_name`). A soft hyphen at the
   end of a line, also before spaces or format characters, is read as a hyphen, so these line-break
   rules apply to it; soft hyphens deleted between two letters or digits inside an extracted name,
-  e-mail address or URL, defanged or not (`KB\u00adAuto`, `up\u00addate[.]example[.]com`), give a
-  warning, since some converters write every hyphen that way. A bare `序號` counts as a
+  e-mail address or URL, defanged, full-width or wrapped across lines or not (`KB\u00adAuto`,
+  `up\u00addate[.]example[.]com`), give a warning, since some converters write every hyphen that way. A bare `序號` counts as a
   serial-number label only with a colon, since it also heads the row-number column of tables
   (`證書序號` and `憑證序號` need none). A line ending in a hyphen is joined with the next as part of a
   URL only when the URL really reaches the hyphen, not when a URL ended earlier on the line (Chinese
-  text without spaces).
+  text without spaces) or at its closing quote, and a URL wrapped after its own hyphens over several
+  lines is joined at every break.
 - Refanging of common and CJK defang styles: `[.]`, `(.)`, `[dot]`, `【.】`, `〔.〕`, `[。]`,
   the same markers with a space on each side (` [.] `, ` (at) `, ` {dot} `), `[/]`, `[//]`,
   full-width characters (`．`, `［＠］`, `１９８．５１…`), `hxxp`, `hxxp[s]`, `hxxp(s)`,

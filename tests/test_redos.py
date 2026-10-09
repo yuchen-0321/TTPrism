@@ -162,6 +162,12 @@ PATHOLOGICAL = {
     "line ends after ended urls": ("http://a.com/x\uff0c" + "a" * 40 + "-\n") * (SIZE // 57),
     "line ends after long url paths": ("http://a.com/" + "b" * 2100 + "-\n") * (SIZE // 2115),
     "schemes before line ends": ("a://" * 1000 + "b-\n") * (SIZE // 4003),
+    "short lines with inner soft hyphens": "a\u00adb\n" * (SIZE // 4),
+    "short name lines with inner soft hyphens": "a\u00adb.c\n" * (SIZE // 6),
+    "soft hyphen words before wrapped lines": "a\u00adb-\n" * (SIZE // 5),
+    "urls wrapped at every hyphen": "http://a.com/" + "b-\n" * (SIZE // 3),
+    "wrapped url lines with spaces": ("http://a.com/b-\n" + "c d-\n" * 8) * (SIZE // 56),
+    "quoted urls before line-end hyphens": ("'http://a.com/x','b-\n") * (SIZE // 22),
 }
 
 # Command lines reach the ATT&CK rules from CAPE reports: quotes, carets and chaining, glued

@@ -114,7 +114,12 @@ def _char_class(codes: set[int]) -> str:
 @functools.cache
 def _soft_hyphen_break_re() -> re.Pattern[str]:
     gap = {0x09, 0x20} | {code for code, value in _fold_table().items() if value in (None, " ")} - {0xAD}
-    return re.compile(f"\\u00ad(?=[{_char_class(gap)}]{{0,{_MAX_BREAK_GAP}}}\\r?\\n)")
+    # Between "\r" and "\n" only characters that are deleted outright, not turned into a space.
+    deleted = set(_format_table()) - {0xAD}
+    return re.compile(
+        f"\\u00ad(?=[{_char_class(gap)}]{{0,{_MAX_BREAK_GAP}}}"
+        f"(?:\\r[{_char_class(deleted)}]{{0,{_MAX_BREAK_GAP}}})?\\n)"
+    )
 
 
 def _soft_hyphens_as_hyphens(text: str) -> str:
@@ -126,18 +131,21 @@ def _soft_hyphens_as_hyphens(text: str) -> str:
 # Other soft hyphens are deleted, as break hints. That is wrong when a converter wrote every hyphen
 # as one ("KB\u00adAuto" becomes "KBAuto"). soft_hyphen_words finds the words that this joined
 # inside a name or URL: it marks each run of deleted characters with a soft hyphen in it between two
-# ASCII letters or digits, refangs the marked text, and reads the marks against the refanged names,
-# so defanged names ("up\u00addate[.]example[.]com") count too.
+# letters or digits, refangs the marked text, and reads the marks against the refanged names, so
+# defanged and full-width names ("up\u00addate[.]example[.]com") count too.
 _SOFT_HYPHEN_MARK = "\ue000"  # private use: refang neither deletes nor folds it
 _ASCII_ALNUM = frozenset("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
 _MARKED_WORD_RE = re.compile("[0-9A-Za-z\ue000]*")
-# Punctuation that joins a word to the rest of a name, e-mail address or URL: a word counts if such
-# a character follows it and a letter or digit comes next ("KB\u00adAuto.example"), or one comes
-# before it after another name character ("/KB\u00adAuto"). Prose does not count:
-# "down\u00adload: http://...", "Micro\u00adsoft. ...", "(see the up\u00addate.)".
-_NAME_PUNCTUATION = frozenset("./\\:@-_%?=&#~+,;!()'*$[]")
-_NAME_CHARACTER = _ASCII_ALNUM | _NAME_PUNCTUATION
 _MARKED_WORD_CHARACTER = _ASCII_ALNUM | {_SOFT_HYPHEN_MARK}
+# A word counts if punctuation joins it to the rest of a name, e-mail address or URL: a character of
+# _NAME_PUNCTUATION before it with another name character before that ("/KB\u00adAuto",
+# "a,kb\u00adauto"), or one of _JOINING_PUNCTUATION after it with a letter or digit next
+# ("KB\u00adAuto.example", "ops\u00adteam@"). Prose does not count: "down\u00adload: http://...",
+# "Micro\u00adsoft's", "up\u00addate(s)", "down\u00adload/execute", "(see the up\u00addate.)".
+_NAME_PUNCTUATION = frozenset("./\\:@-_%?=&#~+,;!()'*$[]")
+_JOINING_PUNCTUATION = frozenset(".:@_%?=&#~+,;")
+_NAME_CHARACTER = _ASCII_ALNUM | _NAME_PUNCTUATION
+_HEX = frozenset("0123456789abcdef")
 
 
 @functools.cache
@@ -146,54 +154,126 @@ def _deleted_run_re() -> re.Pattern[str]:
     return re.compile(f"[{_char_class(deleted)}]{{1,64}}")
 
 
+def _folds_to_alnum(char: str, last: bool) -> bool:
+    """True if ``char`` is, or refang folds it to, an ASCII letter or digit (the last one of a
+    folded sequence such as the "fi" ligature when ``last``, else the first)."""
+    if char in _ASCII_ALNUM:
+        return True
+    folded = _fold_table().get(ord(char)) if char else None
+    return bool(folded) and folded is not None and (folded[-1] if last else folded[0]) in _ASCII_ALNUM
+
+
 def _mark_inner_soft_hyphens(match: re.Match[str]) -> str:
     run, text = match.group(0), match.string
     start, end = match.span()
-    if "\u00ad" in run and text[start - 1 : start] in _ASCII_ALNUM and text[end : end + 1] in _ASCII_ALNUM:
+    if (
+        "\u00ad" in run
+        and _folds_to_alnum(text[start - 1 : start], last=True)
+        and _folds_to_alnum(text[end : end + 1], last=False)
+    ):
         return _SOFT_HYPHEN_MARK
     return run
 
 
 def soft_hyphen_words(text: str) -> set[str]:
-    """The lower-cased words that :func:`refang` joins by deleting soft hyphens between two ASCII
-    letters or digits, where punctuation joins the word to more of a name, e-mail address or URL
-    ("KB\u00adAuto.exe" and "up\u00addate[.]example[.]com" give "kbauto" and "update"; prose such
-    as "hyphen\u00adation." gives nothing)."""
+    """The lower-cased words that :func:`refang` joins by deleting soft hyphens between two letters
+    or digits, where punctuation or a wrapped line joins the word to more of a name, e-mail address
+    or URL ("KB\u00adAuto.exe" and "up\u00addate[.]example[.]com" give "kbauto" and "update"; prose
+    such as "hyphen\u00adation." gives nothing)."""
     if "\u00ad" not in text:
         return set()
     marked = _deleted_run_re().sub(
         _mark_inner_soft_hyphens, _soft_hyphens_as_hyphens(text.replace(_SOFT_HYPHEN_MARK, "\ufffd"))
     )
     words: set[str] = set()
-    # Refanging never joins or splits lines, so only the lines with a mark are refanged.
+    # Refanging never joins or splits lines, so only the lines with a mark are refanged, with the
+    # lines before and after them, which the extractor may join to them. Blocks that touch merge.
+    block_start = block_end = -1
     index = marked.find(_SOFT_HYPHEN_MARK)
     while index != -1:
         line_start = marked.rfind("\n", 0, index) + 1
+        start = marked.rfind("\n", 0, line_start - 1) + 1 if line_start else 0
         line_end = marked.find("\n", index)
-        if line_end == -1:
-            line_end = len(marked)
-        _add_marked_words(_refang_rest(marked[line_start:line_end]), words)
+        line_end = len(marked) if line_end == -1 else line_end
+        end = marked.find("\n", line_end + 1)
+        end = len(marked) if end == -1 else end
+        if start > block_end:
+            if block_end >= 0:
+                _add_marked_words(_refang_rest(marked[block_start:block_end]), words)
+            block_start = start
+        block_end = max(block_end, end)
         index = marked.find(_SOFT_HYPHEN_MARK, line_end)
+    if block_end >= 0:
+        _add_marked_words(_refang_rest(marked[block_start:block_end]), words)
     return words
 
 
-def _add_marked_words(line: str, words: set[str]) -> None:
+def _add_marked_words(block: str, words: set[str]) -> None:
     covered = 0
-    index = line.find(_SOFT_HYPHEN_MARK)
+    index = block.find(_SOFT_HYPHEN_MARK)
     while index != -1:
         start = index
-        while start > covered and line[start - 1] in _MARKED_WORD_CHARACTER:
+        while start > covered and block[start - 1] in _MARKED_WORD_CHARACTER:
             start -= 1
-        word_end = _MARKED_WORD_RE.match(line, index)
+        word_end = _MARKED_WORD_RE.match(block, index)
         end = word_end.end() if word_end else index + 1
         covered = end
-        joined_before = (
-            line[start - 1 : start] in _NAME_PUNCTUATION and line[start - 2 : start - 1] in _NAME_CHARACTER
-        )
-        joined_after = line[end : end + 1] in _NAME_PUNCTUATION and line[end + 1 : end + 2] in _ASCII_ALNUM
-        if joined_before or joined_after:
-            words.add(line[start:end].replace(_SOFT_HYPHEN_MARK, "").lower())
-        index = line.find(_SOFT_HYPHEN_MARK, end)
+        if (
+            (
+                block[start - 1 : start] in _NAME_PUNCTUATION
+                and block[start - 2 : start - 1] in _NAME_CHARACTER
+            )
+            or (block[end : end + 1] in _JOINING_PUNCTUATION and block[end + 1 : end + 2] in _ASCII_ALNUM)
+            or _after_wrapped_line(block, start)
+            or _before_wrapped_line(block, end)
+        ):
+            word = block[start:end].replace(_SOFT_HYPHEN_MARK, "").lower()
+            words.add(word)
+            # A percent escape glued to the word ("%2Fkb\u00adauto") is not part of the name.
+            if block[start - 1 : start] == "%":
+                for skip in (2, 4):
+                    if len(word) > skip and _HEX.issuperset(word[:skip]):
+                        words.add(word[skip:])
+        index = block.find(_SOFT_HYPHEN_MARK, end)
+
+
+def _skip_back(text: str, index: int, chars: str) -> int:
+    limit = max(0, index - 8)
+    while index > limit and text[index - 1] in chars:
+        index -= 1
+    return index
+
+
+def _skip_forward(text: str, index: int, chars: str) -> int:
+    limit = min(len(text), index + 8)
+    while index < limit and text[index] in chars:
+        index += 1
+    return index
+
+
+def _after_wrapped_line(text: str, start: int) -> bool:
+    """True if ``start`` begins a line and the line before ends in a hyphen, which the extractor
+    joins to it or drops it after."""
+    index = _skip_back(text, start, " \t")
+    if text[index - 1 : index] != "\n":
+        return False
+    index = _skip_back(text, index - 1 - (text[index - 2 : index - 1] == "\r"), " \t")
+    return text[index - 1 : index] == "-"
+
+
+def _before_wrapped_line(text: str, end: int) -> bool:
+    """True if a word ending at ``end`` is followed by ".", "-" or ".-" at the end of its line and the
+    next line starts with a letter, a digit or ".": the extractor joins the two lines."""
+    index = end + (text[end : end + 1] == ".")
+    index += text[index : index + 1] == "-"
+    if index == end:
+        return False
+    index = _skip_forward(text, index, " \t")
+    index += text[index : index + 1] == "\r"
+    if text[index : index + 1] != "\n":
+        return False
+    index = _skip_forward(text, index + 1, " \t")
+    return text[index : index + 1] in _ASCII_ALNUM or text[index : index + 1] == "."
 
 
 @functools.cache
