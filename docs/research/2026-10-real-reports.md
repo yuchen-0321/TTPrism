@@ -6,7 +6,8 @@ appendix as the ground truth.
 
 **Status:** the Simplified-Chinese set (8 reports) was measured before and after fixing what it
 showed. The Traditional-Chinese set (3–4 reports chosen by the maintainer) is held out: it will be
-measured once, at the end, with the fixed TTPrism, and has not been looked at during the fixes.
+measured once, at the end, and has not been looked at during the fixes. TTPrism is frozen for it at
+whatever commit is HEAD when its files arrive.
 
 Everything needed to check the numbers is in [`2026-10-real-reports/`](2026-10-real-reports/):
 the script, the manifest (original URLs, appendix markers, hand corrections of the ground truth,
@@ -39,7 +40,8 @@ domains, IPv4 and MD5 only.
 
 - **Input.** pypdf 6.20.0 turns each PDF into text, page headers and footers included; all tools
   read the same text. Versions: iocextract 1.16.1, ioc-finder 9.4.1, Python 3.11.4; TTPrism at
-  d53b3ed (baseline) and 6d0012d (after the fixes).
+  d53b3ed (baseline) and 6c655c8 (after the fixes; the first fix commit, 6d0012d, gave the same
+  output, see section 4).
 - **TTPrism settings.** *default* (the main numbers) and *raw* (`--include-reserved
   --no-default-allowlist`). Comparisons with the other tools use raw.
 - **Ground truth.** The values in the appendix, found with plain line rules, then corrected by
@@ -140,14 +142,15 @@ full-width forms is one thing the held-out set will show.
 ## 4. TTPrism issues found and what changed
 
 Recorded from the baseline before any change; fixed in 6d0012d with unit tests and a 1 MB case in
-`tests/test_redos.py` for every new pattern (report text costs 0.6–0.7 s/MB before and after).
+`tests/test_redos.py` for every new pattern (report text costs 0.6–0.7 s/MB before and after). Two
+of the rules were refined later (see below); the table describes them as they are now.
 
 | Baseline issue | Count | Change |
 | --- | --- | --- |
-| Certificate serial numbers (`SerialNumber:` + 32 hex) read as MD5 (all three tools) | 3 c | Hex values right after a serial-number label (`serial`, `serial number`, `序列号`, `序號`) are counted as `certificate_serial` |
+| Certificate serial numbers (`SerialNumber:` + 32 hex) read as MD5 (all three tools) | 3 c | Hex values right after a serial-number label (`serial`, `serial number`, `序列号`, `序列號`, `證書序號`, `憑證序號`, or a bare `序號` with a colon) are counted as `certificate_serial` |
 | GUIDs whose hyphens the PDF converter wrote as soft hyphens read as MD5 | 2 c | Soft hyphens between the groups of a GUID become hyphens before format characters are deleted |
 | Names wrapped at a hyphen next to a dot (`serveuser.-` / `com`) missed | 7 recall | Joined without the hyphen |
-| URLs wrapped after one of their own hyphens (`KB-Auto-win-` / `update.exe`) cut | 6 c | Joined keeping the hyphen, when the line's last token is a URL |
+| URLs wrapped after one of their own hyphens (`KB-Auto-win-` / `update.exe`) cut | 6 c | Joined keeping the hyphen, when a URL on the line runs up to the hyphen |
 | The rest of a name after any other hyphen at a line end (`daters.com`, `dns.net`) | 14 c | Dropped as a fragment (`line_wrap_fragment`); the hyphen may or may not belong to the name |
 | Masked names (`wiki.xxxx.com`, `mail.cass.xxxx.net`) reported | 19 masked | Names with a label of three or more `x` are dropped (`masked_name`) |
 | Detection name `Backdoor.Win32.Ht` reported as a domain | 1 c | Names of the form type.platform.family are dropped (`detection_name`) |
@@ -160,8 +163,27 @@ a hyphen gives no sign that the line continues, so these are left as known limit
 templates with `XXX` placeholders in their query are still reported (their hosts are real).
 
 The new rules can be wrong in rare text: a URL that really ends in `-` at the end of a line is
-joined with the next line, and a name at the start of a line after a line ending in a letter and
-`-` (`2019-` / `example.com`) is dropped as a fragment.
+joined with the next line, and a name at the start of a line after a line ending in a letter or
+digit and `-` (`2019-` / `example.com`) is dropped as a fragment.
+
+**Changes made before the freeze from reading the code, not from these data** (6857503, then
+6c655c8 after an adversarial review of it):
+
+- A soft hyphen right before a line break, also with spaces, bidi controls or other format
+  characters between, is read as `-`, so the line-break rules apply to it exactly as to `-`. It used
+  to be deleted first, so `update\u00ad` / `check-server.com` gave the wrong `check-server.com`.
+- Soft hyphens deleted between two ASCII letters or digits inside an extracted name, e-mail address
+  or URL, defanged or not, now give a warning, because some converters (cn01's among them) write
+  every hyphen as a soft hyphen and the value then loses its hyphens (`KB-Auto` read as `KBAuto`).
+- A bare `序號` is a serial-number label only with a colon, since it also heads the row-number
+  column of tables; `證書序號` and `憑證序號` need none.
+- A line ending in `<letter or digit>-` is joined with the next line as part of a URL only if a URL
+  really runs up to the hyphen; before, any URL earlier on a line of Chinese text without spaces was
+  enough.
+
+None of these changed any output on the eight reports (6d0012d and 6c655c8 give identical
+results). cn01 has 46 soft hyphens inside lines, but none inside an extracted value, so it gives no
+warning.
 
 ## 5. Limitations
 

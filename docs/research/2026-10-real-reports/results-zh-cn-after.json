@@ -3,7 +3,7 @@
   "set": "zh-cn",
   "label": "after",
   "date": "2026-10-09",
-  "ttprism_commit": "6d0012d6ae2f82f1621ff6f35604811dd8b9e391",
+  "ttprism_commit": "6c655c80bf574aa0eb0d540777b073d355697cc2",
   "versions": {
    "ttprism": "0.1.0.dev0",
    "iocextract": "1.16.1",
