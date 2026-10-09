@@ -40,8 +40,9 @@ Please do not report security vulnerabilities through public issues.
 - Preferred: the **Report a vulnerability** button under this repository's
   [Security tab](https://github.com/yuchen-0321/TTPrism/security/advisories/new)
   (GitHub private vulnerability reporting).
-- If you cannot use GitHub: open a public issue titled "Security contact request" that contains
-  **no details**, and the maintainer will arrange a private channel.
+- If you cannot use private vulnerability reporting: open a
+  [Private contact request](https://github.com/yuchen-0321/TTPrism/issues/new?template=contact_request.yml)
+  issue. It is public, so include **no details**; the maintainer will arrange a private channel.
 
 Please include the affected version, steps to reproduce or a proof of concept, the impact, and any
 suggested fix. Do not attach live malware samples; share hashes or a sanitized test case instead.

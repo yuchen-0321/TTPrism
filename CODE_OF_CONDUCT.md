@@ -13,8 +13,9 @@ data.
 
 Report unacceptable behaviour privately to the maintainer,
 [@yuchen-0321](https://github.com/yuchen-0321). Until a dedicated contact address is listed here,
-open a public issue titled "Conduct contact request" **without any details**, and the maintainer
-will arrange a private channel. Reports are handled confidentially.
+open a [Private contact request](https://github.com/yuchen-0321/TTPrism/issues/new?template=contact_request.yml)
+issue **without any details**, and the maintainer will arrange a private channel. Reports are handled
+confidentially.
 
 ## Enforcement
 

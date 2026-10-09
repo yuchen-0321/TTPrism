@@ -1,0 +1,20 @@
+name: Private contact request
+description: Ask the maintainer for a private channel (security or conduct). Do not include any details here.
+title: "Private contact request"
+labels: ["contact-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this only if you cannot use GitHub's private vulnerability reporting
+        (Security tab → Report a vulnerability) or need to raise a code-of-conduct concern.
+
+        **Do not describe the issue here.** This issue is public. The maintainer will contact you and
+        arrange a private channel.
+  - type: textarea
+    id: contact
+    attributes:
+      label: How should we reach you? (optional)
+      description: For example "reply here" or a public profile link. Leave empty to be contacted in this issue.
+    validations:
+      required: false

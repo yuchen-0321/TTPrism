@@ -23,7 +23,7 @@ TTPrism makes no network requests and never executes, decompresses or opens refe
 | --- | --- | --- | --- |
 | ReDoS / super-linear regex | 1 MB of `a1.a1.a1…` makes a naive domain regex backtrack quadratically | Every pattern starts with a negative lookbehind so matches begin only at token boundaries; all repetitions are bounded; no nested ambiguous quantifiers. URL tail clean-up is a single linear pass. | `tests/test_redos.py` (22 pathological 1 MB inputs), `tests/test_fuzz.py` |
 | Resource exhaustion: size | A multi-GB "report" | Input read is capped (`--max-size`, default 64 MiB); larger input is rejected before parsing. Rule and allowlist files are capped at 2 MiB. | `test_cli.py::test_max_size`, `test_allowlist.py::test_oversized_allowlist_rejected` |
-| Resource exhaustion: nesting | `[[[[…` 1 million levels deep | CPython's JSON decoder raises `RecursionError` before exhausting the C stack: at the recursion limit (about 1000 levels) on Python 3.11–3.13, and from stack-space checks (tens of thousands of levels) on 3.14+. TTPrism turns it into a clean error. Nesting below that limit is harmless because TTPrism never walks parsed data recursively; an explicit depth check would add a full extra pass over large reports for no added protection. | `test_redos.py::test_malformed_json_fails_fast`, `test_cli.py::test_bad_inputs` |
+| Resource exhaustion: nesting | `[[[[…` 1 million levels deep | CPython's JSON decoder raises `RecursionError` before exhausting the C stack. The deepest accepted document is about 1,000 levels on Python 3.11, about 10,000 on 3.12–3.13 (C recursion limit), and set by stack-space checks on 3.14+ (about 40,000 with an 8 MiB stack). TTPrism turns it into a clean error. Nesting below that limit is harmless because TTPrism never walks parsed data recursively; an explicit depth check would add a full extra pass over large reports for no added protection. | `test_redos.py::test_malformed_json_fails_fast`, `test_cli.py::test_bad_inputs` |
 | Resource exhaustion: huge fields and lists | A 50 MB command line; a million fake API names or commands so that every rule rescans them | CAPE string fields are truncated to 8 KiB. At most 10,000 commands, registry keys, signatures and distinct API names per report go into rule matching, and the overflow is counted under `suppressed`. Case-folded views are computed once per report, not per rule. Evidence strings are capped at 200 characters and 20 items per technique; unknown-ID warnings list at most 20 IDs. | `test_cape.py::test_huge_field_values_are_truncated`, `test_cape.py::test_oversized_behaviour_lists_are_capped_and_fast` |
 | Malformed structure | `"hosts": "1.2.3.4"`, `"calls": 5` | The CAPE parser reads only known fields and type-checks each one; anything unexpected is skipped. | `test_cape.py::test_malformed_reports_do_not_crash`, `test_fuzz.py::test_parse_cape_never_crashes` |
 | Unsafe deserialization | `!!python/object/apply:os.system` in a rule file | YAML is loaded with `yaml.safe_load` only. Schemas are strict: unknown keys and non-string values are rejected. | `test_allowlist.py::test_invalid_allowlists` |
@@ -39,12 +39,13 @@ TTPrism makes no network requests and never executes, decompresses or opens refe
 
 - **Encoding guesses.** Non-UTF-8 input is decoded with replacement characters unless the analyst
   passes `--encoding` (for example `big5` or `gb18030`). A warning is printed.
-- **Memory.** A 64 MiB CAPE report can use several hundred MiB of memory once parsed. Lower
-  `--max-size` when processing untrusted reports in bulk.
+- **Memory.** Parsed JSON can take up to about 25 times the input size in memory: a crafted
+  64 MiB report (millions of tiny objects) peaks around 1.6 GB. Lower `--max-size` when processing
+  untrusted reports in bulk or on small machines.
 - **Python versions.** The JSON nesting guarantee relies on CPython's recursion guard, which every
   supported version (3.11+) provides. The deepest document accepted differs between versions
-  (about 1000 levels on 3.11–3.13, more on 3.14+), so the same deep input may be accepted on one
-  version and rejected on another.
+  (see the nesting row above), so the same deep input may be accepted on one version and rejected
+  on another.
 
 ## Non-goals
 

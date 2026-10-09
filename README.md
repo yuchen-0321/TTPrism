@@ -15,7 +15,7 @@ way a prism splits light into a spectrum.
 - **Exports** JSON, CSV or a STIX 2.1 bundle.
 - **Treats its input as hostile.** Regexes run in linear time, input size is capped, nothing is
   executed or fetched, and CSV output is safe to open in Excel. See the
-  [threat model](docs/threat-model.md).
+  [threat model](https://github.com/yuchen-0321/TTPrism/blob/main/docs/threat-model.md).
 
 > **Status:** pre-release (0.1.0.dev). The first PyPI release (v0.1) is planned. Feedback and
 > detection-quality reports are very welcome.
@@ -119,7 +119,7 @@ bundle = ttprism.to_stix_bundle(result)
 - **`reported`**: the input names the technique. A report cites `T1059.001`, or a CAPE signature
   carries its own TTP label.
 - **`rules`**: a TTPrism rule matched observed behaviour. Rules live in
-  [`rules/attack/`](rules/attack/README.md) as YAML, so analysts can add and review them without
+  [`rules/attack/`](https://github.com/yuchen-0321/TTPrism/blob/main/rules/attack/README.md) as YAML, so analysts can add and review them without
   Python. Each rule has a `confidence` and a public reference.
 - **`original_ids`**: outdated IDs from the input that were resolved through ATT&CK's revocation
   history (`T1086` → `T1059.001`, `T1562.001` → `T1685`).
@@ -136,7 +136,7 @@ By default TTPrism drops:
 - **Allowlisted values**: the root domains of large platforms (`google.com`, but not
   `drive.google.com` or URLs on it), sandbox background traffic, certificate revocation hosts,
   reference sites such as `attack.mitre.org`, and empty-file hashes. See
-  [`allowlist.yaml`](src/ttprism/data/allowlist.yaml).
+  [`allowlist.yaml`](https://github.com/yuchen-0321/TTPrism/blob/main/src/ttprism/data/allowlist.yaml).
 - **File names that look like domains**: `payload.zip` or `setup.py` written without a URL.
 
 Counts of what was dropped are reported under `suppressed`, so nothing disappears silently.
@@ -154,21 +154,21 @@ TTPrism only parses input statically. It never executes, unpacks or downloads sa
 repository contains no malware. Test data uses reserved names, documentation IP ranges and hashes
 of harmless strings.
 
-Found a vulnerability? Please report it privately; see [SECURITY.md](SECURITY.md). False positives
+Found a vulnerability? Please report it privately; see [SECURITY.md](https://github.com/yuchen-0321/TTPrism/blob/main/SECURITY.md). False positives
 and missed IOCs are not vulnerabilities; open a *Detection quality* issue instead.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Rule contributions need no Python. Please use only
+See [CONTRIBUTING.md](https://github.com/yuchen-0321/TTPrism/blob/main/CONTRIBUTING.md). Rule contributions need no Python. Please use only
 TLP:CLEAR material.
 
 ## 繁體中文簡介
 
-TTPrism 從威脅報告與沙箱輸出中抽取 IOC，並把行為對應到 MITRE ATT&CK。它特別處理中文報告常見的全形與中日韓括號 defang 寫法，例如 `【.】`、`．`、`［＠］`、全形數字，以及緊接中文字、沒有空白的網域。既有的英文導向工具常漏掉這些寫法，比較結果見[研究紀錄](docs/research/2026-10-existing-tools.md)。ATT&CK 對應規則以 YAML 撰寫，分析師不必寫程式也能貢獻。安全漏洞請依 [SECURITY.md](SECURITY.md) 私下回報；誤報、漏報請開公開 issue。
+TTPrism 從威脅報告與沙箱輸出中抽取 IOC，並把行為對應到 MITRE ATT&CK。它特別處理中文報告常見的全形與中日韓括號 defang 寫法，例如 `【.】`、`．`、`［＠］`、全形數字，以及緊接中文字、沒有空白的網域。既有的英文導向工具常漏掉這些寫法，比較結果見[研究紀錄](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-existing-tools.md)。ATT&CK 對應規則以 YAML 撰寫，分析師不必寫程式也能貢獻。安全漏洞請依 [SECURITY.md](https://github.com/yuchen-0321/TTPrism/blob/main/SECURITY.md) 私下回報；誤報、漏報請開公開 issue。
 
 ## License
 
-MIT; see [LICENSE](LICENSE).
+MIT; see [LICENSE](https://github.com/yuchen-0321/TTPrism/blob/main/LICENSE).
 
 The bundled ATT&CK catalog is derived from MITRE ATT&CK®:
 © 2026 The MITRE Corporation. This work is reproduced and distributed with the permission of The

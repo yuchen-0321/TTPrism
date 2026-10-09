@@ -45,7 +45,8 @@ mypy
 ttprism validate-rules           # if you touched rules/
 ```
 
-CI runs the same checks on Linux, Windows and macOS.
+CI runs the test suite on Linux (Python 3.11–3.14) and on Windows and macOS (Python 3.13); lint, type
+checks, rule validation and the wheel smoke test run on Linux.
 
 Guidelines:
 

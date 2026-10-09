@@ -2,7 +2,8 @@
 
 Reproduces docs/research/2026-10-existing-tools.md:
 
-    python -m venv /tmp/cmp && /tmp/cmp/bin/pip install iocextract ioc-finder requests ttprism
+    python -m venv /tmp/cmp
+    /tmp/cmp/bin/pip install iocextract ioc-finder requests -e .   # run from the repository root
     /tmp/cmp/bin/python docs/research/compare_existing_tools.py
 
 The inputs are synthetic; see the research note for what this does and does not show.
