@@ -82,6 +82,7 @@ PATHOLOGICAL = {
     "label colons before ipv6": "\u5740:1:2:3::" * (SIZE // 9),
     "hex labels before ipv6": "c2:2001:db8::1 beef:2001:db8::" * (SIZE // 30),
     "hex label chains": "c2:" * (SIZE // 3),
+    "short colon tokens": "1: " * (SIZE // 3),
     # Public-suffix names, bare and with leading dots.
     "public suffixes": "co.uk .com.tw " * (SIZE // 14),
     "public suffix chains": "co.uk." * (SIZE // 6),

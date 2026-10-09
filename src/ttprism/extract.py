@@ -264,23 +264,35 @@ def _drop_label_group(candidate: str) -> str:
     in 2000::/3, and the whole is not a ULA, link-local or multicast address.
     """
     first, _, rest = candidate.partition(":")
+    head = rest.partition(":")[0]
+    # String checks first, so that junk such as "1: 1: 1:" costs no address parsing. A group in
+    # 2000::/3 is 2000 to 3fff: four digits, the first one 2 or 3.
+    if len(head) != 4 or head[0] not in "23" or not _HEX_DIGITS.issuperset(head):
+        return candidate
     if not 0 < len(first) <= 4 or not _HEX_DIGITS.issuperset(first) or 0x2000 <= int(first, 16) < 0x4000:
+        return candidate
+    unlabelled = normalize_ip(rest)
+    if unlabelled is None or unlabelled[0] != IOCType.IPV6:
         return candidate
     whole = normalize_ip(candidate)
     if whole is not None and whole[0] == IOCType.IPV6:
         number = int(ipaddress.IPv6Address(whole[1]))
         if any(number & mask == network for network, mask in _NOT_LABELLED_IPV6):
             return candidate
-    unlabelled = normalize_ip(rest)
-    if unlabelled is None or unlabelled[0] != IOCType.IPV6:
-        return candidate
-    return rest if int(ipaddress.IPv6Address(unlabelled[1])) >> 125 == 1 else candidate
+    return rest
 
 
 def normalize_ip(value: str) -> tuple[IOCType, str] | None:
     candidate = value.strip().strip("[]").rstrip(".")
     if "%" in candidate:
         # A scoped address ("fe80::1%eth0"): the zone ID is arbitrary text.
+        return None
+    # Cheap checks before parsing, which is slow on inputs made of many short colon tokens.
+    if ":" not in candidate:
+        if candidate.count(".") != 3:
+            return None
+    elif "." not in candidate and sum(1 for g in candidate.split(":") if g) < 3:
+        # Too short to tell from times and C++ scopes ("12:30", "dead::beef").
         return None
     try:
         address = ipaddress.ip_address(candidate)
@@ -289,9 +301,6 @@ def normalize_ip(value: str) -> tuple[IOCType, str] | None:
     if isinstance(address, ipaddress.IPv4Address):
         # ipaddress accepts "1.2.3.4" only; reject anything our regex would not.
         return (IOCType.IPV4, str(address)) if IPV4_RE.fullmatch(candidate) else None
-    groups = [g for g in candidate.split(":") if g]
-    if len(groups) < 3 and "." not in candidate:
-        return None
     return IOCType.IPV6, _ipv6_text(address)
 
 
