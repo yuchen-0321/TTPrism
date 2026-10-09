@@ -6,7 +6,7 @@ from unittest import mock
 
 import pytest
 
-from ttprism import IOCType, extract_iocs
+from ttprism import IOCType, extract_iocs, refang
 from ttprism.extract import (
     CODE_IDENTIFIERS,
     extract_into,
@@ -562,6 +562,37 @@ def test_double_extension_file_names_are_dropped() -> None:
     assert values("https://invoice.pdf.zip/x", IOCType.DOMAIN) == ["invoice.pdf.zip"]
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "co.uk com.tw gov.tw ac.jp go.kr ne.jp or.kr mil.tw org.tw edu.tw net.cn",
+        "CO.UK and Com.Tw",
+        # Leading dots and full-width or bracketed dots.
+        ".co.uk .com.tw",
+        "．co．uk",
+        "後綴是com【.】tw的網域",
+    ],
+)
+def test_public_suffixes_are_not_domains(text: str) -> None:
+    assert pairs(text) == []
+    assert set(stats_for(refang(text))) == {"public_suffix"}
+
+
+def test_names_under_public_suffixes_are_kept() -> None:
+    text = "evil.co.uk www.gov.tw .evil.com.tw *.evil.co.jp"
+    assert values(text, IOCType.DOMAIN) == ["evil.co.jp", "evil.co.uk", "evil.com.tw", "www.gov.tw"]
+    assert stats_for(text) == Counter()
+    # Not public suffixes: a TLD longer than two letters, or another first label.
+    assert values("co.com go.dev edu.au.example.com cdn.tw", IOCType.DOMAIN) == [
+        "cdn.tw",
+        "co.com",
+        "edu.au.example.com",
+        "go.dev",
+    ]
+    # As a URL host the name is kept.
+    assert values("https://co.uk/x", IOCType.DOMAIN) == ["co.uk"]
+
+
 # --------------------------------------------------------------------------- e-mail local parts
 
 
@@ -609,6 +640,32 @@ def test_valid_email_local_parts() -> None:
     ],
 )
 def test_ipv6_followed_by_colon(text: str, expected: list[str]) -> None:
+    assert values(text, IOCType.IPV6) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("C2:2001:db8::1", ["2001:db8::1"]),
+        ("c2:2400:cb00::1 and beef:2001:db8::2", ["2001:db8::2", "2400:cb00::1"]),
+        ("C2：2001:db8::1。", ["2001:db8::1"]),
+        ("C2:2001:db8::1: was used", ["2001:db8::1"]),
+        ("C2:2001:db8:0:0:0:0:0:1", ["2001:db8::1"]),
+        # The first group is numeric, not a word: still outside 2000::/3.
+        ("2a:2001:db8::1", ["2001:db8::1"]),
+        # Kept whole: the first group is in 2000::/3, the rest is not in it, or
+        # the whole is a ULA, link-local or multicast address.
+        ("2001:db8::1 2400:2001:db8::1", ["2001:db8::1", "2400:2001:db8::1"]),
+        ("c2:fd00::1 dead:beef::1", ["c2:fd00::1", "dead:beef::1"]),
+        (
+            "fd12:3456:789a::1 fe80:2001:db8::1 ff0e:2001:db8::1",
+            ["fd12:3456:789a::1", "fe80:2001:db8::1", "ff0e:2001:db8::1"],
+        ),
+        # Without the label the rest has only seven groups: not an address.
+        ("c2:2001:db8:1:2:3:4:5", ["c2:2001:db8:1:2:3:4:5"]),
+    ],
+)
+def test_ipv6_after_hex_label(text: str, expected: list[str]) -> None:
     assert values(text, IOCType.IPV6) == expected
 
 

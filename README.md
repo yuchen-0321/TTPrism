@@ -138,6 +138,8 @@ By default TTPrism drops:
   reference sites such as `attack.mitre.org`, and empty-file hashes. See
   [`allowlist.yaml`](https://github.com/yuchen-0321/TTPrism/blob/main/src/ttprism/data/allowlist.yaml).
 - **File names that look like domains**: `payload.zip` or `setup.py` written without a URL.
+- **Public suffixes**: `co.uk`, `com.tw` or `gov.tw` written without a URL (names under them,
+  such as `evil.co.uk`, are kept).
 
 Counts of what was dropped are reported under `suppressed`, so nothing disappears silently.
 

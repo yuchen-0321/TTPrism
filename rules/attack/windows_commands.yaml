@@ -35,7 +35,8 @@ rules:
     description: PowerShell with a Base64-encoded command (-EncodedCommand, any abbreviation, or -ec).
     references:
       - https://attack.mitre.org/techniques/T1027/010/
-      - https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_powershell_exe
+      - https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_powershell_exe?view=powershell-5.1
+      - https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_pwsh
     match:
       # Every prefix of -EncodedCommand works, as does the -ec alias, and "/" works like "-".
       commands: [

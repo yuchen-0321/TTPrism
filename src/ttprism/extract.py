@@ -166,6 +166,13 @@ CODE_IDENTIFIERS = frozenset(
         "wscript.shell",
     }
 )
+# Second-level labels under which ccTLD registries sell names: "co.uk" and
+# "com.tw" are public suffixes, not anybody's domain. A bare two-label name made
+# of one of these and a two-letter TLD is dropped; "evil.co.uk" is kept. A short
+# list instead of the Public Suffix List, which would need regular updates.
+SUFFIX_SECOND_LEVEL_LABELS = frozenset(
+    {"ac", "co", "com", "edu", "go", "gov", "mil", "ne", "net", "or", "org"}
+)
 
 
 def _cidr_table(*cidrs: str) -> tuple[tuple[int, int], ...]:
@@ -243,6 +250,31 @@ def _ipv6_text(address: ipaddress.IPv6Address) -> str:
         # Spelled out here because Python patch releases format these differently.
         return f"::ffff:{address.ipv4_mapped}"
     return address.compressed
+
+
+# Addresses in these ranges are addresses in their own right, not a label glued
+# to one: "fd12:3456:789a::1" (ULA) must keep "fd12".
+_NOT_LABELLED_IPV6 = _cidr_table("fc00::/7", "fe80::/10", "ff00::/8")
+
+
+def _drop_label_group(candidate: str) -> str:
+    """Drop a hex-looking label glued to an IPv6 address: "C2:2001:db8::1" -> "2001:db8::1".
+
+    The first group goes only if it is outside 2000::/3, the rest is an address
+    in 2000::/3, and the whole is not a ULA, link-local or multicast address.
+    """
+    first, _, rest = candidate.partition(":")
+    if not 0 < len(first) <= 4 or not _HEX_DIGITS.issuperset(first) or 0x2000 <= int(first, 16) < 0x4000:
+        return candidate
+    whole = normalize_ip(candidate)
+    if whole is not None and whole[0] == IOCType.IPV6:
+        number = int(ipaddress.IPv6Address(whole[1]))
+        if any(number & mask == network for network, mask in _NOT_LABELLED_IPV6):
+            return candidate
+    unlabelled = normalize_ip(rest)
+    if unlabelled is None or unlabelled[0] != IOCType.IPV6:
+        return candidate
+    return rest if int(ipaddress.IPv6Address(unlabelled[1])) >> 125 == 1 else candidate
 
 
 def normalize_ip(value: str) -> tuple[IOCType, str] | None:
@@ -427,6 +459,8 @@ def _bare_name_noise(domain: str) -> str | None:
         return "filename_like_domain"
     if domain in CODE_IDENTIFIERS:
         return "code_identifier"
+    if len(labels) == 2 and len(labels[1]) == 2 and labels[0] in SUFFIX_SECOND_LEVEL_LABELS:
+        return "public_suffix"
     return None
 
 
@@ -496,10 +530,10 @@ def _extract(collector: IOCCollector, text: str, source: str, stats: Counter[str
         if candidate.startswith(":") and not candidate.startswith("::"):
             # A label colon before the address: "位址：2a03:2880::1" once "：" is folded.
             candidate = candidate[1:]
-        ip = normalize_ip(candidate)
+        ip = normalize_ip(_drop_label_group(candidate))
         if ip is None and candidate.endswith((":", ".")):
             # A label colon or full stop after it: "2001:db8::1: was used".
-            ip = normalize_ip(candidate[:-1])
+            ip = normalize_ip(_drop_label_group(candidate[:-1]))
         if ip is not None and ip[0] == IOCType.IPV6:
             collector.add(IOCType.IPV6, ip[1], source)
 

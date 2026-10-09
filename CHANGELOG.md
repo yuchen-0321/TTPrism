@@ -16,9 +16,11 @@ their advisory.
   protocol-relative URLs and wildcard names (`*.evil.com`); URL lists joined by commas or quotes
   split into separate URLs; open-redirect targets and percent-encoded URLs inside a URL's query
   extracted as well, keeping the outer URL.
-- Noise filters: file names that look like domains (`payload.zip`, `invoice.pdf.zip`) and COM /
-  .NET identifiers (`WScript.Shell`, `System.IO`) are dropped and counted under `suppressed`;
-  names glued to non-ASCII letters (IDNs, homographs) are skipped instead of truncated.
+- Noise filters: file names that look like domains (`payload.zip`, `invoice.pdf.zip`), COM /
+  .NET identifiers (`WScript.Shell`, `System.IO`) and bare public suffixes (`co.uk`, `com.tw`)
+  are dropped and counted under `suppressed`; names glued to non-ASCII letters (IDNs,
+  homographs) are skipped instead of truncated. A hex-looking label glued to an IPv6 address
+  (`C2:2001:db8::1`) is not taken as its first group.
 - Refanging of common and CJK defang styles: `[.]`, `(.)`, `[dot]`, `【.】`, `〔.〕`, `[。]`,
   ` [.] ` between labels, `[/]`, `[//]`, full-width characters (`．`, `［＠］`, `１９８．５１…`),
   `hxxp(s)`, `hxxp[s]`, `h[tt]p`, `[:]`, `[://]`, Unicode hyphens and minus signs, and zero-width,
