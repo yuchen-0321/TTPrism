@@ -6,8 +6,10 @@ appendix as the ground truth.
 
 **Status:** the Simplified-Chinese set (8 reports) was measured before and after fixing what it
 showed. The Traditional-Chinese set (3–4 reports chosen by the maintainer) is held out: it will be
-measured once, at the end, and has not been looked at during the fixes. TTPrism is frozen for it at
-whatever commit is HEAD when its files arrive.
+measured once, at the end, and has not been looked at during the fixes. TTPrism (`src/`) and the
+evaluation script are frozen at FREEZE_COMMIT, the commit at which the "after" results below were
+made; after it, only the Traditional-Chinese entries of the manifest (selection rule first, before
+anyone looks at the files), the documentation and the results may change.
 
 Everything needed to check the numbers is in [`2026-10-real-reports/`](2026-10-real-reports/):
 the script, the manifest (original URLs, appendix markers, hand corrections of the ground truth,
@@ -40,21 +42,31 @@ domains, IPv4 and MD5 only.
 
 - **Input.** pypdf 6.20.0 turns each PDF into text, page headers and footers included; all tools
   read the same text. A web page would be decoded strictly and laid out by `HtmlText` in
-  `evaluate.py` (standard-library `html.parser`; the visible text of the whole `<body>`, navigation
-  and footer included; the rules are in its docstring and in the manifest's `text_conversion`), and
-  its totals given separately as well; this set has none. Versions: iocextract 1.16.1, ioc-finder
-  9.4.1, Python 3.11.4; TTPrism at d53b3ed (baseline) and 7b985f0 (after the fixes; the first fix
-  commit, 6d0012d, gave the same output, see section 4).
+  `evaluate.py` (standard-library `html.parser`; the text of the whole `<body>`, hidden content
+  included, navigation and footer too; the rules are in its docstring and in the manifest's
+  `text_conversion`), and its totals given separately as well; this set has none. `html.parser`
+  before Python's 2025 security releases loses page content (3.11.4 drops everything after a comment
+  ending in `--!>` up to the next `-->`, and raises on `<![ if … ]>`), so the script converts canary
+  pages first and refuses such a Python. Versions: iocextract 1.16.1, ioc-finder 9.4.1; TTPrism at
+  d53b3ed (baseline, Python 3.11.4) and FREEZE_COMMIT (after the fixes, Python 3.11.17; the first fix
+  commit, 6d0012d, gave the same output, see section 4). The PDF text is the same on both Pythons
+  (same SHA-256). Each results file lists every installed package, the Python version and the
+  SHA-256 of the files that parse HTML.
 - **TTPrism settings.** *default* (the main numbers) and *raw* (`--include-reserved
   --no-default-allowlist`). Comparisons with the other tools use raw.
-- **Ground truth.** The values in the appendix, found with plain line rules, then corrected by
-  hand: the report's own address printed as a page header inside the appendix and a section heading
-  read as a domain (`0x04.IOCs`) were removed; in cn06 a layout put a `-` at every wrap in the
-  domain table, so `serveuser.-` + `com` was read as `serveuser.com` (a hyphen next to a dot cannot
-  be part of a name) and `dynamic-` + `dns.net` kept its hyphen (cn02 lists that provider
-  unwrapped). Eight cn06 entries wrap at a hyphen that may or may not belong to the name
-  (`126-` + `maildownload…`); they are left out, like the masked `wiki.xxxx.com`, and a tool output
-  equal to either reading counts neither way. A URL in the appendix adds its host to the domains.
+- **Ground truth.** The values in the appendix, found with plain line rules, then corrected by hand.
+  In PDF text every soft hyphen is read as a hyphen first, as TTPrism reads it; the rules take only
+  ASCII letters and digits as part of a value (so a name right after Chinese text is found), read
+  `[.]` and `(.)` as dots, and find URLs, e-mail addresses, IPv4 addresses, domains and hashes.
+  Rebuilt with these rules, the ground truth of all eight reports is unchanged: cn01's appendix has
+  ten soft hyphens, all in file names and GUIDs, and no appendix lists an e-mail address. The
+  corrections: the report's own address printed as a page header inside the appendix and a section
+  heading read as a domain (`0x04.IOCs`) were removed; in cn06 a layout put a `-` at every wrap in
+  the domain table, so `serveuser.-` + `com` was read as `serveuser.com` (a hyphen next to a dot
+  cannot be part of a name) and `dynamic-` + `dns.net` kept its hyphen (cn02 lists that provider
+  unwrapped). Eight cn06 entries wrap at a hyphen that may or may not belong to the name (`126-` +
+  `maildownload…`); they are left out, like the masked `wiki.xxxx.com`, and a tool output equal to
+  either reading counts neither way. A URL in the appendix adds its host to the domains.
 - **Matching.** Domains lower-cased, trailing dot removed; URLs refanged with scheme and host
   lower-cased, scored as whole URLs and by host; MD5 case-insensitive. Before domain recall, each
   tool's domain output gets the hosts of its URL output (iocextract has no domain extractor, so its
@@ -170,28 +182,34 @@ joined with the next line, and a name at the start of a line after a line ending
 digit and `-` (`2019-` / `example.com`) is dropped as a fragment.
 
 **Changes made before the freeze from reading the code, not from these data.** A first round
-(6857503, then 6c655c8, 60a0d1f, a7d7e7b and 88bda72 after four rounds of adversarial review) and a
-second one after the maintainer's review of it (19952b5, then 7b985f0 after one more review round):
+(6857503, then 6c655c8, 60a0d1f, a7d7e7b and 88bda72 after four rounds of adversarial review), a
+second one after the maintainer's review of it (19952b5, then 7b985f0 after one more review round)
+and a third after the maintainer's freeze check (91327ec and a2dc77a, then FREEZE_COMMIT after a
+review round):
 
-- **Soft hyphens are hyphens between letters or digits and at line ends.** A PDF draws only visible
-  characters, so a soft hyphen in text extracted from a PDF stands where the page shows a hyphen:
-  pypdf gives U+00AD for the hyphen of code 0xAD in WinAnsi-encoded fonts, where pdftotext gives
-  `-` (a one-page Helvetica PDF showing `update-check.example-host.com`, with the first hyphen
-  written as code 0xAD: pypdf 6.20.0 gives `update\u00adcheck…`, pdftotext `update-check…`). The
-  first round read them as hyphens only at line ends and between GUID groups and deleted the rest,
-  so that page gave `updatecheck.example-host.com`, and `CVE\u00ad2017\u00ad11882` or
-  `198.51.100.1\u00ad198.51.100.9` gave nothing at all. Now one between two letters or digits is
-  read as `-`. At a line end, with up to 1,024 spaces or format characters before the break, it
-  works exactly like `-` (before the first round it was deleted, so `update\u00ad` /
-  `check-server.com` gave the wrong `check-server.com`); right after a hyphen it is deleted, since
-  the first round made `KB-Auto-\u00ad` / `win.exe` into `KB-Auto--`.
+- **Every soft hyphen is a hyphen.** A PDF draws only visible characters, so a soft hyphen in text
+  extracted from a PDF stands where the page shows a hyphen: pypdf gives U+00AD for the hyphen of
+  code 0xAD in WinAnsi-encoded fonts, where pdftotext gives `-` (a one-page Helvetica PDF showing
+  `update-check.example-host.com`, with the first hyphen written as code 0xAD: pypdf 6.20.0 gives
+  `update\u00adcheck…`, pdftotext `update-check…`). The first round read them as hyphens only at
+  line ends and between GUID groups and deleted the rest, so that page gave
+  `updatecheck.example-host.com`, and `CVE\u00ad2017\u00ad11882` or `198.51.100.1\u00ad198.51.100.9`
+  gave nothing at all. The second round read one between two letters or digits as `-`, which still
+  gave `xn-bcher-kva.example` for `xn\u00ad\u00adbcher-kva.example`, `//raw/` for GitLab's
+  `/\u00ad/raw/` and `?id=1` for `?id=\u00ad1`. Now every soft hyphen is read as `-`, one for one, so
+  the pypdf text of such a PDF gives the same IOCs as its `pdftotext -raw` text (a test builds the
+  PDF and compares both). At a line end, with up to 1,024 spaces or format characters before the
+  break, it works exactly like `-` (before the first round it was deleted, so `update\u00ad` /
+  `check-server.com` gave the wrong `check-server.com`); right after a hyphen at a line end it is
+  deleted, since the first round made `KB-Auto-\u00ad` / `win.exe` into `KB-Auto--` (here
+  `pdftotext -raw` gives `--`, the one intended difference). It is also deleted in a run of format
+  characters with U+2063 or the end of a bidi embedding or isolate, and in a run of more than 64.
 - **The warning goes the other way.** Text copied from a web page uses soft hyphens as invisible
-  break hints (`&shy;`), which should be deleted. TTPrism warns when deleting the soft hyphens it read
-  as hyphens between two letters or digits (not those at line ends or between GUID groups) would
-  change any value it reports, of any type, by extracting the first 8 Mi characters a second time in
-  that reading. The first round warned in the opposite case, and walked every
-  extracted value of the whole text to count; values are now looked up, so the cost of the check is
-  bounded by the 8 Mi characters it reads.
+  break hints (`&shy;`), which should be deleted. TTPrism warns when deleting every soft hyphen would
+  change any value it reports, of any type, by extracting at most the first 8 Mi characters a second
+  time in that reading, cut at a line end that no value crosses. The first round warned in the
+  opposite case, and walked every extracted value of the whole text to count; values are now looked
+  up, so the cost of the check is bounded by the 8 Mi characters it reads.
 - **`序號` is a label with or without a colon again**, as in 6d0012d. The first round required a
   colon because `序號` also heads the row-number column of tables, but pypdf writes a table row by
   row, so that heading is followed by the other headings, not by a hash, and tables gave the same
@@ -204,11 +222,12 @@ second one after the maintainer's review of it (19952b5, then 7b985f0 after one 
   only a line of host characters, or one going on to a port or path, carries it further.
 
 None of these changed any scored output on the eight reports (6d0012d, 6c655c8, 60a0d1f, a7d7e7b,
-88bda72, 19952b5 and 7b985f0 give identical results). cn01's converter wrote every hyphen as a soft
+88bda72, 19952b5, 7b985f0 and FREEZE_COMMIT give identical results; only the wording of cn01's
+warning changed). cn01's converter wrote every hyphen as a soft
 hyphen; reading them as hyphens changes none of its domains, URLs, addresses or hashes, but adds two
 CVE IDs, which are not scored: `CVE-2017-11882`, and `CVE-2017-1188` from `CVE\u00ad2017\u00ad1188` /
-`2`, broken without a hyphen. Deleting the soft hyphens would lose both, so cn01 now gets the
-warning, with a count of 2.
+`2`, broken without a hyphen. Deleting the soft hyphens would lose both and turn the two GUIDs in its
+appendix into MD5s, so cn01 gets the warning, with a count of 2.
 
 A differential test on 18,000 generated wrapped names and URLs (three seeds of 6,000; each value is
 also read unwrapped, which gives the right answer) compares 7b985f0 with earlier commits:
@@ -222,11 +241,13 @@ The 73 correct values lost relative to 31d5e41 are lost on purpose: in every one
 earlier on the line (`样本下载自http://a.example.com/x.exe，…`), and such a URL no longer joins the
 next line. The wrong values added all come from breaks at a dot without a hyphen, which no rule can
 join (README, Limitations), but this holds only for the cases this generator makes: the maintainer's
-review, with another generator, found 45 of 597 added wrong values that did not. An earlier version
-of this paragraph, at 88bda72, said that all 210 wrong values added then came from dot breaks; 74 of
-them came instead from a hyphen followed by a soft hyphen at a line end, read as `--`, the
-regression that 19952b5 fixed, and most of the correct values 88bda72 lost relative to 31d5e41 (282
-of 299 on the first seed) came from the same regression.
+review, with another generator, found 45 of 597 added wrong values that did not. The version of this
+paragraph in 2ef93cc, which reported this test at 88bda72, said that all 210 wrong values 88bda72
+added relative to 6c655c8 (three seeds) came from dot breaks; 74 of them came instead from a hyphen
+followed by a soft hyphen at a line end, read as `--`. That regression came in with 6857503, so
+6c655c8 had it too, but 88bda72's new joins carried it into more values; 19952b5 fixed it. Most of
+the correct values 88bda72 lost relative to 31d5e41 (282 of 299 on the first seed) came from the
+same regression.
 
 ## 5. Limitations
 
@@ -242,6 +263,9 @@ of 299 on the first seed) came from the same regression.
   on pypdf and on how each PDF was made; another converter would give other artifacts.
 
 ## 6. Reproducing
+
+A web page needs a Python with the 2025 `html.parser` security fixes (3.11.17 was used; `text`
+refuses one without them).
 
 ```sh
 uv venv -p 3.11 /tmp/eval

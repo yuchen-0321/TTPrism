@@ -4178,5 +4178,169 @@
   }
  },
  "lost_by_default_filtering": {},
- "unjudged": {}
+ "unjudged": {},
+ "totals_by_format": {
+  "pdf": {
+   "ttprism-default": {
+    "recall": {
+     "domain": [
+      162,
+      171,
+      0.9474
+     ],
+     "ipv4": [
+      42,
+      42,
+      1.0
+     ],
+     "md5": [
+      274,
+      274,
+      1.0
+     ],
+     "url": [
+      13,
+      13,
+      1.0
+     ],
+     "url-host": [
+      9,
+      9,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 493,
+     "a": 62,
+     "b": 97,
+     "c": 32,
+     "masked": 22,
+     "ambiguous": 0,
+     "judged_total": 684,
+     "strict": 0.8114,
+     "lenient": 0.9532
+    }
+   },
+   "ttprism-raw": {
+    "recall": {
+     "domain": [
+      162,
+      171,
+      0.9474
+     ],
+     "ipv4": [
+      42,
+      42,
+      1.0
+     ],
+     "md5": [
+      274,
+      274,
+      1.0
+     ],
+     "url": [
+      13,
+      13,
+      1.0
+     ],
+     "url-host": [
+      9,
+      9,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 493,
+     "a": 62,
+     "b": 107,
+     "c": 33,
+     "masked": 22,
+     "ambiguous": 0,
+     "judged_total": 695,
+     "strict": 0.7986,
+     "lenient": 0.9525
+    }
+   },
+   "iocextract": {
+    "recall": {
+     "domain": [
+      21,
+      171,
+      0.1228
+     ],
+     "ipv4": [
+      42,
+      42,
+      1.0
+     ],
+     "md5": [
+      274,
+      274,
+      1.0
+     ],
+     "url": [
+      13,
+      13,
+      1.0
+     ],
+     "url-host": [
+      9,
+      9,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 331,
+     "a": 36,
+     "b": 45,
+     "c": 48,
+     "masked": 4,
+     "ambiguous": 0,
+     "judged_total": 460,
+     "strict": 0.7978,
+     "lenient": 0.8957
+    }
+   },
+   "ioc-finder": {
+    "recall": {
+     "domain": [
+      162,
+      171,
+      0.9474
+     ],
+     "ipv4": [
+      42,
+      42,
+      1.0
+     ],
+     "md5": [
+      272,
+      274,
+      0.9927
+     ],
+     "url": [
+      13,
+      13,
+      1.0
+     ],
+     "url-host": [
+      9,
+      9,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 491,
+     "a": 63,
+     "b": 115,
+     "c": 41,
+     "masked": 24,
+     "ambiguous": 0,
+     "judged_total": 710,
+     "strict": 0.7803,
+     "lenient": 0.9423
+    }
+   }
+  }
+ }
 }
