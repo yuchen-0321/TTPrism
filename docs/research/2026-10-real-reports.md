@@ -43,7 +43,7 @@ domains, IPv4 and MD5 only.
   `evaluate.py` (standard-library `html.parser`; the visible text of the whole `<body>`, navigation
   and footer included; the rules are in its docstring and in the manifest's `text_conversion`), and
   its totals given separately as well; this set has none. Versions: iocextract 1.16.1, ioc-finder
-  9.4.1, Python 3.11.4; TTPrism at d53b3ed (baseline) and 19952b5 (after the fixes; the first fix
+  9.4.1, Python 3.11.4; TTPrism at d53b3ed (baseline) and 7b985f0 (after the fixes; the first fix
   commit, 6d0012d, gave the same output, see section 4).
 - **TTPrism settings.** *default* (the main numbers) and *raw* (`--include-reserved
   --no-default-allowlist`). Comparisons with the other tools use raw.
@@ -171,7 +171,7 @@ digit and `-` (`2019-` / `example.com`) is dropped as a fragment.
 
 **Changes made before the freeze from reading the code, not from these data.** A first round
 (6857503, then 6c655c8, 60a0d1f, a7d7e7b and 88bda72 after four rounds of adversarial review) and a
-second one after the maintainer's review of it (19952b5, reviewed once more):
+second one after the maintainer's review of it (19952b5, then 7b985f0 after one more review round):
 
 - **Soft hyphens are hyphens between letters or digits and at line ends.** A PDF draws only visible
   characters, so a soft hyphen in text extracted from a PDF stands where the page shows a hyphen:
@@ -187,8 +187,9 @@ second one after the maintainer's review of it (19952b5, reviewed once more):
   the first round made `KB-Auto-\u00ad` / `win.exe` into `KB-Auto--`.
 - **The warning goes the other way.** Text copied from a web page uses soft hyphens as invisible
   break hints (`&shy;`), which should be deleted. TTPrism warns when deleting the soft hyphens it read
-  as hyphens would change any value it reports, of any type, by extracting the first 8 Mi characters
-  a second time in that reading. The first round warned in the opposite case, and walked every
+  as hyphens between two letters or digits (not those at line ends or between GUID groups) would
+  change any value it reports, of any type, by extracting the first 8 Mi characters a second time in
+  that reading. The first round warned in the opposite case, and walked every
   extracted value of the whole text to count; values are now looked up, so the cost of the check is
   bounded by the 8 Mi characters it reads.
 - **`序號` is a label with or without a colon again**, as in 6d0012d. The first round required a
@@ -203,18 +204,29 @@ second one after the maintainer's review of it (19952b5, reviewed once more):
   only a line of host characters, or one going on to a port or path, carries it further.
 
 None of these changed any scored output on the eight reports (6d0012d, 6c655c8, 60a0d1f, a7d7e7b,
-88bda72 and 19952b5 give identical results). cn01's converter wrote every hyphen as a soft
+88bda72, 19952b5 and 7b985f0 give identical results). cn01's converter wrote every hyphen as a soft
 hyphen; reading them as hyphens changes none of its domains, URLs, addresses or hashes, but adds two
 CVE IDs, which are not scored: `CVE-2017-11882`, and `CVE-2017-1188` from `CVE\u00ad2017\u00ad1188` /
 `2`, broken without a hyphen. Deleting the soft hyphens would lose both, so cn01 now gets the
 warning, with a count of 2.
 
-A differential test of the first round's line joins on 18,000 generated wrapped lines (88bda72
-against 6c655c8) found 1,461 more correct values and lost none, relative to 6c655c8. Relative to
-31d5e41 some correct values are lost, on purpose: a URL that ended earlier on the line no longer
-joins the next one. The 210 wrong values that 88bda72 added all came from breaks at a dot without a
-hyphen, which no rule can join (README, Limitations), but only among the cases of that generator:
-the maintainer's review, with another generator, found 45 of 597 added wrong values that did not.
+A differential test on 18,000 generated wrapped names and URLs (three seeds of 6,000; each value is
+also read unwrapped, which gives the right answer) compares 7b985f0 with earlier commits:
+
+| 7b985f0 against | Correct values gained | Lost | Wrong values added | Removed |
+| --- | --- | --- | --- | --- |
+| 6c655c8 | 3,057 | 0 | 348 | 2,391 |
+| 31d5e41 | 2,117 | 73 | 174 | 1,450 |
+
+The 73 correct values lost relative to 31d5e41 are lost on purpose: in every one, a URL ended
+earlier on the line (`样本下载自http://a.example.com/x.exe，…`), and such a URL no longer joins the
+next line. The wrong values added all come from breaks at a dot without a hyphen, which no rule can
+join (README, Limitations), but this holds only for the cases this generator makes: the maintainer's
+review, with another generator, found 45 of 597 added wrong values that did not. An earlier version
+of this paragraph, at 88bda72, said that all 210 wrong values added then came from dot breaks; 74 of
+them came instead from a hyphen followed by a soft hyphen at a line end, read as `--`, the
+regression that 19952b5 fixed, and most of the correct values 88bda72 lost relative to 31d5e41 (282
+of 299 on the first seed) came from the same regression.
 
 ## 5. Limitations
 

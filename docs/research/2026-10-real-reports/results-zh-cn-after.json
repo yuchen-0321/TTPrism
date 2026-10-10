@@ -3,7 +3,7 @@
   "set": "zh-cn",
   "label": "after",
   "date": "2026-10-10",
-  "ttprism_commit": "19952b5e3682df4a3d511ce769dddfe9ac549405",
+  "ttprism_commit": "7b985f0c29c4477aab7d8619fa3b1b2c78f555eb",
   "versions": {
    "ttprism": "0.1.0.dev0",
    "iocextract": "1.16.1",
@@ -26,8 +26,15 @@
    "conversion": {
     "format": "pdf",
     "python": "3.11.4",
+    "pages": 11,
     "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
-    "pages": 11
+    "parts": [
+     {
+      "format": "pdf",
+      "start": 0,
+      "end": 5066
+     }
+    ]
    },
    "truth_counts": {
     "domain": 6,
@@ -279,8 +286,15 @@
    "conversion": {
     "format": "pdf",
     "python": "3.11.4",
+    "pages": 78,
     "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
-    "pages": 78
+    "parts": [
+     {
+      "format": "pdf",
+      "start": 0,
+      "end": 38501
+     }
+    ]
    },
    "truth_counts": {
     "url": 1,
@@ -1320,8 +1334,15 @@
    "conversion": {
     "format": "pdf",
     "python": "3.11.4",
+    "pages": 12,
     "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
-    "pages": 12
+    "parts": [
+     {
+      "format": "pdf",
+      "start": 0,
+      "end": 9095
+     }
+    ]
    },
    "truth_counts": {
     "domain": 12,
@@ -1694,8 +1715,15 @@
    "conversion": {
     "format": "pdf",
     "python": "3.11.4",
+    "pages": 73,
     "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
-    "pages": 73
+    "parts": [
+     {
+      "format": "pdf",
+      "start": 0,
+      "end": 20089
+     }
+    ]
    },
    "truth_counts": {
     "domain": 6,
@@ -2293,8 +2321,15 @@
    "conversion": {
     "format": "pdf",
     "python": "3.11.4",
+    "pages": 47,
     "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
-    "pages": 47
+    "parts": [
+     {
+      "format": "pdf",
+      "start": 0,
+      "end": 17419
+     }
+    ]
    },
    "truth_counts": {
     "url": 9,
@@ -2845,8 +2880,15 @@
    "conversion": {
     "format": "pdf",
     "python": "3.11.4",
+    "pages": 52,
     "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
-    "pages": 52
+    "parts": [
+     {
+      "format": "pdf",
+      "start": 0,
+      "end": 16607
+     }
+    ]
    },
    "truth_counts": {
     "domain": 45,
@@ -3395,8 +3437,15 @@
    "conversion": {
     "format": "pdf",
     "python": "3.11.4",
+    "pages": 23,
     "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
-    "pages": 23
+    "parts": [
+     {
+      "format": "pdf",
+      "start": 0,
+      "end": 10228
+     }
+    ]
    },
    "truth_counts": {
     "url": 3,
@@ -3842,8 +3891,15 @@
    "conversion": {
     "format": "pdf",
     "python": "3.11.4",
+    "pages": 25,
     "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
-    "pages": 25
+    "parts": [
+     {
+      "format": "pdf",
+      "start": 0,
+      "end": 9630
+     }
+    ]
    },
    "truth_counts": {
     "domain": 10,
