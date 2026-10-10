@@ -2,8 +2,8 @@
  "meta": {
   "set": "zh-cn",
   "label": "after",
-  "date": "2026-10-09",
-  "ttprism_commit": "88bda7220d0e766dc46a67e127e69e87f512e423",
+  "date": "2026-10-10",
+  "ttprism_commit": "19952b5e3682df4a3d511ce769dddfe9ac549405",
   "versions": {
    "ttprism": "0.1.0.dev0",
    "iocextract": "1.16.1",
@@ -20,8 +20,15 @@
   {
    "id": "cn01-tencent-oceanlotus-2018",
    "original_url": "https://s.tencent.com/research/report/471.html",
-   "pdf_sha256": "193c1198515cc1982f8e74c55c00044f258764a7078311f8b8e1abc860ec8b32",
+   "format": "pdf",
+   "source_sha256": "193c1198515cc1982f8e74c55c00044f258764a7078311f8b8e1abc860ec8b32",
    "text_sha256": "27a876d7036f1716b879f45b982dc4904dc43280186a43fd69c3623343295826",
+   "conversion": {
+    "format": "pdf",
+    "python": "3.11.4",
+    "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
+    "pages": 11
+   },
    "truth_counts": {
     "domain": 6,
     "ipv4": 3,
@@ -30,6 +37,20 @@
    "left_out": {
     "masked": {},
     "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [
+      "2 extracted value(s) would differ if the soft hyphens (U+00AD) between letters or digits were deleted instead of read as hyphens. Text taken from a PDF has a soft hyphen where the page shows a hyphen; text copied from a web page (&shy;) has them as invisible break hints, which would make KB-Auto read KBAuto."
+     ],
+     "suppressed": {}
+    },
+    "ttprism-raw": {
+     "warnings": [
+      "2 extracted value(s) would differ if the soft hyphens (U+00AD) between letters or digits were deleted instead of read as hyphens. Text taken from a PDF has a soft hyphen where the page shows a hyphen; text copied from a web page (&shy;) has them as invisible break hints, which would make KB-Auto read KBAuto."
+     ],
+     "suppressed": {}
+    }
    },
    "outputs": {
     "ttprism-default": {
@@ -252,8 +273,15 @@
   {
    "id": "cn02-360-apt-c-01-2018",
    "original_url": "https://ti.360.net/uploads/2018/09/20/6f8ad451646c9eda1f75c5d31f39f668.pdf",
-   "pdf_sha256": "c69e30de5d0d5b158632d614a56d0a22e5b245bee4672e3574e3c00356270e81",
+   "format": "pdf",
+   "source_sha256": "c69e30de5d0d5b158632d614a56d0a22e5b245bee4672e3574e3c00356270e81",
    "text_sha256": "cf8698b5194d2d635d006de3147fa3676609ddc2fe0d4b8b5ae1dbb927ceeea0",
+   "conversion": {
+    "format": "pdf",
+    "python": "3.11.4",
+    "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
+    "pages": 78
+   },
    "truth_counts": {
     "url": 1,
     "domain": 78,
@@ -263,6 +291,23 @@
    "left_out": {
     "masked": {},
     "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {
+      "allowlisted": 8,
+      "detection_name": 1,
+      "filename_like_domain": 2
+     }
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {
+      "detection_name": 1,
+      "filename_like_domain": 2
+     }
+    }
    },
    "outputs": {
     "ttprism-default": {
@@ -1269,8 +1314,15 @@
   {
    "id": "cn03-360-apt-c-38-2019",
    "original_url": "http://blogs.360.cn/post/analysis-of-APT-C-38.html",
-   "pdf_sha256": "bc8eb5b97b7d3a5925083176a6a675209890922520dde8c44adf106ac24afd03",
+   "format": "pdf",
+   "source_sha256": "bc8eb5b97b7d3a5925083176a6a675209890922520dde8c44adf106ac24afd03",
    "text_sha256": "70aeabd07d9eaef4cf43e3dc3473a7d6a32dc32a153b76a62e7cd66093a157bb",
+   "conversion": {
+    "format": "pdf",
+    "python": "3.11.4",
+    "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
+    "pages": 12
+   },
    "truth_counts": {
     "domain": 12,
     "ipv4": 4,
@@ -1279,6 +1331,20 @@
    "left_out": {
     "masked": {},
     "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {
+      "line_wrap_fragment": 12
+     }
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {
+      "line_wrap_fragment": 12
+     }
+    }
    },
    "outputs": {
     "ttprism-default": {
@@ -1622,8 +1688,15 @@
   {
    "id": "cn04-tencent-higaisa-2019",
    "original_url": "https://s.tencent.com/research/report/836.html",
-   "pdf_sha256": "c40fd5a94acd7c7868fa383ce15e3b8395df792aec89974fc9f634f31e53760f",
+   "format": "pdf",
+   "source_sha256": "c40fd5a94acd7c7868fa383ce15e3b8395df792aec89974fc9f634f31e53760f",
    "text_sha256": "df30b4840b342249d2ceb1e3d53126d38893bbffe5a5039fe55825dd376d553b",
+   "conversion": {
+    "format": "pdf",
+    "python": "3.11.4",
+    "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
+    "pages": 73
+   },
    "truth_counts": {
     "domain": 6,
     "ipv4": 3,
@@ -1634,6 +1707,23 @@
      "domain": 1
     },
     "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {
+      "allowlisted": 1,
+      "masked_name": 2,
+      "public_suffix": 2
+     }
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {
+      "masked_name": 2,
+      "public_suffix": 2
+     }
+    }
    },
    "outputs": {
     "ttprism-default": {
@@ -2197,8 +2287,15 @@
   {
    "id": "cn05-qianxin-tibbar-2020",
    "original_url": "https://ti.qianxin.com/uploads/2020/09/17/69da886eecc7087e9dac2d3ea4c66ba8.pdf",
-   "pdf_sha256": "6f9ee8862ac1cb1d5ff2ee68e88000dbc166d0bff3356e33eec2d4805c8797fe",
+   "format": "pdf",
+   "source_sha256": "6f9ee8862ac1cb1d5ff2ee68e88000dbc166d0bff3356e33eec2d4805c8797fe",
    "text_sha256": "19e3a4a9db235ef8db974692a0c9d6c3b7341359182e8c8fdba8952e9ee5abc7",
+   "conversion": {
+    "format": "pdf",
+    "python": "3.11.4",
+    "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
+    "pages": 47
+   },
    "truth_counts": {
     "url": 9,
     "domain": 11,
@@ -2207,6 +2304,27 @@
    "left_out": {
     "masked": {},
     "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {
+      "allowlisted": 1,
+      "certificate_serial": 3,
+      "filename_like_domain": 4,
+      "line_wrap_fragment": 1,
+      "masked_name": 5
+     }
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {
+      "certificate_serial": 3,
+      "filename_like_domain": 4,
+      "line_wrap_fragment": 1,
+      "masked_name": 5
+     }
+    }
    },
    "outputs": {
     "ttprism-default": {
@@ -2721,8 +2839,15 @@
   {
    "id": "cn06-qianxin-rubia-2020",
    "original_url": "https://mp.weixin.qq.com/s/omacDXAdio88a_f0Xwu-kg",
-   "pdf_sha256": "6d95a964384b40bc904abeda01bfd60dc9bbf916e33355393ebbdcd77aea0be9",
+   "format": "pdf",
+   "source_sha256": "6d95a964384b40bc904abeda01bfd60dc9bbf916e33355393ebbdcd77aea0be9",
    "text_sha256": "9ef16a7b6aa1555a8338a4e5a211f751e75261fa43e8516b4ac1da1ab9671691",
+   "conversion": {
+    "format": "pdf",
+    "python": "3.11.4",
+    "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
+    "pages": 52
+   },
    "truth_counts": {
     "domain": 45,
     "ipv4": 22,
@@ -2732,6 +2857,22 @@
     "masked": {},
     "ambiguous": {
      "domain": 8
+    }
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {
+      "line_wrap_fragment": 11,
+      "masked_name": 15
+     }
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {
+      "line_wrap_fragment": 11,
+      "masked_name": 15
+     }
     }
    },
    "outputs": {
@@ -3248,8 +3389,15 @@
   {
    "id": "cn07-360-apt-c-44-2020",
    "original_url": "https://blogs.360.cn/post/APT-C-44.html",
-   "pdf_sha256": "95c683580e8f47ea5b07e38f0ce43b2ebe4be62d99a792588b92e22658f694b9",
+   "format": "pdf",
+   "source_sha256": "95c683580e8f47ea5b07e38f0ce43b2ebe4be62d99a792588b92e22658f694b9",
    "text_sha256": "72069178fb92cd56a0893a08a6811f2393de9900d784865415c0a78092555c80",
+   "conversion": {
+    "format": "pdf",
+    "python": "3.11.4",
+    "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
+    "pages": 23
+   },
    "truth_counts": {
     "url": 3,
     "domain": 3,
@@ -3258,6 +3406,18 @@
    "left_out": {
     "masked": {},
     "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {
+      "allowlisted": 1
+     }
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {}
+    }
    },
    "outputs": {
     "ttprism-default": {
@@ -3676,8 +3836,15 @@
   {
    "id": "cn08-gcow-sidewinder-2020h1",
    "original_url": "https://mp.weixin.qq.com/s/5mBqxf_v6G006EnjECoTHw",
-   "pdf_sha256": "46759a030e9b0a2ad57af83f3bc26687d334cd28264fd165abd4a8137d61caa8",
+   "format": "pdf",
+   "source_sha256": "46759a030e9b0a2ad57af83f3bc26687d334cd28264fd165abd4a8137d61caa8",
    "text_sha256": "e9ab4d4fac8bb6deac3194924ce8d176444e80fffb1b617950cfc38b57f59deb",
+   "conversion": {
+    "format": "pdf",
+    "python": "3.11.4",
+    "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
+    "pages": 25
+   },
    "truth_counts": {
     "domain": 10,
     "md5": 9
@@ -3685,6 +3852,16 @@
    "left_out": {
     "masked": {},
     "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {}
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {}
+    }
    },
    "outputs": {
     "ttprism-default": {
@@ -4106,6 +4283,170 @@
     "judged_total": 710,
     "strict": 0.7803,
     "lenient": 0.9423
+   }
+  }
+ },
+ "totals_by_format": {
+  "pdf": {
+   "ttprism-default": {
+    "recall": {
+     "domain": [
+      169,
+      171,
+      0.9883
+     ],
+     "ipv4": [
+      42,
+      42,
+      1.0
+     ],
+     "md5": [
+      274,
+      274,
+      1.0
+     ],
+     "url": [
+      13,
+      13,
+      1.0
+     ],
+     "url-host": [
+      9,
+      9,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 500,
+     "a": 62,
+     "b": 101,
+     "c": 6,
+     "masked": 3,
+     "ambiguous": 0,
+     "judged_total": 669,
+     "strict": 0.8401,
+     "lenient": 0.991
+    }
+   },
+   "ttprism-raw": {
+    "recall": {
+     "domain": [
+      169,
+      171,
+      0.9883
+     ],
+     "ipv4": [
+      42,
+      42,
+      1.0
+     ],
+     "md5": [
+      274,
+      274,
+      1.0
+     ],
+     "url": [
+      13,
+      13,
+      1.0
+     ],
+     "url-host": [
+      9,
+      9,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 500,
+     "a": 62,
+     "b": 111,
+     "c": 7,
+     "masked": 3,
+     "ambiguous": 0,
+     "judged_total": 680,
+     "strict": 0.8265,
+     "lenient": 0.9897
+    }
+   },
+   "iocextract": {
+    "recall": {
+     "domain": [
+      21,
+      171,
+      0.1228
+     ],
+     "ipv4": [
+      42,
+      42,
+      1.0
+     ],
+     "md5": [
+      274,
+      274,
+      1.0
+     ],
+     "url": [
+      13,
+      13,
+      1.0
+     ],
+     "url-host": [
+      9,
+      9,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 331,
+     "a": 36,
+     "b": 45,
+     "c": 48,
+     "masked": 4,
+     "ambiguous": 0,
+     "judged_total": 460,
+     "strict": 0.7978,
+     "lenient": 0.8957
+    }
+   },
+   "ioc-finder": {
+    "recall": {
+     "domain": [
+      162,
+      171,
+      0.9474
+     ],
+     "ipv4": [
+      42,
+      42,
+      1.0
+     ],
+     "md5": [
+      272,
+      274,
+      0.9927
+     ],
+     "url": [
+      13,
+      13,
+      1.0
+     ],
+     "url-host": [
+      9,
+      9,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 491,
+     "a": 63,
+     "b": 115,
+     "c": 41,
+     "masked": 24,
+     "ambiguous": 0,
+     "judged_total": 710,
+     "strict": 0.7803,
+     "lenient": 0.9423
+    }
    }
   }
  },

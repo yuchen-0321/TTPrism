@@ -39,9 +39,12 @@ domains, IPv4 and MD5 only.
 ## 2. Method
 
 - **Input.** pypdf 6.20.0 turns each PDF into text, page headers and footers included; all tools
-  read the same text. Versions: iocextract 1.16.1, ioc-finder 9.4.1, Python 3.11.4; TTPrism at
-  d53b3ed (baseline) and 88bda72 (after the fixes; the first fix commit, 6d0012d, gave the same
-  output, see section 4).
+  read the same text. A web page would be decoded strictly and laid out by `HtmlText` in
+  `evaluate.py` (standard-library `html.parser`; the visible text of the whole `<body>`, navigation
+  and footer included; the rules are in its docstring and in the manifest's `text_conversion`), and
+  its totals given separately as well; this set has none. Versions: iocextract 1.16.1, ioc-finder
+  9.4.1, Python 3.11.4; TTPrism at d53b3ed (baseline) and 19952b5 (after the fixes; the first fix
+  commit, 6d0012d, gave the same output, see section 4).
 - **TTPrism settings.** *default* (the main numbers) and *raw* (`--include-reserved
   --no-default-allowlist`). Comparisons with the other tools use raw.
 - **Ground truth.** The values in the appendix, found with plain line rules, then corrected by
@@ -147,8 +150,8 @@ of the rules were refined later (see below); the table describes them as they ar
 
 | Baseline issue | Count | Change |
 | --- | --- | --- |
-| Certificate serial numbers (`SerialNumber:` + 32 hex) read as MD5 (all three tools) | 3 c | Hex values right after a serial-number label (`serial`, `serial number`, `序列号`, `序列號`, `證書序號`, `憑證序號`, or a bare `序號` with a colon) are counted as `certificate_serial` |
-| GUIDs whose hyphens the PDF converter wrote as soft hyphens read as MD5 | 2 c | Soft hyphens between the groups of a GUID become hyphens before format characters are deleted |
+| Certificate serial numbers (`SerialNumber:` + 32 hex) read as MD5 (all three tools) | 3 c | Hex values right after a serial-number label (`serial`, `serial number`, `序列号`, `序列號`, `序號`, with or without a colon) are counted as `certificate_serial` |
+| GUIDs whose hyphens the PDF converter wrote as soft hyphens read as MD5 | 2 c | Soft hyphens between the groups of a GUID become hyphens (now: between any two letters or digits, see below) |
 | Names wrapped at a hyphen next to a dot (`serveuser.-` / `com`) missed | 7 recall | Joined without the hyphen |
 | URLs wrapped after one of their own hyphens (`KB-Auto-win-` / `update.exe`) cut | 6 c | Joined keeping the hyphen, when a URL on the line runs up to the hyphen (also over several lines) |
 | The rest of a name after any other hyphen at a line end (`daters.com`, `dns.net`) | 14 c | Dropped as a fragment (`line_wrap_fragment`); the hyphen may or may not belong to the name |
@@ -166,27 +169,52 @@ The new rules can be wrong in rare text: a URL that really ends in `-` at the en
 joined with the next line, and a name at the start of a line after a line ending in a letter or
 digit and `-` (`2019-` / `example.com`) is dropped as a fragment.
 
-**Changes made before the freeze from reading the code, not from these data** (6857503, then
-6c655c8, 60a0d1f, a7d7e7b and 88bda72 after four rounds of adversarial review):
+**Changes made before the freeze from reading the code, not from these data.** A first round
+(6857503, then 6c655c8, 60a0d1f, a7d7e7b and 88bda72 after four rounds of adversarial review) and a
+second one after the maintainer's review of it (19952b5, reviewed once more):
 
-- A soft hyphen right before a line break, also with spaces, bidi controls or other format
-  characters between, is read as `-`, so the line-break rules apply to it exactly as to `-`. It used
-  to be deleted first, so `update\u00ad` / `check-server.com` gave the wrong `check-server.com`.
-- When reading the soft hyphens deleted between two letters or digits as hyphens would change the
-  names, e-mail addresses or URLs reported, a warning says so, because some converters (cn01's among
-  them) write every hyphen as a soft hyphen and the value then loses its hyphens (`KB-Auto` read as
-  `KBAuto`). TTPrism finds out by extracting the text a second time in that reading.
-- A bare `序號` is a serial-number label only with a colon, since it also heads the row-number
-  column of tables; `證書序號` and `憑證序號` need none.
-- A line ending in `<letter or digit>-` is joined with the next line as part of a URL only if a URL,
-  as the extractor reads it, really runs up to the hyphen; before, any URL earlier on a line of
-  Chinese text without spaces was enough. A URL wrapped after its own hyphens or at dots over
-  several lines is joined at every break; while it is still in its host, only a line of host
-  characters, or one going on to a port or path, carries it further.
+- **Soft hyphens are hyphens between letters or digits and at line ends.** A PDF draws only visible
+  characters, so a soft hyphen in text extracted from a PDF stands where the page shows a hyphen:
+  pypdf gives U+00AD for the hyphen of code 0xAD in WinAnsi-encoded fonts, where pdftotext gives
+  `-` (a one-page Helvetica PDF showing `update-check.example-host.com`, with the first hyphen
+  written as code 0xAD: pypdf 6.20.0 gives `update\u00adcheck…`, pdftotext `update-check…`). The
+  first round read them as hyphens only at line ends and between GUID groups and deleted the rest,
+  so that page gave `updatecheck.example-host.com`, and `CVE\u00ad2017\u00ad11882` or
+  `198.51.100.1\u00ad198.51.100.9` gave nothing at all. Now one between two letters or digits is
+  read as `-`. At a line end, with up to 1,024 spaces or format characters before the break, it
+  works exactly like `-` (before the first round it was deleted, so `update\u00ad` /
+  `check-server.com` gave the wrong `check-server.com`); right after a hyphen it is deleted, since
+  the first round made `KB-Auto-\u00ad` / `win.exe` into `KB-Auto--`.
+- **The warning goes the other way.** Text copied from a web page uses soft hyphens as invisible
+  break hints (`&shy;`), which should be deleted. TTPrism warns when deleting the soft hyphens it read
+  as hyphens would change any value it reports, of any type, by extracting the first 8 Mi characters
+  a second time in that reading. The first round warned in the opposite case, and walked every
+  extracted value of the whole text to count; values are now looked up, so the cost of the check is
+  bounded by the 8 Mi characters it reads.
+- **`序號` is a label with or without a colon again**, as in 6d0012d. The first round required a
+  colon because `序號` also heads the row-number column of tables, but pypdf writes a table row by
+  row, so that heading is followed by the other headings, not by a hash, and tables gave the same
+  output at 31d5e41 and 8514df1. What the colon rule did change was a certificate field written
+  without one (`序號 0e44…`), which became an MD5 again.
+- **URL joins (first round).** A line ending in `<letter or digit>-` is joined with the next line as
+  part of a URL only if a URL, as the extractor reads it, really runs up to the hyphen; before, any
+  URL earlier on a line of Chinese text without spaces was enough. A URL wrapped after its own
+  hyphens or at dots over several lines is joined at every break; while it is still in its host,
+  only a line of host characters, or one going on to a port or path, carries it further.
 
-None of these changed any output on the eight reports (6d0012d, 6c655c8, 60a0d1f, a7d7e7b and
-88bda72 give identical results). cn01 has 46 soft hyphens inside lines, but reading them as hyphens changes no
-extracted value, so it gives no warning.
+None of these changed any scored output on the eight reports (6d0012d, 6c655c8, 60a0d1f, a7d7e7b,
+88bda72 and 19952b5 give identical results). cn01's converter wrote every hyphen as a soft
+hyphen; reading them as hyphens changes none of its domains, URLs, addresses or hashes, but adds two
+CVE IDs, which are not scored: `CVE-2017-11882`, and `CVE-2017-1188` from `CVE\u00ad2017\u00ad1188` /
+`2`, broken without a hyphen. Deleting the soft hyphens would lose both, so cn01 now gets the
+warning, with a count of 2.
+
+A differential test of the first round's line joins on 18,000 generated wrapped lines (88bda72
+against 6c655c8) found 1,461 more correct values and lost none, relative to 6c655c8. Relative to
+31d5e41 some correct values are lost, on purpose: a URL that ended earlier on the line no longer
+joins the next one. The 210 wrong values that 88bda72 added all came from breaks at a dot without a
+hyphen, which no rule can join (README, Limitations), but only among the cases of that generator:
+the maintainer's review, with another generator, found 45 of 597 added wrong values that did not.
 
 ## 5. Limitations
 
@@ -211,5 +239,6 @@ E=docs/research/2026-10-real-reports/evaluate.py
 /tmp/eval/bin/python -I $E run zh-cn after && /tmp/eval/bin/python -I $E score zh-cn after
 ```
 
-The PDFs go in `eval-data/zh-cn/pdf/<id>.pdf`; the manifest lists each one's path and blob SHA-1
-in the collection, and the results list the SHA-256 of each PDF and of its text.
+The PDFs go in `eval-data/zh-cn/pdf/<id>.pdf` (web pages in `eval-data/<set>/html/<id>.html`); the
+manifest lists each one's path and blob SHA-1 in the collection, and the results list the SHA-256 of
+each source file and of its text.
