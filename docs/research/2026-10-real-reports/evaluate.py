@@ -1254,7 +1254,7 @@ def ttprism_identity() -> dict[str, str]:
             f"the TTPrism that runs ({executed}) is not this repository's src/ttprism ({imported}); "
             "install it with `uv pip install -e .`"
         )
-    return {"version": version, "path": str(executed.relative_to(ROOT))}
+    return {"version": version, "path": executed.relative_to(ROOT).as_posix()}
 
 
 def run_ttprism(path: Path, flags: list[str]) -> dict[str, Any]:
@@ -1341,7 +1341,7 @@ def git_commit() -> str:
     """HEAD, and which of the files the results depend on (PIPELINE_FILES) had uncommitted changes."""
     git = ["git", "-C", str(ROOT)]
     commit = subprocess.run([*git, "rev-parse", "HEAD"], capture_output=True, text=True, check=True)  # noqa: S603
-    paths = [str(path.relative_to(ROOT)) for path in PIPELINE_FILES]
+    paths = [path.relative_to(ROOT).as_posix() for path in PIPELINE_FILES]
     status = [*git, "status", "--porcelain", "--untracked-files=all", "--", *paths]
     dirty = subprocess.run(status, capture_output=True, text=True, check=True)  # noqa: S603
     changed = sorted(line[3:] for line in dirty.stdout.splitlines() if line.strip())

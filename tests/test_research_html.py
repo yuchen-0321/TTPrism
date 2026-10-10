@@ -623,7 +623,7 @@ def test_truth_records_what_it_was_made_from_and_later_steps_check_it(
 
 def test_the_executed_ttprism_is_this_repository() -> None:
     identity = evaluate.ttprism_identity()
-    assert identity["path"] == str(Path("src") / "ttprism" / "__init__.py")
+    assert identity["path"] == "src/ttprism/__init__.py"
     assert identity["version"] == importlib.metadata.version("ttprism")
 
 
