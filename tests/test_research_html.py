@@ -7,14 +7,19 @@ documentation addresses only.
 
 from __future__ import annotations
 
+import hashlib
+import importlib.metadata
 import importlib.util
 import json
 import sys
 from pathlib import Path
 from types import ModuleType
 from typing import Any
+from unittest import mock
 
 import pytest
+
+from timing import seconds_per_mb
 
 SCRIPT = Path(__file__).resolve().parents[1] / "docs/research/2026-10-real-reports/evaluate.py"
 
@@ -370,9 +375,9 @@ def test_attachments_are_read_by_their_kind(tmp_path: Path) -> None:
         evaluate.convert(plain, "text")  # no lenient decoding here either
 
 
-def test_text_from_a_pdf_keeps_its_soft_hyphens_in_the_ground_truth() -> None:
-    # A web page's format characters are deleted from the appendix; a PDF attachment's are not, since
-    # pypdf's U+00AD there is a drawn hyphen.
+def test_soft_hyphens_in_pdf_text_are_hyphens_in_the_ground_truth() -> None:
+    # A web page's format characters are deleted from the appendix; in a PDF's text every soft hyphen
+    # is a drawn hyphen, as TTPrism reads it.
     page = "IOCs\nup\u00addate.example.com"
     attachment = "KB\u00adAuto.example.net\nEND"
     whole = page + "\n\n" + attachment
@@ -381,7 +386,20 @@ def test_text_from_a_pdf_keeps_its_soft_hyphens_in_the_ground_truth() -> None:
         {"format": "pdf", "start": len(page) + 2, "end": len(whole)},
     ]
     region = evaluate.appendix_region(whole, report("IOCs"), parts)
-    assert region == "IOCs\nupdate.example.com\n\nKB\u00adAuto.example.net\n"
+    assert region == "IOCs\nupdate.example.com\n\nKB-Auto.example.net\n"
+
+
+def test_ground_truth_of_a_pdf_reads_every_soft_hyphen_as_a_hyphen() -> None:
+    text = (
+        "IOCs\nupdate\u00adcheck.example.com\nxn\u00ad\u00adbcher-kva.example\n"
+        "http://198.51.100.7/a.php?id=\u00ad1\nhttps://gitlab.example.com/g/t/\u00ad/raw/main/a.ps1\nEND"
+    )
+    truth, _, _ = evaluate.ground_truth(text, {**report("IOCs"), "format": "pdf"})
+    assert truth["url"] == [
+        "http://198.51.100.7/a.php?id=-1",
+        "https://gitlab.example.com/g/t/-/raw/main/a.ps1",
+    ]
+    assert truth["domain"] == ["gitlab.example.com", "update-check.example.com", "xn--bcher-kva.example"]
 
 
 def test_converted_text_has_only_lf_line_breaks(tmp_path: Path) -> None:
@@ -409,6 +427,8 @@ def test_text_records_every_part_and_run_checks_them(
     attachment.write_bytes(b'<meta charset="big5"><h2>IOCs</h2><p>a.example.com</p><p hidden>END</p>')
     monkeypatch.setattr(evaluate, "DATA", tmp_path)
     monkeypatch.setattr(evaluate, "manifest", lambda name: [entry])
+    monkeypatch.setattr(evaluate, "selection_rule", lambda name: "every test page")
+    monkeypatch.setattr(evaluate, "check_html_parser", evaluate.html_parser_info)
     evaluate.command_text("t")
     out = capsys.readouterr().out
     assert "attachment iocs.html (html)" in out
@@ -419,6 +439,8 @@ def test_text_records_every_part_and_run_checks_them(
     assert whole == "Report\n\nIOCs\n\na.example.com\n\nEND"
     assert [p["format"] for p in conversion["parts"]] == ["html", "html"]
     assert conversion["attachments"][0]["decoding"]["chosen_by"] == "valid UTF-8"
+    assert conversion["python"] == sys.version
+    assert set(conversion["html_parser_sha256"]) == {"html/parser.py", "_markupbase.py", "html/entities.py"}
     evaluate.check_unchanged("t", entry, conversion, whole)
     attachment.write_bytes(b"<p>changed</p>")
     with pytest.raises(SystemExit, match="changed since"):
@@ -426,3 +448,286 @@ def test_text_records_every_part_and_run_checks_them(
     attachment.unlink()
     with pytest.raises(SystemExit, match="changed since"):
         evaluate.check_unchanged("t", entry, conversion, whole)
+    attachment.write_bytes(b'<meta charset="big5"><h2>IOCs</h2><p>a.example.com</p><p hidden>END</p>')
+    monkeypatch.setattr(
+        evaluate, "sha256", lambda path: "0" * 64 if path == evaluate.SCRIPT else digest(path)
+    )
+    with pytest.raises(SystemExit, match=r"another version of evaluate\.py"):
+        evaluate.check_unchanged("t", entry, conversion, whole)
+
+
+def digest(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_text_needs_a_selection_rule(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(evaluate, "manifest", lambda name: [])
+    monkeypatch.setattr(evaluate, "selection_rule", lambda name: " ")
+    with pytest.raises(SystemExit, match="no selection rule"):
+        evaluate.command_text("t")
+
+
+# --------------------------------------------------------------------------- the Python release
+
+
+def test_text_stops_when_html_parser_gets_a_canary_wrong(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(evaluate, "_CANARIES", (("<p>a</p><p>b</p>", "a b"),))
+    assert evaluate.html_parser_problems() == ["'<p>a</p><p>b</p>' gave 'a\\n\\nb', not 'a b'"]
+    with pytest.raises(SystemExit, match="2025 security fixes"):
+        evaluate.check_html_parser()
+    monkeypatch.setattr(
+        evaluate, "html_to_text", mock.Mock(side_effect=AssertionError("expected name token"))
+    )
+    assert evaluate.html_parser_problems() == [
+        "'<p>a</p><p>b</p>' gave 'AssertionError: expected name token', not 'a b'"
+    ]
+
+
+@pytest.mark.skipif(
+    bool(evaluate.html_parser_problems()), reason="html.parser without the 2025 security fixes"
+)
+def test_canaries_pass_on_a_fixed_python() -> None:
+    info = evaluate.check_html_parser()
+    assert info["python"] == sys.version
+    assert all(len(value) == 64 for value in info["sha256"].values())
+
+
+# --------------------------------------------------------------------------- more layout
+
+
+@pytest.mark.parametrize(
+    ("page", "expected"),
+    [
+        # SVG draws each <text> apart.
+        ("<svg><text>evil.example.com</text><text>198.51.100.7</text></svg>",
+         "evil.example.com\n198.51.100.7"),
+        ("<p>a<text>b</text>c</p>", "abc"),  # not in an <svg>
+        # Text in a table outside its cells gets a line of its own; the row goes on after it.
+        ("<table><tr>note<td>a.example.com</td><td>198.51.100.7</td></tr></table>",
+         "note\na.example.com\t198.51.100.7"),
+        ("<table><tr><td>a.example.com</td>evil<span>.example</span>.com<td>198.51.100.7</td></tr></table>",
+         "a.example.com\nevil.example.com\n\t198.51.100.7"),
+        ("<table><tr><td>1</td><td>a</td></tr>IOCs<tr><td>2</td><td>b</td></tr></table>", "1\ta\nIOCs\n2\tb"),
+        # A "</script>" in a comment in a script that opens another "<script>" does not end the script.
+        ("<p>a<script><!-- document.write('<script>x</script>'); leak.example.com --></script>b</p>", "ab"),
+        ("<p>a<script><!-- x --></script>b<script>y</script>c</p>", "abc"),
+        ("<p>a<script><!--<script></script>--></script>b</p>", "ab"),
+        # "<!-->" and "<!--->" are empty comments.
+        ("<p>a</p><!--><p>b</p><!-- y --><p>c</p>", "a\n\nb\n\nc"),
+        ("<p>a</p><!---><p>b</p><!-- y --><p>c</p>", "a\n\nb\n\nc"),
+        ("<p>a</p><!-- x --!><p>b</p><!-- y --><p>c</p>", "a\n\nb\n\nc"),
+        # NUL is dropped, and shown as U+FFFD in raw text; <datalist> and <rp> are not shown.
+        ("<p>a\0b</p><xmp>c\0d</xmp>", "ab\n\nc\ufffdd"),
+        ("<p>a<datalist><option>leak.example.com</datalist>b</p>", "ab"),
+        ("<ruby>evil<rp>(</rp><rt>x</rt><rp>)</rp></ruby>.example.com", "evilx.example.com"),
+        ("<ruby>a<rp>(<rt>b<rp>)</ruby>c.example.com", "abc.example.com"),
+    ],
+)  # fmt: skip
+def test_layout_of_browser_rules(page: str, expected: str) -> None:
+    assert text(page) == expected
+
+
+def test_conversion_time_grows_linearly_with_nesting() -> None:
+    # Unclosed elements nest ever deeper; no event may look through all open elements.
+    for unit in ("<div>x", "<table><tr><td>x", "<details><summary>x", "<span hidden>x"):
+        small = seconds_per_mb(lambda u=unit: evaluate.html_to_text(u * 4000), 1, repeat=3)
+        large = seconds_per_mb(lambda u=unit: evaluate.html_to_text(u * 16000), 1, repeat=3)
+        assert large < 8 * small, unit  # quadratic would be 16 times
+
+
+# --------------------------------------------------------------------------- decoding, more
+
+
+def test_a_meta_charset_in_a_comment_is_ignored() -> None:
+    page = b'<!-- <meta charset="gb18030"> --><meta charset="big5"><p>' + "樣本".encode("cp950")
+    decoded, info = evaluate.decode_html(page)
+    assert decoded.endswith("<p>樣本")
+    assert info["declared"]["meta"] == "big5"
+    assert evaluate.decode_html(b'<!--> <meta charset="gb18030"><p>a')[1]["declared"]["meta"] == "gb18030"
+    assert evaluate.decode_html(b'<!-- <meta charset="gb18030"><p>a')[1]["declared"]["meta"] is None
+
+
+def test_a_charset_override_replaces_the_decoding_order() -> None:
+    page = "<p>樣本".encode()  # valid UTF-8, also valid GB 18030
+    decoded, info = evaluate.decode_html(page, override="gb18030")
+    assert decoded != "<p>樣本"
+    assert (info["encoding"], info["chosen_by"]) == ("gb18030", "charset override in the manifest")
+    assert evaluate.decode_html(b"\xef\xbb\xbf<p>a", override="utf-8")[0] == "<p>a"
+    with pytest.raises(SystemExit, match="cannot decode"):
+        evaluate.decode_html(b"<p>\x80\x80\x80", override="utf-8")
+    with pytest.raises(SystemExit, match="unknown charset override"):
+        evaluate.decode_html(b"<p>a", override="no-such-charset")
+
+
+# --------------------------------------------------------------------------- ground-truth line rules
+
+
+def truth_of(appendix_text: str) -> dict[str, list[str]]:
+    truth: dict[str, list[str]] = evaluate.ground_truth(f"IOCs\n{appendix_text}\nEND", report("IOCs"))[0]
+    return {kind: values for kind, values in truth.items() if values}
+
+
+def test_values_right_after_chinese_text_are_found() -> None:
+    assert truth_of("網域evil.example.com，位址198.51.100.7，網址http://203.0.113.9/a.exe 下載") == {
+        "domain": ["evil.example.com"],
+        "ipv4": ["198.51.100.7"],
+        "url": ["http://203.0.113.9/a.exe"],
+    }
+    # Only ASCII letters and digits are part of a name: not U+017F, which IGNORECASE folds to "s".
+    assert truth_of("evil.\u017fx.com") == {"domain": ["x.com"]}
+
+
+def test_parenthesised_dots_are_dots() -> None:
+    assert truth_of("evil(.)example(.)com 198(.)51(.)100(.)7 hxxp://evil(.)example(.)net/a(.)exe") == {
+        "domain": ["evil.example.com", "evil.example.net"],
+        "ipv4": ["198.51.100.7"],
+        "url": ["http://evil.example.net/a.exe"],
+    }
+
+
+def test_email_addresses_are_found_and_their_domains_are_not_domains() -> None:
+    assert truth_of(
+        "郵件ops@example.org, admin[@]example.net, info[at]example.com, x(@)evil(.)example.com"
+    ) == {
+        "email": ["admin@example.net", "info@example.com", "ops@example.org", "x@evil.example.com"],
+    }
+
+
+# --------------------------------------------------------------------------- what each step was made from
+
+
+def test_truth_records_what_it_was_made_from_and_later_steps_check_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    entry = {
+        **report("IOCs"),
+        "format": "pdf",
+        "truth_corrections": {"remove": {"domain": ["a.example.com"]}, "notes": ["test"]},
+    }
+    (tmp_path / "t" / "text").mkdir(parents=True)
+    (tmp_path / "t" / "text" / "t01.txt").write_bytes(b"IOCs\nb.example.com\nEND")
+    monkeypatch.setattr(evaluate, "DATA", tmp_path)
+    monkeypatch.setattr(evaluate, "manifest", lambda name: [entry])
+    evaluate.command_truth("t")
+    text_hash = evaluate.text_sha256("IOCs\nb.example.com\nEND")
+    assert evaluate.load_truth("t", entry, text_hash)["truth"]["domain"] == ["b.example.com"]
+    with pytest.raises(SystemExit, match="another version of the text"):
+        evaluate.load_truth("t", entry, "0" * 64)
+    changed = {**entry, "truth_corrections": {"notes": ["test"]}}
+    with pytest.raises(SystemExit, match="another version of its appendix markers or corrections"):
+        evaluate.load_truth("t", changed, text_hash)
+    monkeypatch.setattr(evaluate, "sha256", lambda path: "0" * 64)
+    with pytest.raises(SystemExit, match=r"another version of evaluate\.py"):
+        evaluate.load_truth("t", entry, text_hash)
+
+
+def test_the_executed_ttprism_is_this_repository() -> None:
+    identity = evaluate.ttprism_identity()
+    assert identity["path"] == str(Path("src") / "ttprism" / "__init__.py")
+    assert identity["version"] == importlib.metadata.version("ttprism")
+
+
+def test_run_executes_ttprism_isolated(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = []
+
+    def fake_run(cmd: list[str], **kwargs: Any) -> mock.Mock:
+        calls.append(cmd)
+        return mock.Mock(stdout='{"iocs": []}')
+
+    monkeypatch.setattr(evaluate.subprocess, "run", fake_run)
+    evaluate.run_ttprism(Path("report.txt"), [])
+    assert calls[0][:4] == [sys.executable, "-I", "-m", "ttprism"]
+
+
+def test_the_commit_check_covers_every_file_the_results_depend_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = []
+
+    def fake_run(cmd: list[str], **kwargs: Any) -> mock.Mock:
+        calls.append(cmd)
+        return mock.Mock(
+            stdout=" M docs/research/2026-10-real-reports/manifest.json\n" if "status" in cmd else "abc\n"
+        )
+
+    monkeypatch.setattr(evaluate.subprocess, "run", fake_run)
+    assert (
+        evaluate.git_commit() == "abc+uncommitted changes in docs/research/2026-10-real-reports/manifest.json"
+    )
+    status = calls[1]
+    assert status[status.index("--") + 1 :] == [
+        "src",
+        "pyproject.toml",
+        "docs/research/2026-10-real-reports/evaluate.py",
+        "docs/research/2026-10-real-reports/manifest.json",
+        "docs/research/2026-10-real-reports/requirements.txt",
+    ]
+
+
+def test_installed_distributions_are_listed() -> None:
+    assert f"pytest=={importlib.metadata.version('pytest')}" in evaluate.installed_distributions()
+
+
+# --------------------------------------------------------------------------- the manifest
+
+
+def test_the_committed_manifest_is_valid() -> None:
+    data = json.loads(evaluate.MANIFEST.read_text(encoding="utf-8"))
+    assert evaluate.manifest_problems(data) == []
+    assert data["selection_rule"]["zh-cn"]
+
+
+def valid_manifest() -> dict[str, Any]:
+    entry = {
+        "id": "t01",
+        "title": "t",
+        "publisher": "p",
+        "published": "2026-01-01",
+        "original_url": "https://example.com/r",
+        "url_source": "test",
+        "appendix": {"start": "IOCs", "end": "END"},
+        "retrieved": "2026-10-09T13:45:04Z",
+        "final_url": "https://example.com/r",
+        "saved": {"kind": "server", "method": "curl -L", "tool": "curl 8.5.0"},
+    }
+    return {
+        "description": "",
+        "fields": {},
+        "text_conversion": {},
+        "selection_rule": {"t": ""},
+        "sets": {"t": [entry]},
+    }
+
+
+@pytest.mark.parametrize(
+    ("change", "problem"),
+    [
+        (lambda m: m.update(extra=1), "manifest: unknown field 'extra'"),
+        (lambda m: m["sets"]["t"][0].update(html_source="server"), "unknown field 'html_source'"),
+        (lambda m: m["sets"]["t"][0].pop("retrieved"), "missing field 'retrieved'"),
+        (lambda m: m["sets"]["t"][0].update(retrieved="2026-10-09 13:45"), "retrieved must be a UTC time"),
+        (lambda m: m["sets"]["t"][0].update(final_url="example.com/r"), "final_url must be an http(s) URL"),
+        (lambda m: m["sets"]["t"][0]["saved"].update(kind="rendered"), "saved.reason"),
+        (lambda m: m["sets"]["t"][0]["saved"].update(kind="cache"), "kind must be 'server' or 'rendered'"),
+        (lambda m: m["sets"]["t"][0]["saved"].pop("tool"), "missing field 'tool'"),
+        (lambda m: m["sets"]["t"][0].update(charset_override={"charset": "big5"}), "missing field 'reason'"),
+        (
+            lambda m: m["sets"]["t"][0].update(charset_override={"charset": "x", "reason": "r"}),
+            "unknown charset",
+        ),
+        (lambda m: m["sets"]["t"][0]["appendix"].update(start_occurrence=2), "start_occurrence_reason"),
+        (lambda m: m["sets"]["t"][0]["appendix"].update(stop="x"), "appendix: unknown field 'stop'"),
+        (lambda m: m["sets"]["t"][0].update(truth_corrections={"add": {"domain": ["a.example"]}}), "notes"),
+        (
+            lambda m: m["sets"]["t"][0].update(attachments=[{"file": "a.html"}]),
+            "attachments[0]: missing field",
+        ),
+        (lambda m: m["sets"]["t"].append(dict(m["sets"]["t"][0])), "id 't01' occurs twice"),
+        (lambda m: m["selection_rule"].pop("t"), "needs a selection rule"),
+    ],
+)
+def test_manifest_problems_are_reported(change: Any, problem: str) -> None:
+    data = valid_manifest()
+    assert evaluate.manifest_problems(data) == []
+    change(data)
+    assert any(problem in found for found in evaluate.manifest_problems(data)), evaluate.manifest_problems(
+        data
+    )

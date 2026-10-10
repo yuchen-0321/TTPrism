@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import unicodedata
 from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -108,6 +109,12 @@ MAX_SOFT_HYPHEN_CHECK_CHARS = 8 * 1024 * 1024
 _LINE_JOINING = frozenset("-\u00ad\u2010\u2011\u2212\ufe63\uff0d")
 
 
+def _line_end_gap(char: str) -> bool:
+    """Characters between a line-end hyphen and the line break that the line-break rules skip:
+    spaces and format characters other than the soft hyphen (refang deletes or folds them first)."""
+    return char in " \t\r" or (unicodedata.category(char) in ("Zs", "Cf") and char != "\u00ad")
+
+
 def _checked_part(text: str) -> str:
     """At most MAX_SOFT_HYPHEN_CHECK_CHARS characters from the start of ``text``, cut after a line
     that does not end in a hyphen if there is one, so that no value is cut in two and reported in
@@ -117,7 +124,7 @@ def _checked_part(text: str) -> str:
     cut = text.rfind("\n", 0, MAX_SOFT_HYPHEN_CHECK_CHARS)
     while cut > 0:
         end = cut
-        while end > 0 and text[end - 1] in " \t\r":
+        while end > 0 and _line_end_gap(text[end - 1]):
             end -= 1
         if text[end - 1 : end] not in _LINE_JOINING:
             return text[:cut]

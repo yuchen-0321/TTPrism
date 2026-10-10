@@ -1784,6 +1784,16 @@ def test_soft_hyphen_check_stops_at_a_line_end() -> None:
     assert warning.startswith("1 extracted value(s) (from the first 19 characters) would differ")
 
 
+def test_soft_hyphen_check_skips_what_the_line_break_rules_skip() -> None:
+    # A no-break space or a zero-width space after the hyphen does not end the URL's line.
+    from ttprism import analyze
+
+    for gap in ("\u00a0", "\u200b", " \u200b\t"):
+        text = f"KB\u00adAuto.example.com\nhttp://198.51.100.7/update-{gap}\nwin.exe now\n" + "x " * 30
+        with mock.patch.object(analyze, "MAX_SOFT_HYPHEN_CHECK_CHARS", 55):
+            assert analyze._checked_part(text) == "KB\u00adAuto.example.com"
+
+
 class _NotWalked(list[IOC]):
     def __iter__(self) -> Iterator[IOC]:
         raise AssertionError("walked every reported value")

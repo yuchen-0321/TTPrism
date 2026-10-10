@@ -2,16 +2,24 @@
   "description": "Public TLP:CLEAR Chinese-language threat reports used to evaluate IOC extraction. PDFs are not committed: zh-cn copies come from github.com/CyberMonitor/APT_CyberCriminal_Campagin_Collections (commit cbf136e24f5d2a4d89619580455aae8b9b0aeadb, blob SHA-1 below); zh-tw files were downloaded by the maintainer. The original URL is the publisher's own page; 'url_source' says how it was established.",
   "fields": {
     "format": "\"pdf\" (the default) or \"html\"; the source file is eval-data/<set>/<format>/<id>.<format> unless 'source' names it",
-    "html_source": "for a web page: \"server\" (the HTML the server sent, preferred) or \"rendered\" (the DOM saved from a browser, used only when the server's HTML lacks the content), with the reason",
+    "retrieved": "when the source file was downloaded, in UTC (2026-10-09T13:45:04Z)",
+    "final_url": "the URL the file was finally served from, after any redirects",
+    "saved": "how the file was saved: {\"kind\": \"server\" (the file the server sent, preferred) or \"rendered\" (the DOM saved from a browser, only when the server's file lacks the content, with the reason in \"reason\"), \"method\" (the command or steps), \"tool\" (the curl, browser or git version), optional \"reason\" and \"note\"}",
     "http_charset": "for a web page: the charset of the Content-Type header it was served with, if known; it takes precedence over a <meta> charset",
-    "attachments": "files in eval-data/<set>/attachments/ whose text follows the page text, when the indicators are only there: {\"file\": ..., \"http_charset\": optional}; a PDF is read with pypdf, a web page converted like a page, anything else as UTF-8 text. Each one's SHA-256, conversion details and place in the text are recorded",
-    "appendix": "start and end markers of the IOC appendix; the start marker must occur once in the text, or 'start_occurrence' (1-based) says which occurrence begins the appendix",
-    "truth_corrections": "hand corrections of the ground truth (add, remove, ambiguous), each with a reason"
+    "charset_override": "for a web page or attachment whose bytes the decoding order would read wrongly: {\"charset\": label, \"reason\": why}; it replaces the whole order (byte-order mark, UTF-8, declared charsets, Big5) and is recorded with the conversion",
+    "attachments": "files in eval-data/<set>/attachments/ whose text follows the page text, when the indicators are only there: {\"file\": ..., \"retrieved\", \"final_url\", \"saved\" as for a report, \"http_charset\" and \"charset_override\" optional}; a PDF is read with pypdf, a web page converted like a page, anything else as UTF-8 text. Each one's SHA-256, conversion details and place in the text are recorded",
+    "appendix": "start and end markers of the IOC appendix; the start marker must occur once in the text, or 'start_occurrence' (1-based) says which occurrence begins the appendix; a start_occurrence needs a start_occurrence_reason",
+    "truth_corrections": "hand corrections of the ground truth (add, remove, ambiguous), with a reason for each in notes"
   },
   "text_conversion": {
     "pdf": "pypdf (version in requirements.txt and in each results file): page.extract_text() for each page, joined with line breaks; page headers and footers kept",
-    "html": "evaluate.py: decode_html (strict decoding: byte-order mark, valid UTF-8, charset declared in the HTTP header, then in <meta>, then Big5 as cp950; nothing decoded leniently; the GBK labels as GB 18030, as browsers do) and HtmlText (Python standard library html.parser; visible text of the whole <body>, navigation and footer included; block elements on their own lines, table cells separated by TAB; source line breaks folded; soft hyphens deleted; hidden content kept and counted; dropped elements opaque; attributes not read). The rules are in their docstrings. html.parser changed in Python's 2025 security releases; HtmlText asks for raw text itself and drops an unterminated tag at the end, and the fixture tests in tests/test_research_html.py give the same text on 3.11.4 (the evaluation environment), 3.11.17, 3.13 and 3.14. The Python version is recorded with each conversion. Format characters are deleted from the ground truth only where the appendix text came from a web page.",
-    "choice": "When a report exists as both PDF and web page, only the one at original_url is evaluated."
+    "html": "evaluate.py: decode_html (strict decoding: byte-order mark, valid UTF-8, charset declared in the HTTP header, then in <meta> outside comments, then Big5 as cp950; nothing decoded leniently; the GBK labels as GB 18030, as browsers do; a charset_override with its reason replaces the order) and HtmlText (Python standard library html.parser; the text of the whole <body>, hidden content included, navigation and footer too; block elements and SVG <text> on their own lines, table cells separated by TAB, text in a table outside its cells on a line of its own; source line breaks folded; soft hyphens and NUL deleted; hidden content kept and counted; dropped elements opaque; attributes not read). The rules are in their docstrings. html.parser changed in Python's 2025 security releases and older releases lose page content (3.11.4 drops everything after a comment ending in --!> up to the next -->, and raises AssertionError on <![ if ... ]>), so `text` converts canary pages first and stops on a Python that gets them wrong; 3.11.17, 3.13.16 and 3.14.6 were checked. The Python version and the SHA-256 of html/parser.py, _markupbase.py and html/entities.py are recorded with each conversion and run.",
+    "choice": "When a report exists as both PDF and web page, only the one at original_url is evaluated.",
+    "ground_truth": "The appendix of a PDF has every soft hyphen (U+00AD, pypdf's drawn hyphen) read as a hyphen before the line rules apply; the appendix of a web page has its format characters (Cf) deleted. The line rules take only ASCII letters and digits as part of a value, read [.] and (.) as dots, and find URLs, e-mail addresses, IPv4 addresses, domains and hashes."
+  },
+  "selection_rule": {
+    "zh-cn": "Written down after the fact, on 2026-10-10; the reports had been chosen and read before. Candidates: the Simplified-Chinese PDFs in CyberMonitor/APT_CyberCriminal_Campagin_Collections (commit cbf136e) whose path or index.csv entry marks them as Chinese, from 360, Qi An Xin or Tencent (19 PDFs). Each was converted with pypdf and checked for language, an IOC appendix, defang styles and the real publisher. Kept: those with an IOC appendix in Simplified Chinese from the publisher named (7, recommended by the evaluator and approved by the maintainer), plus Gcow's SideWinder 2020 H1, the only candidate whose appendix itself is defanged, added by the maintainer. Left out: no IOC appendix (360 APT-C-15 2016, 360 APT-C-09 2016, 360 APT-C-34 2019, 360 APT-C-23 2020), English (Qi An Xin APT-C-09 2019), a function table rather than an appendix and fragmented text (Bitter CHM 2020), a repost (Two-tailed scorpion on SecPulse), and the alternates Nortrom Lion (one C2) and APT-C-47 (half the domains masked).",
+    "zh-tw": ""
   },
   "sets": {
     "zh-cn": [
@@ -27,6 +35,14 @@
         "appendix": {
           "start": "0x6 附录(IOCs):",
           "end": "注册表："
+        },
+        "retrieved": "2026-10-09T13:45:04Z",
+        "final_url": "https://github.com/CyberMonitor/apt_cybercriminal_campagin_collections",
+        "saved": {
+          "kind": "server",
+          "method": "git partial clone of the collection (--filter=blob:none --depth 1, commit cbf136e), sparse checkout of the candidate PDFs' paths only, the PDF copied unchanged (its blob SHA-1 is collection_blob)",
+          "tool": "git 2.43.0",
+          "note": "recorded on 2026-10-10, after the fact: retrieved is the time git wrote the file in the clone"
         }
       },
       {
@@ -43,6 +59,14 @@
           "end": "附录 3：360 追日团队",
           "start_occurrence": 2,
           "start_occurrence_reason": "the heading also occurs earlier in the text; the appendix is the second occurrence"
+        },
+        "retrieved": "2026-10-09T13:45:04Z",
+        "final_url": "https://github.com/CyberMonitor/apt_cybercriminal_campagin_collections",
+        "saved": {
+          "kind": "server",
+          "method": "git partial clone of the collection (--filter=blob:none --depth 1, commit cbf136e), sparse checkout of the candidate PDFs' paths only, the PDF copied unchanged (its blob SHA-1 is collection_blob)",
+          "tool": "git 2.43.0",
+          "note": "recorded on 2026-10-10, after the fact: retrieved is the time git wrote the file in the clone"
         }
       },
       {
@@ -67,6 +91,14 @@
           "notes": [
             "blogs.360.cn: page header printed inside the appendix (the article's own address), not an indicator"
           ]
+        },
+        "retrieved": "2026-10-09T13:45:04Z",
+        "final_url": "https://github.com/CyberMonitor/apt_cybercriminal_campagin_collections",
+        "saved": {
+          "kind": "server",
+          "method": "git partial clone of the collection (--filter=blob:none --depth 1, commit cbf136e), sparse checkout of the candidate PDFs' paths only, the PDF copied unchanged (its blob SHA-1 is collection_blob)",
+          "tool": "git 2.43.0",
+          "note": "recorded on 2026-10-10, after the fact: retrieved is the time git wrote the file in the clone"
         }
       },
       {
@@ -81,6 +113,14 @@
         "appendix": {
           "start": "6.2 IOCs",
           "end": "6.3 MITRE ATT&CK"
+        },
+        "retrieved": "2026-10-09T13:45:05Z",
+        "final_url": "https://github.com/CyberMonitor/apt_cybercriminal_campagin_collections",
+        "saved": {
+          "kind": "server",
+          "method": "git partial clone of the collection (--filter=blob:none --depth 1, commit cbf136e), sparse checkout of the candidate PDFs' paths only, the PDF copied unchanged (its blob SHA-1 is collection_blob)",
+          "tool": "git 2.43.0",
+          "note": "recorded on 2026-10-10, after the fact: retrieved is the time git wrote the file in the clone"
         }
       },
       {
@@ -97,6 +137,14 @@
           "end": "附录1  奇安信威胁情报中心",
           "start_occurrence": 2,
           "start_occurrence_reason": "the heading also occurs earlier in the text; the appendix is the second occurrence"
+        },
+        "retrieved": "2026-10-09T13:45:06Z",
+        "final_url": "https://github.com/CyberMonitor/apt_cybercriminal_campagin_collections",
+        "saved": {
+          "kind": "server",
+          "method": "git partial clone of the collection (--filter=blob:none --depth 1, commit cbf136e), sparse checkout of the candidate PDFs' paths only, the PDF copied unchanged (its blob SHA-1 is collection_blob)",
+          "tool": "git 2.43.0",
+          "note": "recorded on 2026-10-10, after the fact: retrieved is the time git wrote the file in the clone"
         }
       },
       {
@@ -192,6 +240,14 @@
             "mp.weixin.qq.com/s/omacDXAdio88a_f0Xwu-kg: page header printed inside the appendix (the article's own address), not an indicator",
             "The domain tables wrap long names inside narrow cells, and the layout puts a '-' at every wrap. Rule 1: a '-' next to a dot at a wrap ('serveuser.-' + 'com', '163mailboxdownload-' + '.servehttp.com') cannot be part of a name, so it was inserted: the name is added without it and the fragments the line rules produced are removed. Rule 2: 'dynamic-' + 'dns.net' is the dynamic DNS provider dynamic-dns.net, which cn02 lists unwrapped, so that '-' is kept. Any other '-' at a wrap may or may not belong to the name; those entries are left out of the ground truth like masked ones, both readings are listed under 'ambiguous', and an extracted value equal to either reading is counted neither right nor wrong."
           ]
+        },
+        "retrieved": "2026-10-09T13:45:06Z",
+        "final_url": "https://github.com/CyberMonitor/apt_cybercriminal_campagin_collections",
+        "saved": {
+          "kind": "server",
+          "method": "git partial clone of the collection (--filter=blob:none --depth 1, commit cbf136e), sparse checkout of the candidate PDFs' paths only, the PDF copied unchanged (its blob SHA-1 is collection_blob)",
+          "tool": "git 2.43.0",
+          "note": "recorded on 2026-10-10, after the fact: retrieved is the time git wrote the file in the clone"
         }
       },
       {
@@ -216,6 +272,14 @@
           "notes": [
             "blogs.360.cn/post/APT-C-44.html: page header printed inside the appendix (the article's own address), not an indicator"
           ]
+        },
+        "retrieved": "2026-10-09T13:45:06Z",
+        "final_url": "https://github.com/CyberMonitor/apt_cybercriminal_campagin_collections",
+        "saved": {
+          "kind": "server",
+          "method": "git partial clone of the collection (--filter=blob:none --depth 1, commit cbf136e), sparse checkout of the candidate PDFs' paths only, the PDF copied unchanged (its blob SHA-1 is collection_blob)",
+          "tool": "git 2.43.0",
+          "note": "recorded on 2026-10-10, after the fact: retrieved is the time git wrote the file in the clone"
         }
       },
       {
@@ -245,6 +309,14 @@
             "mp.weixin.qq.com/s/5mBqxf_v6G006EnjECoTHw: page header printed inside the appendix (the article's own address), not an indicator",
             "0x04.iocs: the section heading '0x04.IOCs', which the domain line rule matches"
           ]
+        },
+        "retrieved": "2026-10-09T13:45:06Z",
+        "final_url": "https://github.com/CyberMonitor/apt_cybercriminal_campagin_collections",
+        "saved": {
+          "kind": "server",
+          "method": "git partial clone of the collection (--filter=blob:none --depth 1, commit cbf136e), sparse checkout of the candidate PDFs' paths only, the PDF copied unchanged (its blob SHA-1 is collection_blob)",
+          "tool": "git 2.43.0",
+          "note": "recorded on 2026-10-10, after the fact: retrieved is the time git wrote the file in the clone"
         }
       }
     ],
