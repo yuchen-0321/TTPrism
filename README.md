@@ -199,18 +199,19 @@ Counts of what was dropped are reported under `suppressed`, so nothing disappear
 
   A break without a hyphen (`mp.weixi` / `n.qq.com`) gives no sign that the line continues, so such
   names and URLs are not joined, and the part on each line may be reported on its own.
-- A soft hyphen (U+00AD) between two letters or digits, or at the end of a line, is read as a
-  hyphen: in text extracted from a PDF it stands where the page shows one (pypdf gives U+00AD for a
-  hyphen drawn with code 0xAD in a WinAnsi-encoded font; pdftotext gives `-`). At a line end, with at
-  most 1,024 spaces or format characters between it and the break, it works exactly like `-`; right
-  after a hyphen it is deleted. Between two letters or digits it is deleted instead when it stands
-  next to U+2063 or the end of a bidi embedding or isolate, or in a run of more than 64 format
-  characters. Text copied from a web page uses soft hyphens as invisible break hints (`&shy;`)
-  instead: there `KB-Auto` should read `KBAuto`, and a hash with one inside it is lost, while its
-  pieces may be reported as shorter hashes (a SHA-256 split in the middle as two MD5s). TTPrism warns
-  when deleting the soft hyphens it read as hyphens between two letters or digits (not those at line
-  ends or between the groups of a GUID) would change any value it reports; to find out, it extracts
-  the first 8 Mi characters of such a text a second time.
+- Every soft hyphen (U+00AD) is read as a hyphen, one for one (two make `--`): in text extracted
+  from a PDF it stands where the page shows a hyphen (pypdf gives U+00AD for a hyphen drawn with code
+  0xAD in a WinAnsi-encoded font, where `pdftotext -raw` gives `-`, and both texts give the same
+  IOCs). At a line end, with at most 1,024 spaces or format characters between it and the break, it
+  works exactly like `-`. It is deleted instead right after a hyphen at a line end, in a run of
+  format characters with U+2063 or the end of a bidi embedding or isolate, and in a run of more than
+  64 format characters. Text copied from a web page uses soft hyphens as invisible break hints
+  (`&shy;`) instead: there `KB-Auto` should read `KBAuto`, and a hash with one inside it is lost,
+  while its pieces may be reported as shorter hashes (a SHA-256 split in the middle as two MD5s).
+  TTPrism warns when deleting every soft hyphen would change any value it reports; to find out, it
+  extracts at most the first 8 Mi characters of such a text a second time, cut at a line end.
+  pdftotext's default mode, unlike `-raw`, also joins a line ending in a hyphen to the next and drops
+  the hyphen, which no reading of separate lines can repeat.
 - CAPE is the only sandbox format so far.
 
 ## Security

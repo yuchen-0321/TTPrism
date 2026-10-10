@@ -71,7 +71,7 @@ def _fold_table() -> dict[int, str | None]:
 # whitespace, the start or end of the text, or a non-ASCII letter (Hebrew text around a name) they
 # separate, like a space; so do an isolate or embedding that ends and the next that begins
 # ("\u2066evil.com\u2069\u2066example.net\u2069"), and U+2063 INVISIBLE SEPARATOR. Other format
-# characters are deleted first, so that "ev\u00ad\u200eil.com" stays one name.
+# characters are deleted first, so that "ev\u200b\u200eil.com" stays one name.
 _BIDI_CODES = (0x061C, 0x200E, 0x200F, *range(0x202A, 0x202F), *range(0x2066, 0x206A))
 _BIDI = "\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069"
 _INSIDE = "\x21-\x7e\uff01-\uff5e\u3001\u3002\u3008-\u3011\u3014-\u301b" + _BIDI
@@ -81,23 +81,23 @@ _BIDI_BREAK_RE = re.compile(
 
 
 # Soft hyphens (U+00AD). A PDF draws only visible characters, so where text extracted from a PDF has
-# a soft hyphen, the page shows a hyphen: pypdf gives U+00AD for the hyphen of code 0xAD in fonts
-# with the WinAnsi encoding, where pdftotext gives "-". A soft hyphen between two letters or digits
-# ("KB\u00adAuto", "CVE\u00ad2017\u00ad11882") or at the end of a line is therefore read as a hyphen,
-# and the line-break rules of the extractor decide what a line-end one joins; one right after a
-# hyphen is deleted, so that "KB-Auto-\u00ad" at a line end does not get two. Other soft hyphens are
-# deleted, and so are those beside U+2063 or the end of a bidi embedding or isolate, which separate
-# two names. Text copied from a web page has soft hyphens as invisible break hints instead (&shy;);
-# refang_soft_hyphens_as_hints gives that reading, so that the caller can see which values depend
-# on it.
+# a soft hyphen, the page shows a hyphen: pypdf gives U+00AD for a hyphen drawn with code 0xAD in a
+# WinAnsi-encoded font, where pdftotext gives "-". Every soft hyphen is therefore read as "-", one
+# for one ("xn" + two of them + "bcher" is "xn--bcher"), so that both texts of such a PDF give the
+# same IOCs; at the end of a line, the line-break rules of the extractor then decide what it joins.
+# It is deleted instead right after a hyphen at the end of a line, so that "KB-Auto-" + soft hyphen
+# there does not get two; in a run of deleted characters that holds U+2063 or the end of a bidi
+# embedding or isolate, which separate two names; and in a run of more than _MAX_RUN deleted
+# characters. Text copied from a web page has soft hyphens as invisible break hints instead (&shy;);
+# refang_soft_hyphens_as_hints gives that reading, so that the caller can see which values depend on
+# it.
 #
 # Between a line-end soft hyphen and the line break there may be anything that refang turns into a
 # space or deletes (spaces, zero-width and bidi marks), up to _MAX_BREAK_GAP characters, so that the
 # result is the same as for "-"; between "\r" and "\n", only characters it deletes.
 _MAX_BREAK_GAP = 1024
-# Deleted characters around an inner soft hyphen, or between a hyphen and a line-end one.
 _MAX_RUN = 64
-_ASCII_ALNUM = frozenset("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+_SEPARATORS = {0x2063, 0x202C, 0x2069}
 
 
 def _char_class(codes: set[int]) -> str:
@@ -114,19 +114,9 @@ def _char_class(codes: set[int]) -> str:
 
 
 @functools.cache
-def _run_codes() -> frozenset[int]:
-    """Deleted characters that may stand with a soft hyphen between two letters or digits: all but
-    U+2063 and the ends of bidi embeddings and isolates, which separate two names."""
-    return frozenset(code for code, value in _fold_table().items() if value is None) - {
-        0x2063,
-        0x202C,
-        0x2069,
-    }
-
-
-@functools.cache
 def _soft_hyphen_res() -> tuple[re.Pattern[str], re.Pattern[str], re.Pattern[str]]:
-    """The patterns for soft hyphens after a hyphen at a line end, at a line end, and inside a word."""
+    """The patterns for a soft hyphen after a hyphen at a line end, one at a line end, and a run of
+    deleted characters whose soft hyphens are deleted."""
     table = _fold_table()
     deleted = {code for code, value in table.items() if value is None}
     gap = {0x09, 0x20} | {code for code, value in table.items() if value == " "} | deleted - {0xAD}
@@ -135,58 +125,35 @@ def _soft_hyphen_res() -> tuple[re.Pattern[str], re.Pattern[str], re.Pattern[str
         f"(?:\\r[{_char_class(set(_format_table()) - {0xAD})}]{{0,{_MAX_BREAK_GAP}}})?\\n)"
     )
     hyphens = {ord("-")} | {code for code, value in table.items() if value == "-"}
-    after_hyphen = f"(?<=[{_char_class(hyphens)}])[{_char_class(deleted)}]{{0,{_MAX_RUN}}}\\u00ad{line_end}"
-    # Letters and digits, also those that refang folds to one (full-width letters, ligatures).
-    alnum = {ord(char) for char in _ASCII_ALNUM}
-    ends_alnum = alnum | {code for code, value in table.items() if value and value[-1] in _ASCII_ALNUM}
-    starts_alnum = alnum | {code for code, value in table.items() if value and value[0] in _ASCII_ALNUM}
-    run = set(_run_codes())
-    inner = (
-        f"(?<=[{_char_class(ends_alnum)}])(?=[{_char_class(run - {0xAD})}]{{0,{_MAX_RUN - 1}}}+\\u00ad)"
-        f"[{_char_class(run)}]{{1,{_MAX_RUN}}}+(?=[{_char_class(starts_alnum)}])"
+    run = _char_class(deleted)
+    after_hyphen = f"(?<=[{_char_class(hyphens)}])[{run}]{{0,{_MAX_RUN}}}\\u00ad{line_end}"
+    # A whole run (the lookbehind keeps the search from starting inside one) with a soft hyphen, and a
+    # separator or more than _MAX_RUN characters. Each lookahead reads the run once.
+    deleted_runs = (
+        f"(?<![{run}])(?=[{run}]*\\u00ad)"
+        f"(?:(?=[{run}]*[{_char_class(_SEPARATORS)}])|(?=[{run}]{{{_MAX_RUN + 1}}}))[{run}]+"
     )
-    return re.compile(after_hyphen), re.compile(f"\\u00ad{line_end}"), re.compile(inner)
+    return re.compile(after_hyphen), re.compile(f"\\u00ad{line_end}"), re.compile(deleted_runs)
 
 
-def _line_end_soft_hyphens(text: str) -> str:
-    after_hyphen, line_end, _ = _soft_hyphen_res()
-    return line_end.sub("-", after_hyphen.sub("", text))
+def _without_soft_hyphens(match: re.Match[str]) -> str:
+    return match.group(0).replace("\u00ad", "")
 
 
-# In a GUID, soft hyphens are hyphens in both readings: deleting them would leave 32 hex digits that
-# read as an MD5 ("{92BA1818\u00ad0119\u00ad4F79\u00ad874E\u00adE3BF79C355B8}"). Its groups are
-# found as the inner rule sees them: hex digits, also full-width ones, and between the groups a run
-# of deleted characters with a soft hyphen in it.
-@functools.cache
-def _soft_hyphen_guid_res() -> tuple[re.Pattern[str], re.Pattern[str]]:
-    table = _fold_table()
-    hex_digits = {ord(char) for char in "0123456789ABCDEFabcdef"}
-    hexes = hex_digits | {
-        code for code, value in table.items() if value and len(value) == 1 and ord(value) in hex_digits
-    }
-    run = set(_run_codes())
-    hex_class, run_class = _char_class(hexes), _char_class(run)
-    separator = f"(?=[{_char_class(run - {0xAD})}]{{0,{_MAX_RUN - 1}}}+\\u00ad)[{run_class}]{{1,{_MAX_RUN}}}+"
-    guid = (
-        f"(?<![{hex_class}])[{hex_class}]{{8}}(?:{separator}[{hex_class}]{{4}}){{3}}"
-        f"{separator}[{hex_class}]{{12}}(?![{hex_class}])"
-    )
-    return re.compile(guid), re.compile(f"[{run_class}]+")
-
-
-def _guid_hyphens(match: re.Match[str]) -> str:
-    return _soft_hyphen_guid_res()[1].sub("-", match.group(0))
+def _soft_hyphens_read(text: str) -> str:
+    """``text`` with its soft hyphens read as hyphens, or deleted where an exception says so."""
+    after_hyphen, line_end, deleted_runs = _soft_hyphen_res()
+    text = line_end.sub("-", after_hyphen.sub("", text))
+    return deleted_runs.sub(_without_soft_hyphens, text).replace("\u00ad", "-")
 
 
 def refang_soft_hyphens_as_hints(text: str) -> str | None:
-    """``text`` refanged with the soft hyphens that :func:`refang` reads as hyphens between two
-    letters or digits deleted instead, as the break hints of web pages (except between the groups of
-    a GUID), or None if refang reads no soft hyphen that way."""
+    """``text`` refanged with every soft hyphen deleted, as the invisible break hints of a web page
+    are, or None if :func:`refang` reads none of them as a hyphen."""
     if "\u00ad" not in text:
         return None
-    lines = _line_end_soft_hyphens(text)
-    hinted = _soft_hyphen_guid_res()[0].sub(_guid_hyphens, lines)
-    if _soft_hyphen_res()[2].sub("-", lines) == hinted:
+    hinted = text.replace("\u00ad", "")
+    if _soft_hyphens_read(text) == hinted:
         return None
     return _refang_rest(hinted)
 
@@ -236,12 +203,12 @@ def refang(text: str) -> str:
     are folded to their plain equivalents, except full-width punctuation that
     cannot be part of a URL; Unicode spaces become plain spaces. Other
     compatibility characters (superscripts, circled numbers) are kept, so they
-    never merge into an adjacent IOC. Soft hyphens between two letters or
-    digits and at the end of a line, as PDF text has them where the page shows
-    a hyphen, become hyphens.
+    never merge into an adjacent IOC. Soft hyphens become hyphens, as PDF text
+    has them where the page shows a hyphen, with the exceptions described at
+    _soft_hyphen_res.
     """
     if "\u00ad" in text:
-        text = _soft_hyphen_res()[2].sub("-", _line_end_soft_hyphens(text))
+        text = _soft_hyphens_read(text)
     return _refang_rest(text)
 
 

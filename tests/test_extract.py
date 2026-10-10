@@ -1591,27 +1591,62 @@ def test_a_url_that_ended_earlier_on_the_line_is_not_joined(text: str) -> None:
             [("url", "http://198.51.100.7/1/KB-Auto-win.exe"), ("ipv4", "198.51.100.7")],
         ),
         ("C2: up\u00addate[.]example[.]com", [("domain", "up-date.example.com")]),
-        ("C2: \uff4b\uff42\u00ad\uff41\uff55\uff54\uff4f\uff0eexample\uff0ecom",
+        ("C2: ｋｂ\u00adａｕｔｏ．example．com",
          [("domain", "kb-auto.example.com")]),
         ("C2: KB\u200b\u00ad\u2060Auto.example.com", [("domain", "kb-auto.example.com")]),
-        ("C2: KB\u00ad\u00adAuto.example.com", [("domain", "kb-auto.example.com")]),
         ("C2: KB\u00ad\u200eAuto.example.com", [("domain", "kb-auto.example.com")]),
         ("MD5 d41d8cd98f00\u00adb204e9800998ecf8427e", []),
+        # One hyphen for each soft hyphen, wherever it stands.
+        ("C2: xn\u00ad\u00adbcher-kva.example", [("domain", "xn--bcher-kva.example")]),
+        (
+            "https://gitlab.example.com/group/tool/\u00ad/raw/main/a.ps1",
+            [
+                ("url", "https://gitlab.example.com/group/tool/-/raw/main/a.ps1"),
+                ("domain", "gitlab.example.com"),
+            ],
+        ),
+        (
+            "http://198.51.100.7/a.php?id=\u00ad1",
+            [("url", "http://198.51.100.7/a.php?id=-1"), ("ipv4", "198.51.100.7")],
+        ),
     ],
 )  # fmt: skip
-def test_soft_hyphens_between_letters_or_digits_are_hyphens(
-    text: str, expected: list[tuple[str, str]]
-) -> None:
+def test_soft_hyphens_are_hyphens(text: str, expected: list[tuple[str, str]]) -> None:
     assert everything(text) == expected
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "C2: KB\u00adAuto.example.com",
+        "C2: KB\u00ad\u00adAuto.example.com",
+        "C2: KB-\u00adAuto.example.com",
+        "C2: KB\u00ad-Auto.example.com",
+        "C2: evil.\u00adexample.com",
+        "C2: \u00adevil.example.com\u00ad and",
+        "C2: xn\u00ad\u00adbcher-kva.example",
+        "https://gitlab.example.com/group/tool/\u00ad/raw/main/a.ps1 and http://198.51.100.7/a.php?id=\u00ad1",
+        "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",
+        "MD5 00b68e6db2bb7412\u00adfabcbaa2192394ad",
+        "exploits CVE\u00ad2017\u00ad11882 from 198.51.100.1\u00ad198.51.100.9",
+        "C2 2001:db8::1\u00ad2001:db8::2",
+        "update\u00ad\ncheck-server.example.com and update\u00ad\u00ad\ncheck.example.net",
+        "http://198.51.100.7/1/update\u00ad\nwin.exe c2.example.\u00ad\ncom files.example\u00ad\n.net",
+        "mail ops\u00ad\nteam@example.org kb\u00ad@example.org",
+    ],
+)
+def test_soft_hyphens_give_what_hyphens_give(text: str) -> None:
+    # A PDF whose font draws the hyphen with code 0xAD gives U+00AD with pypdf and "-" with pdftotext;
+    # both texts must give the same IOCs.
+    options = AnalysisOptions(include_reserved=True)
+    soft = analyze_text(text, options)
+    hard = analyze_text(text.replace("\u00ad", "-"), options)
+    assert (soft.iocs, soft.suppressed) == (hard.iocs, hard.suppressed)
 
 
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
-        ("C2: KB-\u00adAuto.example.com", [("domain", "kb-auto.example.com")]),
-        ("C2: KB\u00ad-Auto.example.com", [("domain", "kb-auto.example.com")]),
-        ("C2: evil.\u00adexample.com", [("domain", "evil.example.com")]),
-        ("C2: \u00adevil.example.com\u00ad and", [("domain", "evil.example.com")]),
         # U+2063 and the end of a bidi isolate separate two names.
         (
             "C2 evil.example.com\u00ad\u2063kb.example.net",
@@ -1621,9 +1656,12 @@ def test_soft_hyphens_between_letters_or_digits_are_hyphens(
             "C2 \u2066evil.example.com\u2069\u00ad\u2066kb.example.net\u2069",
             [("domain", "evil.example.com"), ("domain", "kb.example.net")],
         ),
+        ("C2: kb" + "\u200b" * 64 + "\u00adauto.example.com", [("domain", "kbauto.example.com")]),
     ],
 )
-def test_other_soft_hyphens_are_deleted(text: str, expected: list[tuple[str, str]]) -> None:
+def test_soft_hyphens_beside_separators_or_in_long_runs_are_deleted(
+    text: str, expected: list[tuple[str, str]]
+) -> None:
     assert everything(text) == expected
 
 
@@ -1641,7 +1679,7 @@ def soft_hyphen_warnings(text: str) -> list[str]:
         "c2.up\u00addate.example.net",
         "C2: up\u00addate[.]example[.]com",
         "C2 up\u00addate [.] example [.] com",
-        "C2 up\u00addate\uff0eexample\uff0ecom",
+        "C2 up\u00addate．example．com",
         "c2.example[.]up\u00addate[.]com",
         "mail ops\u00adteam[@]example.org",
         "mail kb\u00adauto+tag@example.org",
@@ -1652,19 +1690,25 @@ def soft_hyphen_warnings(text: str) -> list[str]:
         "KB\u200b\u00adAuto.example.com",
         "http://198.51.100.7/a(kb\u00adauto)",
         "http://198.51.100.7/a;kb\u00adauto",
-        "C2: \uff4b\uff42\u00ad\uff41\uff55\uff54\uff4f\uff0eexample\uff0ecom",
-        "C2: KB\u00ad\uff21uto.example.com",
+        "C2: ｋｂ\u00adａｕｔｏ．example．com",
+        "C2: KB\u00adＡuto.example.com",
         "GET /%2Fkb\u00adauto.example.net",
         "Payload: KB\u00adAuto-Update.example.com",
         "Sender: kb\u00adauto-ops@example.org",
         "C2: micro\u00adsoft-online-update[.]example[.]net",
+        "KB-\u00adAuto.example.com",
+        "C2: xn\u00ad\u00adbcher-kva.example",
+        "https://gitlab.example.com/group/tool/\u00ad/raw/main/a.ps1",
         # Every type: hashes, addresses and CVE IDs, too.
         "md5=00b68e6db2bb\u00ad7412fabcbaa2192394ad.",
         "sha1 1c3cbeaaddc4aaa8f3b7\u00ad43f4d7e8537f4c1ea597",
         "exploits CVE\u00ad2017\u00ad11882",
         "range 198.51.100.1\u00ad198.51.100.9",
         "C2 2001:db8::1\u00ad2001:db8::2",
-        # Joined across a line break.
+        # GUIDs: deleting their soft hyphens leaves an MD5.
+        "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",
+        # Line ends: deleted, the soft hyphen no longer joins or drops the next line.
+        "update\u00ad\ncheck-server.example.com",
         "C2: http://files.kb-auto-\n.exam\u00adple/x.exe now",
         "C2: kb-auto-\n.exam\u00adple now",
         "下载地址：hxxp://files[.]example[.]com/download/update\u00ad\nKB\u00adAuto，随后执行",
@@ -1696,15 +1740,8 @@ def test_values_that_soft_hyphens_change_are_reported(text: str) -> None:
         "Indicators\n----------\nDown\u00adload server: http://198.51.100.7/download.php",
         "The com\u00admand-and-con\u00adtrol server: http://198.51.100.7/command.php",
         "It can upload/down\u00adload files: http://198.51.100.7/download.php",
-        "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",  # a GUID in both readings
-        "{0F1E2D3C\u200b\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",
-        "{0F1E2D3C\u00ad\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",
-        "{0F1E2D3C\u00ad\u200e4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",
-        "{\uff10F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",
-        "update\u00ad\ncheck-server.example.com",  # a line end in both readings
+        # Deleted in both readings.
         "http://198.51.100.7/KB-Auto-\u00ad\nwin.exe",
-        "\u00adexample.com and example.org\u00ad",
-        "KB-\u00adAuto.example.com",
         "C2 evil.example.com\u00ad\u2063kb.example.net",
         "C2 \u2066evil.example.com\u2069\u00ad\u2066kb.example.net\u2069",
         "Contact: kb\u00ad\u2063auto.example.com",
@@ -1734,6 +1771,17 @@ def test_soft_hyphen_check_reads_a_bounded_amount_of_text() -> None:
             "KB\u00adAuto.example.com " + "x " * 30 + "up\u00addate.example.net"
         )
     assert warning.startswith("1 extracted value(s) (from the first 40 characters) would differ")
+
+
+def test_soft_hyphen_check_stops_at_a_line_end() -> None:
+    # Cut inside the URL on the second line, the check would see a shorter URL and count it.
+    from ttprism import analyze
+
+    text = "KB\u00adAuto.example.com\nupdate-\nhttp://198.51.100.7/download/stage2.bin now\n" + "x " * 30
+    with mock.patch.object(analyze, "MAX_SOFT_HYPHEN_CHECK_CHARS", 45):
+        assert analyze._checked_part(text) == "KB\u00adAuto.example.com"  # not after "update-"
+        (warning,) = soft_hyphen_warnings(text)
+    assert warning.startswith("1 extracted value(s) (from the first 19 characters) would differ")
 
 
 class _NotWalked(list[IOC]):

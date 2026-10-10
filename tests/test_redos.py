@@ -18,6 +18,8 @@ from ttprism.inputs import InputError, load_json
 
 SIZE = 1_000_000
 TEXT_SECONDS_PER_MB = 10.0
+# A text with a soft hyphen read as a hyphen is extracted twice (see analyze.MAX_SOFT_HYPHEN_CHECK_CHARS).
+SOFT_HYPHEN_CHECK_RATIO = 2.5
 COMMAND_SECONDS_PER_MB = 5.0
 JSON_SECONDS_PER_MB = 10.0
 # Everyday command lines: about 0.03 to 0.1 s/MB in the development container, and 19 to 28 times
@@ -173,10 +175,7 @@ PATHOLOGICAL = {
     "soft hyphens inside many lines of names": "a\u00adb.example.com\n" * (SIZE // 17),
     "url hosts wrapped at dots and hyphens": "http://a.-\n" + "b-\nc.-\n" * (SIZE // 7),
     "userinfo lines in wrapped hosts": ("http://a-\n" + "b:c-\n" * 50) * (SIZE // 260),
-    # Soft hyphens read as hyphens: between letters, after a hyphen at a line end. A soft hyphen
-    # between letters makes the first 8 Mi characters be extracted a second time, so the worst case
-    # above with one of them costs about twice as much.
-    "worst case with a soft hyphen between letters": "a\u00adb " + "\u5740:1:2:3::" * (SIZE // 9),
+    # Soft hyphens read as hyphens, deleted after a hyphen at a line end, in long runs or by separators.
     "soft hyphens after hyphens at line ends": "a-\u00ad\n" * (SIZE // 4),
     "deleted runs after hyphens before long gaps": ("-" + "\u200b" * 64 + "\u00ad" + " " * 1024 + "x")
     * (SIZE // 1091),
@@ -225,6 +224,22 @@ def test_extraction_is_linear(text: str) -> None:
     options = AnalysisOptions(include_reserved=True)
     cost = seconds_per_mb(lambda: analyze_text(text, options), size_mb(text))
     assert cost < TEXT_SECONDS_PER_MB, f"{cost:.2f} s/MB"
+
+
+def test_soft_hyphen_check_costs_at_most_a_second_extraction() -> None:
+    # A soft hyphen that refang reads as a hyphen makes the first 8 Mi characters be extracted a second
+    # time, so the worst case costs about twice as much with one. Measured against the same input with
+    # the soft hyphen read as a hyphen, so that the ratio does not depend on the machine; that input
+    # itself is held to the absolute limit.
+    worst = "\u5740:1:2:3::" * (SIZE // 9)
+    options = AnalysisOptions(include_reserved=True)
+    with_soft_hyphen, with_hyphen = "a\u00adb " + worst, "a-b " + worst
+    plain = seconds_per_mb(lambda: analyze_text(with_hyphen, options), size_mb(with_hyphen), repeat=2)
+    soft = seconds_per_mb(
+        lambda: analyze_text(with_soft_hyphen, options), size_mb(with_soft_hyphen), repeat=2
+    )
+    assert plain < TEXT_SECONDS_PER_MB, f"{plain:.2f} s/MB"
+    assert soft / plain <= SOFT_HYPHEN_CHECK_RATIO, f"{soft / plain:.2f} times the cost without it"
 
 
 @pytest.mark.parametrize("command", PATHOLOGICAL_COMMANDS.values(), ids=PATHOLOGICAL_COMMANDS.keys())

@@ -28,7 +28,6 @@ from ttprism.refang import refang_soft_hyphens_as_hints
         ("ｅｖｉｌ．ｃｏｍ", "evil.com"),
         # Invisible characters inserted by PDF converters.
         ("evil\u200b.com", "evil.com"),
-        ("evil.\u00adcom", "evil.com"),
     ],
 )
 def test_refang_dots(defanged: str, expected: str) -> None:
@@ -239,7 +238,7 @@ def test_soft_hyphens_in_a_guid_become_hyphens() -> None:
     # Some PDF converters write every hyphen of a document as a soft hyphen.
     guid = "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}"
     assert refang(guid) == "{0F1E2D3C-4B5A-6978-8796-A5B4C3D2E1F0}"
-    # So do the soft hyphens in a hash: like anywhere between two letters or digits, they are hyphens.
+    # So do the soft hyphens in a hash, like every other one.
     assert refang("d41d8cd98f00\u00adb204e9800998ecf8427e") == "d41d8cd98f00-b204e9800998ecf8427e"
 
 
@@ -249,14 +248,13 @@ def test_soft_hyphens_in_a_guid_become_hyphens() -> None:
         ("update\u00ad\ncheck", "update-\ncheck"),
         ("update\u00ad  \r\ncheck", "update-  \r\ncheck"),
         ("update\u00ad\u200b\u00a0\ncheck", "update- \ncheck"),
-        ("a\u00ad\u00ad\nb", "a-\nb"),  # only the last one before the break
+        ("a\u00ad\u00ad\nb", "a--\nb"),  # one hyphen for each soft hyphen
         ("update\u00ad" + " " * 9 + "\ncheck", "update-" + " " * 9 + "\ncheck"),
         ("update\u00ad\u2069\ncheck", "update- \ncheck"),  # a bidi control before the break
+        ("update\u00ad\u2063\ncheck", "update- \ncheck"),
         ("update\u00ad\u2009\u3000\ncheck", "update-  \ncheck"),
         ("update\u00ad" + "\u2009" * 1024 + "\ncheck", "update-" + " " * 1024 + "\ncheck"),
-        ("update\u00ad" + "\u2009" * 1025 + "\ncheck", "update" + " " * 1025 + "\ncheck"),
         ("update\u00ad\r\u200b\ncheck", "update-\r\ncheck"),  # deleted characters between CR and LF
-        ("update\u00ad\r \ncheck", "update\r \ncheck"),  # a space there ends the line break
         (".\u00ad\ncheck", ".-\ncheck"),
     ],
 )
@@ -273,11 +271,11 @@ def test_soft_hyphen_at_a_line_end_becomes_a_hyphen(text: str, expected: str) ->
         ("KB-\u200b\u00ad\u2060\nAuto", "KB-\nAuto"),
         ("KB-\u2069\u00ad\nAuto", "KB-\nAuto"),
         # Characters that refang folds to a hyphen.
-        ("KB\ufe63\u00ad\nAuto", "KB-\nAuto"),
-        ("KB\uff0d\u00ad\nAuto", "KB-\nAuto"),
-        ("KB\u2010\u00ad\nAuto", "KB-\nAuto"),
-        ("KB\u2011\u00ad\nAuto", "KB-\nAuto"),
-        ("KB\u2212\u00ad\nAuto", "KB-\nAuto"),
+        ("KB﹣\u00ad\nAuto", "KB-\nAuto"),
+        ("KB－\u00ad\nAuto", "KB-\nAuto"),
+        ("KB‐\u00ad\nAuto", "KB-\nAuto"),
+        ("KB‑\u00ad\nAuto", "KB-\nAuto"),
+        ("KB−\u00ad\nAuto", "KB-\nAuto"),
         # Not right after the hyphen: then it is read as one.
         ("KB- \u00ad\nAuto", "KB- -\nAuto"),
         ("KB-x\u00ad\nAuto", "KB-x-\nAuto"),
@@ -291,37 +289,43 @@ def test_soft_hyphen_after_a_hyphen_at_a_line_end_is_deleted(text: str, expected
     ("text", "expected"),
     [
         ("KB\u00adAuto.exe", "KB-Auto.exe"),
-        ("KB\u00ad\u00adAuto", "KB-Auto"),
-        ("KB\u200b\u00ad\u2060Auto", "KB-Auto"),  # one run of deleted characters, one hyphen
+        ("KB\u00ad\u00adAuto", "KB--Auto"),  # one hyphen for each soft hyphen
+        ("xn\u00ad\u00adbcher-kva.example", "xn--bcher-kva.example"),
+        ("https://gitlab.example.com/g/p/\u00ad/raw/main/a.exe", "https://gitlab.example.com/g/p/-/raw/main/a.exe"),
+        ("http://198.51.100.7/a.php?id=\u00ad1", "http://198.51.100.7/a.php?id=-1"),
+        ("KB\u200b\u00ad\u2060Auto", "KB-Auto"),  # other format characters are deleted
         ("KB\u00ad\u200eAuto", "KB-Auto"),
-        ("\uff2b\uff22\u00ad\uff21uto", "KB-Auto"),  # full-width letters fold to ASCII
-        ("\ufb01\u00adle", "fi-le"),
+        ("ＫＢ\u00adＡuto", "KB-Auto"),  # full-width letters fold to ASCII
+        ("ﬁ\u00adle", "fi-le"),
         ("a\u00adb c\u00add", "a-b c-d"),
         ("CVE\u00ad2017\u00ad11882", "CVE-2017-11882"),
         ("198.51.100.1\u00ad198.51.100.9", "198.51.100.1-198.51.100.9"),
-        ("update\u00adcheck\u00ad", "update-check"),
+        ("update\u00adcheck\u00ad", "update-check-"),
+        ("\u00adword and word\u00ad", "-word and word-"),
+        ("café\u00adbar", "café-bar"),
+        ("KB-\u00adAuto", "KB--Auto"),
+        ("KB\u00ad-Auto", "KB--Auto"),
+        ("evil.\u00adcom", "evil.-com"),
         ("a" + "\u200b" * 63 + "\u00adb", "a-b"),
     ],
-)
-def test_soft_hyphens_between_letters_or_digits_become_hyphens(text: str, expected: str) -> None:
+)  # fmt: skip
+def test_every_soft_hyphen_becomes_a_hyphen(text: str, expected: str) -> None:
     assert refang(text) == expected
 
 
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
-        ("\u00adword and word\u00ad", "word and word"),  # not between two letters or digits
-        ("caf\u00e9\u00adbar", "caf\u00e9bar"),  # a non-ASCII letter that does not fold to ASCII
-        ("KB-\u00adAuto", "KB-Auto"),
-        ("KB\u00ad-Auto", "KB-Auto"),
-        ("evil.\u00adcom", "evil.com"),
         ("evil.com\u00ad\u2063kb.net", "evil.com kb.net"),  # U+2063 separates two names
+        ("evil.com\u2063\u00adkb.net", "evil.com kb.net"),
         ("a\u2069\u00ad\u2066b", "a b"),  # so do the end and start of two bidi isolates
+        ("a\u2069\u00ad\u00ad\u2066b", "a b"),
         ("a\u00ad\u202cb", "ab"),
         ("a" + "\u200b" * 64 + "\u00adb", "ab"),  # more than 64 deleted characters
+        ("a\u00ad" + "\u200b" * 64 + "b", "ab"),
     ],
 )
-def test_other_soft_hyphens_are_deleted(text: str, expected: str) -> None:
+def test_soft_hyphens_beside_separators_or_in_long_runs_are_deleted(text: str, expected: str) -> None:
     assert refang(text) == expected
 
 
@@ -330,11 +334,9 @@ def test_other_soft_hyphens_are_deleted(text: str, expected: str) -> None:
     [
         ("KB\u00adAuto.exe", "KBAuto.exe"),
         ("C2 up\u00addate[.]example[.]com", "C2 update.example.com"),
-        ("update\u00ad\ncheck KB\u00adAuto", "update-\ncheck KBAuto"),  # a line end in both readings
-        (
-            "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0} a\u00adb",
-            "{0F1E2D3C-4B5A-6978-8796-A5B4C3D2E1F0} ab",
-        ),
+        ("update\u00ad\ncheck KB\u00adAuto", "update\ncheck KBAuto"),  # line ends too
+        ("{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}", "{0F1E2D3C4B5A69788796A5B4C3D2E1F0}"),
+        ("xn\u00ad\u00adbcher", "xnbcher"),
     ],
 )  # fmt: skip
 def test_soft_hyphens_can_be_read_as_break_hints(text: str, expected: str) -> None:
@@ -345,13 +347,10 @@ def test_soft_hyphens_can_be_read_as_break_hints(text: str, expected: str) -> No
     "text",
     [
         "no soft hyphen",
-        "\u00adword and word\u00ad",
-        "line\u00ad\nbreak",
-        "KB-\u00adAuto",
+        "KB-\u00ad\nAuto",  # deleted in both readings
         "evil.com\u00ad\u2063kb.net",
-        "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",  # a GUID in both readings
-        "{0F1E2D3C\u200b\u00ad\u2060" + "4B5A\u00ad\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",
-        "{\uff10F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00ad\uff21\uff15B4C3D2E1F0}",
+        "a\u2069\u00ad\u2066b",
+        "a" + "\u200b" * 64 + "\u00adb",
     ],
 )
 def test_soft_hyphens_that_both_readings_share(text: str) -> None:

@@ -35,13 +35,15 @@ their advisory.
   the hyphen at the break cannot be part of them (`evil.-` / `com`, `evil-` / `.com`) or is part of a
   URL (`/KB-Auto-win-` / `update.exe`), and otherwise the rest of a name on the next line is dropped
   as a fragment (`line_wrap_fragment`); masked names (`wiki.xxxx.com`) and antivirus detection
-  names (`Backdoor.Win32.Ht`) are dropped (`masked_name`, `detection_name`). A soft hyphen between
-  two letters or digits or at the end of a line is read as a hyphen, since text extracted from a PDF
-  has one where the page shows a hyphen (`KB\u00adAuto`, `CVE\u00ad2017\u00ad11882`); at a line end,
-  also before up to 1,024 spaces or format characters, the line-break rules apply to it as to `-`,
-  and right after a hyphen it is deleted. A warning says when deleting the soft hyphens between
-  two letters or digits, as the break hints of web pages (`&shy;`), would change any value reported
-  (the first 8 Mi characters of such a text are extracted a second time to find out). A line ending in a hyphen is joined with
+  names (`Backdoor.Win32.Ht`) are dropped (`masked_name`, `detection_name`). Every soft hyphen is
+  read as a hyphen, one for one, since text extracted from a PDF has one where the page shows a
+  hyphen (`KB\u00adAuto`, `xn\u00ad\u00adbcher`, `/\u00ad/raw/`), so pypdf and `pdftotext -raw` text of
+  the same PDF give the same IOCs; at a line end, also before up to 1,024 spaces or format
+  characters, the line-break rules apply to it as to `-`. It is deleted right after a hyphen at a
+  line end, in a run of format characters with U+2063 or the end of a bidi embedding or isolate,
+  and in a run of more than 64 format characters. A warning says when deleting every soft hyphen, as the break hints of web pages
+  (`&shy;`), would change any value reported (at most the first 8 Mi characters of such a text, cut
+  at a line end, are extracted a second time to find out). A line ending in a hyphen is joined with
   the next as part of a URL only when the URL really reaches the hyphen, not when a URL ended
   earlier on the line (Chinese text without spaces) or at its closing quote, and a URL wrapped
   after its own hyphens over several lines is joined at every break, also after a dot wrap; while

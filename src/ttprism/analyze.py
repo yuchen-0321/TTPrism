@@ -104,16 +104,37 @@ def analyze_text(text: str, options: AnalysisOptions | None = None) -> AnalysisR
 MAX_SOFT_HYPHEN_CHECK_CHARS = 8 * 1024 * 1024
 
 
+# Characters that, at the end of a line, may join it to the next.
+_LINE_JOINING = frozenset("-\u00ad\u2010\u2011\u2212\ufe63\uff0d")
+
+
+def _checked_part(text: str) -> str:
+    """At most MAX_SOFT_HYPHEN_CHECK_CHARS characters from the start of ``text``, cut after a line
+    that does not end in a hyphen if there is one, so that no value is cut in two and reported in
+    part as if the soft hyphens had changed it."""
+    if len(text) <= MAX_SOFT_HYPHEN_CHECK_CHARS:
+        return text
+    cut = text.rfind("\n", 0, MAX_SOFT_HYPHEN_CHECK_CHARS)
+    while cut > 0:
+        end = cut
+        while end > 0 and text[end - 1] in " \t\r":
+            end -= 1
+        if text[end - 1 : end] not in _LINE_JOINING:
+            return text[:cut]
+        cut = text.rfind("\n", 0, end)
+    return text[:MAX_SOFT_HYPHEN_CHECK_CHARS]
+
+
 def _soft_hyphen_warning(
     text: str, collector: IOCCollector, iocs: list[IOC], options: AnalysisOptions
 ) -> list[str]:
-    """A warning when deleting the soft hyphens that refang reads as hyphens between two letters or
-    digits, as the break hints of web pages, would change the values reported. The first
+    """A warning when deleting every soft hyphen, as the break hints of a web page are, would change
+    the values reported, where refang reads them as hyphens. At most the first
     MAX_SOFT_HYPHEN_CHECK_CHARS characters are extracted a second time in that reading; the count is
     the larger of the values it would report besides and, if that was the whole text, the reported
     values it lacks. Lookups go to ``collector``, so the cost does not grow with the rest of the text.
     """
-    checked = text[:MAX_SOFT_HYPHEN_CHECK_CHARS]
+    checked = _checked_part(text)
     hinted = refang_soft_hyphens_as_hints(checked)
     if hinted is None:
         return []
@@ -125,12 +146,12 @@ def _soft_hyphen_warning(
         count = max(count, sum(1 for ioc in iocs if (ioc.type, ioc.value) not in other))
     if not count:
         return []
-    where = f" (from the first {MAX_SOFT_HYPHEN_CHECK_CHARS:,} characters)" if truncated else ""
+    where = f" (from the first {len(checked):,} characters)" if truncated else ""
     return [
-        f"{count} extracted value(s){where} would differ if the soft hyphens (U+00AD) between letters or "
-        "digits were deleted instead of read as hyphens. Text taken from a PDF has a soft hyphen where the "
-        "page shows a hyphen; text copied from a web page (&shy;) has them as invisible break hints, which "
-        "would make KB-Auto read KBAuto."
+        f"{count} extracted value(s){where} would differ if the soft hyphens (U+00AD) were deleted instead "
+        "of read as hyphens. Text taken from a PDF has a soft hyphen where the page shows a hyphen; text "
+        "copied from a web page (&shy;) has them as invisible break hints, which would make KB-Auto read "
+        "KBAuto."
     ]
 
 
