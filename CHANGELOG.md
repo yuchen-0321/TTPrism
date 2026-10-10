@@ -39,9 +39,9 @@ their advisory.
   two letters or digits or at the end of a line is read as a hyphen, since text extracted from a PDF
   has one where the page shows a hyphen (`KB\u00adAuto`, `CVE\u00ad2017\u00ad11882`); at a line end,
   also before up to 1,024 spaces or format characters, the line-break rules apply to it as to `-`,
-  and right after a hyphen it is deleted. A warning says when deleting those soft hyphens, as the
-  break hints of web pages (`&shy;`), would change any value reported (the first 8 Mi characters of
-  such a text are extracted a second time to find out). A line ending in a hyphen is joined with
+  and right after a hyphen it is deleted. A warning says when deleting the soft hyphens between
+  two letters or digits, as the break hints of web pages (`&shy;`), would change any value reported
+  (the first 8 Mi characters of such a text are extracted a second time to find out). A line ending in a hyphen is joined with
   the next as part of a URL only when the URL really reaches the hyphen, not when a URL ended
   earlier on the line (Chinese text without spaces) or at its closing quote, and a URL wrapped
   after its own hyphens over several lines is joined at every break, also after a dot wrap; while

@@ -114,6 +114,17 @@ def _char_class(codes: set[int]) -> str:
 
 
 @functools.cache
+def _run_codes() -> frozenset[int]:
+    """Deleted characters that may stand with a soft hyphen between two letters or digits: all but
+    U+2063 and the ends of bidi embeddings and isolates, which separate two names."""
+    return frozenset(code for code, value in _fold_table().items() if value is None) - {
+        0x2063,
+        0x202C,
+        0x2069,
+    }
+
+
+@functools.cache
 def _soft_hyphen_res() -> tuple[re.Pattern[str], re.Pattern[str], re.Pattern[str]]:
     """The patterns for soft hyphens after a hyphen at a line end, at a line end, and inside a word."""
     table = _fold_table()
@@ -129,7 +140,7 @@ def _soft_hyphen_res() -> tuple[re.Pattern[str], re.Pattern[str], re.Pattern[str
     alnum = {ord(char) for char in _ASCII_ALNUM}
     ends_alnum = alnum | {code for code, value in table.items() if value and value[-1] in _ASCII_ALNUM}
     starts_alnum = alnum | {code for code, value in table.items() if value and value[0] in _ASCII_ALNUM}
-    run = deleted - {0x2063, 0x202C, 0x2069}
+    run = set(_run_codes())
     inner = (
         f"(?<=[{_char_class(ends_alnum)}])(?=[{_char_class(run - {0xAD})}]{{0,{_MAX_RUN - 1}}}+\\u00ad)"
         f"[{_char_class(run)}]{{1,{_MAX_RUN}}}+(?=[{_char_class(starts_alnum)}])"
@@ -143,14 +154,28 @@ def _line_end_soft_hyphens(text: str) -> str:
 
 
 # In a GUID, soft hyphens are hyphens in both readings: deleting them would leave 32 hex digits that
-# read as an MD5 ("{92BA1818\u00ad0119\u00ad4F79\u00ad874E\u00adE3BF79C355B8}").
-_SOFT_HYPHEN_GUID_RE = re.compile(
-    r"(?<![0-9A-Fa-f])[0-9A-Fa-f]{8}(?:\u00ad[0-9A-Fa-f]{4}){3}\u00ad[0-9A-Fa-f]{12}(?![0-9A-Fa-f])"
-)
+# read as an MD5 ("{92BA1818\u00ad0119\u00ad4F79\u00ad874E\u00adE3BF79C355B8}"). Its groups are
+# found as the inner rule sees them: hex digits, also full-width ones, and between the groups a run
+# of deleted characters with a soft hyphen in it.
+@functools.cache
+def _soft_hyphen_guid_res() -> tuple[re.Pattern[str], re.Pattern[str]]:
+    table = _fold_table()
+    hex_digits = {ord(char) for char in "0123456789ABCDEFabcdef"}
+    hexes = hex_digits | {
+        code for code, value in table.items() if value and len(value) == 1 and ord(value) in hex_digits
+    }
+    run = set(_run_codes())
+    hex_class, run_class = _char_class(hexes), _char_class(run)
+    separator = f"(?=[{_char_class(run - {0xAD})}]{{0,{_MAX_RUN - 1}}}+\\u00ad)[{run_class}]{{1,{_MAX_RUN}}}+"
+    guid = (
+        f"(?<![{hex_class}])[{hex_class}]{{8}}(?:{separator}[{hex_class}]{{4}}){{3}}"
+        f"{separator}[{hex_class}]{{12}}(?![{hex_class}])"
+    )
+    return re.compile(guid), re.compile(f"[{run_class}]+")
 
 
 def _guid_hyphens(match: re.Match[str]) -> str:
-    return match.group(0).replace("\u00ad", "-")
+    return _soft_hyphen_guid_res()[1].sub("-", match.group(0))
 
 
 def refang_soft_hyphens_as_hints(text: str) -> str | None:
@@ -160,7 +185,7 @@ def refang_soft_hyphens_as_hints(text: str) -> str | None:
     if "\u00ad" not in text:
         return None
     lines = _line_end_soft_hyphens(text)
-    hinted = _SOFT_HYPHEN_GUID_RE.sub(_guid_hyphens, lines)
+    hinted = _soft_hyphen_guid_res()[0].sub(_guid_hyphens, lines)
     if _soft_hyphen_res()[2].sub("-", lines) == hinted:
         return None
     return _refang_rest(hinted)

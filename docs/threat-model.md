@@ -64,13 +64,15 @@ included) took:
 | Text report of distinct names with a soft hyphen each (`h0\u00adx.example.com …`) | 125 s | 1.5 GB |
 | Invalid UTF-8 (every byte `0xFF`, read as U+FFFD) | 130 s | 0.4 GB |
 | Distinct short names (`a.0.io a.1.io …`, 5.7 million values) | 345 s | 8.1 GB |
+| Distinct short URLs (`http://a.0.io/ …`, 3.4 million URLs and as many hosts) | 379 s | 9.9 GB |
 | CAPE report whose command lines are all pathological text (both 8 Mi caps reached) | 25 s | |
 | CAPE report of 1.7 million network host entries | 14 s | |
 
-Text reports are bounded only by `--max-size`, so a 64 MiB text costs one to about six minutes of
-CPU time but no more: 79 to 345 s here, the most for millions of distinct short names (the
-maintainer's review measured the equivalent of 5 to 5.7 minutes for those and for invalid UTF-8 on
-its machine and inputs). The CAPE caps keep a hostile report under half a minute.
+Text reports are bounded only by `--max-size`. These are measured examples, not upper bounds: the
+64 MiB texts above took 79 to 379 s here, about one to six and a half minutes, the most for millions
+of distinct short URLs and names, which also take the most memory (the maintainer's review measured
+the equivalent of 5 to 5.7 minutes for distinct short names and for invalid UTF-8 on its machine and
+inputs). The CAPE caps keep a hostile report under half a minute.
 
 A text with a soft hyphen between two letters or digits has its first 8 Mi characters
 (`MAX_SOFT_HYPHEN_CHECK_CHARS`) extracted a second time, to see whether deleting those soft hyphens
@@ -86,10 +88,12 @@ with the rest of the text. Faster IOC extraction is planned for v0.2 (issue #2).
 - **Memory.** Parsed JSON can take up to about 25 times the input size in memory: a crafted
   64 MiB report (millions of tiny objects) peaks around 1.6 GB. Every distinct extracted value is
   kept, with where it was seen, until the output is written, so a text report of millions of
-  distinct short names takes far more: 8.1 GB for 64 MiB of them (5.7 million values). Lower
-  `--max-size` when processing untrusted reports in bulk or on small machines.
-- **Time.** A 64 MiB text report takes one to about six minutes (see "Measured cost"). Lower
-  `--max-size` to bound the time per input when processing untrusted reports in bulk.
+  distinct short values takes far more: 8.1 GB for 64 MiB of distinct short names and 9.9 GB for
+  64 MiB of distinct short URLs in the measurements above. Lower `--max-size` when processing
+  untrusted reports in bulk or on small machines.
+- **Time.** The 64 MiB text reports measured took one to about six and a half minutes (see
+  "Measured cost"); other inputs may take longer. Lower `--max-size` to bound the time per input
+  when processing untrusted reports in bulk.
 - **Python versions.** The JSON nesting guarantee relies on CPython's recursion guard, which every
   supported version (3.11+) provides. The deepest document accepted differs between versions
   (see the nesting row above), so the same deep input may be accepted on one version and rejected

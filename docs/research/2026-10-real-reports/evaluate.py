@@ -16,18 +16,21 @@ extracted text and the ground-truth values. Only this script, the manifest, the 
 results (tool outputs and counts) are committed.
 
 Text: PDFs are read with pypdf (page.extract_text() per page, headers and footers included). Web
-pages are decoded strictly and laid out by HtmlText below (Python's html.parser, no CSS); see
-decode_html and HtmlText for the rules. When a report's indicators are only in an attachment, its
-text follows the page text. `text` prints, for each report, how it was decoded and converted, and
-where its appendix starts and ends; never an indicator count.
+pages are decoded strictly and laid out by HtmlText below (Python's html.parser, no CSS, the same
+result on every Python release tested); see decode_html and HtmlText for the rules. When a report's
+indicators are only in an attachment, its text follows the page text, and the conversion records
+where each part starts. Line breaks are LF throughout. `text` prints, for each report and each web
+page in it, how it was decoded and converted, and where the appendix starts and ends; never an
+indicator count. `run` stops if the text, its source or an attachment changed since `text`.
 
 Ground truth: the values in each report's IOC appendix, found with the plain line rules below and
 corrected by hand as the manifest lists (with a reason for each); none of the evaluated tools is used
 for it. The appendix runs from its start marker (which must occur once, or the manifest names the
-occurrence) to the first end marker after it; in a web page, format characters (Cf) are deleted
-from it first. Masked entries ("wiki.xxxx.com") and entries whose spelling the source leaves
-ambiguous are left out, and so are tool outputs equal to them. A URL in the appendix adds its host
-to the domains.
+occurrence) to the first end marker after it; format characters (Cf) are deleted from the parts of
+it that came from a web page, where a soft hyphen is an invisible break hint, but not from PDF
+text, where pypdf's soft hyphen is a drawn hyphen. Masked entries ("wiki.xxxx.com") and entries
+whose spelling the source leaves ambiguous are left out, and so are tool outputs equal to them. A
+URL in the appendix adds its host to the domains.
 
 Matching: domains lower-cased without a trailing dot; URLs refanged, with scheme and host
 lower-cased, scored both as whole URLs and by host; hashes case-insensitive. Before domain recall,
@@ -145,62 +148,104 @@ def pdf_text(path: Path) -> tuple[str, int]:
     return "\n".join(page.extract_text() or "" for page in reader.pages), len(reader.pages)
 
 
+def read_text(path: Path) -> str:
+    """A text file exactly as written (no newline translation)."""
+    return path.read_bytes().decode("utf-8")
+
+
+def attachment_format(path: Path) -> str:
+    suffix = path.suffix.lower()
+    return "pdf" if suffix == ".pdf" else "html" if suffix in (".html", ".htm") else "text"
+
+
+def convert(path: Path, fmt: str, http_charset: str | None = None) -> tuple[str, dict[str, Any]]:
+    """The text of one source file (a PDF with pypdf, a web page with HtmlText, anything else as UTF-8
+    text) and how it was made. Line breaks become LF, since pypdf can give CR and so can &#13; in a
+    <pre>; the text that is hashed is then the text that every tool reads."""
+    info: dict[str, Any] = {"format": fmt, "sha256": sha256(path)}
+    if fmt == "pdf":
+        text, info["pages"] = pdf_text(path)
+        info["method"] = PDF_METHOD.format(version=importlib.metadata.version("pypdf"))
+    elif fmt == "html":
+        page, info["decoding"] = decode_html(path.read_bytes(), http_charset)
+        text, counts = html_to_text(page)
+        info["method"] = HTML_METHOD
+        info.update(counts)
+    else:
+        text = read_text(path)
+        info["method"] = "UTF-8 text"
+    return text.replace("\r\n", "\n").replace("\r", "\n"), info
+
+
 def command_text(name: str) -> None:
     for report in manifest(name):
         fmt = source_format(report)
-        source = source_path(name, report)
-        info: dict[str, Any] = {
-            "format": fmt,
-            "source_sha256": sha256(source),
-            "python": sys.version.split()[0],
-        }
-        if fmt == "pdf":
-            text, pages = pdf_text(source)
-            info["method"] = PDF_METHOD.format(version=importlib.metadata.version("pypdf"))
-            info["pages"] = pages
-        else:
-            page, info["decoding"] = decode_html(source.read_bytes(), report.get("http_charset"))
-            text, counts = html_to_text(page)
-            info["method"] = HTML_METHOD
-            info.update(counts)
+        text, source_info = convert(source_path(name, report), fmt, report.get("http_charset"))
+        info: dict[str, Any] = {"format": fmt, "source_sha256": source_info.pop("sha256")}
+        info["python"] = sys.version.split()[0]
+        info.update(source_info)
+        # Where each part of the text came from, so that only web-page text is treated as such.
+        parts = [{"format": fmt, "start": 0, "end": len(text)}]
         for attachment in report.get("attachments", []):
             path = DATA / name / "attachments" / attachment["file"]
-            text += "\n\n" + attachment_text(path)
-            info.setdefault("attachments", []).append({"file": attachment["file"], "sha256": sha256(path)})
+            extra, attachment_info = convert(path, attachment_format(path), attachment.get("http_charset"))
+            text += "\n\n"
+            parts.append(
+                {"format": attachment_info["format"], "start": len(text), "end": len(text) + len(extra)}
+            )
+            text += extra
+            info.setdefault("attachments", []).append({"file": attachment["file"], **attachment_info})
+        info["parts"] = parts
         info["text_sha256"] = hashlib.sha256(text.encode("utf-8")).hexdigest()
         out = text_path(name, report)
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(text, encoding="utf-8")
+        out.write_bytes(text.encode("utf-8"))
         conversion_path(name, report).write_text(json.dumps(info, ensure_ascii=False, indent=1), "utf-8")
         print(f"{report['id']}: {fmt}, {len(text)} characters")
         print(f"    source sha256 {info['source_sha256']}")
         print(f"    text sha256   {info['text_sha256']}")
-        for attachment in info.get("attachments", []):
-            print(f"    attachment {attachment['file']} sha256 {attachment['sha256']}")
         if fmt == "html":
-            decoding = info["decoding"]
-            print(f"    encoding {decoding['encoding']} ({decoding['chosen_by']})")
-            print(f"    declared {decoding['declared']}")
-            if decoding["mismatch"]:
-                print(f"    DECLARED CHARSET DISAGREES: {'; '.join(decoding['mismatch'])}")
+            print_html_conversion("    ", info)
+        for attachment in info.get("attachments", []):
             print(
-                f"    U+FFFD: {info['replacement_characters']}, hidden characters kept: "
-                f"{info['hidden_characters_kept']}, soft hyphens deleted: {info['soft_hyphens_deleted']}"
+                f"    attachment {attachment['file']} ({attachment['format']}) sha256 {attachment['sha256']}"
             )
-            if info["unclosed_dropped_elements"]:
-                unclosed = info["unclosed_dropped_elements"]
-                print(f"    UNCLOSED DROPPED ELEMENTS (the text after them is lost): {unclosed}")
+            if attachment["format"] == "html":
+                print_html_conversion("        ", attachment)
         describe_appendix(text, report)
 
 
-def attachment_text(path: Path) -> str:
-    """An attachment's text: a PDF with pypdf, a web page as a page, anything else as UTF-8 text."""
-    suffix = path.suffix.lower()
-    if suffix == ".pdf":
-        return pdf_text(path)[0]
-    if suffix in (".html", ".htm"):
-        return html_to_text(decode_html(path.read_bytes())[0])[0]
-    return path.read_text(encoding="utf-8")
+def print_html_conversion(indent: str, info: dict[str, Any]) -> None:
+    """Print how a web page was decoded and what its conversion counted (never an indicator count)."""
+    decoding = info["decoding"]
+    print(f"{indent}encoding {decoding['encoding']} ({decoding['chosen_by']})")
+    print(f"{indent}declared {decoding['declared']}")
+    if decoding["mismatch"]:
+        print(f"{indent}DECLARED CHARSET DISAGREES: {'; '.join(decoding['mismatch'])}")
+    print(
+        f"{indent}U+FFFD: {info['replacement_characters']}, hidden characters kept: "
+        f"{info['hidden_characters_kept']}, soft hyphens deleted: {info['soft_hyphens_deleted']}"
+    )
+    if info["unclosed_dropped_elements"]:
+        unclosed = info["unclosed_dropped_elements"]
+        print(f"{indent}UNCLOSED DROPPED ELEMENTS (the text after them is lost): {unclosed}")
+
+
+def check_unchanged(name: str, report: dict[str, Any], conversion: dict[str, Any], text: str) -> None:
+    """Stop if the text, its source or its attachments changed since `text`."""
+    recorded = [(a["file"], a["sha256"]) for a in conversion.get("attachments", [])]
+    current = []
+    for attachment in report.get("attachments", []):
+        path = DATA / name / "attachments" / attachment["file"]
+        current.append((attachment["file"], sha256(path) if path.exists() else None))
+    if (
+        conversion["text_sha256"] != hashlib.sha256(text.encode("utf-8")).hexdigest()
+        or conversion["source_sha256"] != sha256(source_path(name, report))
+        or recorded != current
+    ):
+        raise SystemExit(
+            f"{report['id']}: the text, its source or an attachment changed since `text`; run it again"
+        )
 
 
 def describe_appendix(text: str, report: dict[str, Any]) -> None:
@@ -235,12 +280,12 @@ _META_CHARSET = re.compile(
     rb"<meta\s[^>]{0,2048}?charset\s*=\s*[\"']?\s*([A-Za-z0-9._:-]{1,40})", re.IGNORECASE
 )
 # Labels as browsers read them (WHATWG Encoding Standard), for the encodings these reports may use;
-# any other label goes to Python's codec registry.
+# any other label goes to Python's codec registry. The standard decodes the GBK labels with its
+# gb18030 decoder, which is wider than Python's gbk codec.
 _CHARSET_LABELS = {
     **dict.fromkeys(("utf-8", "utf8", "unicode-1-1-utf-8"), "utf-8"),
     **dict.fromkeys(("big5", "big5-hkscs", "cn-big5", "csbig5", "x-x-big5"), "cp950"),
-    **dict.fromkeys(("gb2312", "gbk", "x-gbk", "csgb2312", "chinese"), "gbk"),
-    "gb18030": "gb18030",
+    **dict.fromkeys(("gb2312", "gbk", "x-gbk", "csgb2312", "chinese", "gb18030"), "gb18030"),
     **dict.fromkeys(("us-ascii", "ascii", "iso-8859-1", "latin1", "windows-1252"), "cp1252"),
 }
 
@@ -305,13 +350,26 @@ _BLOCK = frozenset(
     }
 )  # fmt: skip
 _PARAGRAPH = frozenset({"p"})
-# Breaks that end a table row are not held back by the TAB of an empty last cell.
+# Breaks that end a table row; they also drop the TABs of empty cells at the end of the row.
 _ROW_LEVEL = frozenset({"tr", "table", "thead", "tbody", "tfoot", "caption"})
 # Kept as written, with their line breaks and runs of spaces.
 _PREFORMATTED = frozenset({"pre", "listing", "xmp", "textarea"})
-# Not shown on the page. <title> is part of <head>; browsers do not show <noembed> or <noframes>.
+# Not shown on the page: <title> is part of <head>, browsers do not show <noembed> or <noframes>, and
+# SVG does not draw <desc> or <metadata>. Nothing inside them counts, not even their tags.
 _SKIPPED = frozenset(
-    {"head", "title", "script", "style", "noscript", "template", "iframe", "noembed", "noframes"}
+    {
+        "head",
+        "title",
+        "script",
+        "style",
+        "noscript",
+        "template",
+        "iframe",
+        "noembed",
+        "noframes",
+        "desc",
+        "metadata",
+    }
 )
 _IN_HEAD = frozenset(
     {"base", "basefont", "bgsound", "link", "meta", "noscript", "script", "style", "template", "title"}
@@ -323,17 +381,24 @@ _VOID = frozenset(
     }
 )  # fmt: skip
 _CELLS = frozenset({"td", "th"})
+_TABLE_PARTS = frozenset({"table", "caption", "thead", "tbody", "tfoot", "tr", "td", "th"})
 # A start tag that ends the innermost open element of the first kind, looking no further out than
 # the second kind.
+_CELL_SCOPE = frozenset({"td", "th", "caption", "table"})
 _IMPLIED_END = {
-    "li": ({"li"}, {"ul", "ol", "menu"}),
-    "dt": ({"dt", "dd"}, {"dl"}),
-    "dd": ({"dt", "dd"}, {"dl"}),
+    "li": ({"li"}, {"ul", "ol", "menu", *_CELL_SCOPE}),
+    "dt": ({"dt", "dd"}, {"dl", *_CELL_SCOPE}),
+    "dd": ({"dt", "dd"}, {"dl", *_CELL_SCOPE}),
     "tr": ({"tr"}, {"table"}),
     "td": ({"td", "th"}, {"tr", "table"}),
     "th": ({"td", "th"}, {"tr", "table"}),
-    "option": ({"option"}, {"select", "datalist", "optgroup"}),
+    "option": ({"option"}, {"select", "datalist", "optgroup", *_CELL_SCOPE}),
 }
+# html.parser reads these as raw text since the 2025 security releases, and textarea and title as
+# escapable raw text; older releases parse their content as markup. HtmlText asks for raw text itself,
+# so that the result does not depend on the Python release.
+_RAW_TEXT = frozenset({"xmp", "iframe", "noembed", "noframes"})
+_ESCAPABLE_RAW_TEXT_BUILT_IN = hasattr(html.parser.HTMLParser, "RCDATA_CONTENT_ELEMENTS")
 _HTML_SPACE = re.compile(r"[ \t\n\f\r]+")
 _HIDING_STYLE = re.compile(r"display\s*:\s*none|visibility\s*:\s*hidden", re.IGNORECASE)
 
@@ -359,22 +424,29 @@ class HtmlText(html.parser.HTMLParser):
 
     Block elements start and end a line and <p> an empty line; <br> is a line break. Inline elements
     (a, span, code, strong...) and <wbr> add nothing, so a name split by markup stays one name. The
-    cells of a table row are separated by a TAB and its rows by line breaks. White space in the source,
-    line breaks included, is folded to one space, so no line break of the source reaches the tools;
-    <pre>, <listing>, <xmp> and <textarea> keep theirs (except a line break right after the start
-    tag, which HTML ignores). Soft hyphens (&shy;) are deleted, since a browser shows none; other
-    format characters and no-break spaces are kept. Attributes are never read: a link counts by its
-    text, an image by nothing. <head>, <title>, <script>, <style>, <noscript>, <template>, <iframe>,
-    <noembed>, <noframes> and comments are dropped. Text hidden by the hidden attribute, an inline
-    display:none or visibility:hidden, or a closed <details> is kept, since appendices are often
-    there and CSS is not computed, and its characters are counted. A self-closing "<x/>" ends x.
-    Optional end tags are implied as in HTML: a new <li> ends the open one, a block ends an open <p>.
+    cells of a table row are separated by TABs, one per cell boundary (empty cells included, except at
+    the end of a row), and its rows by line breaks. White space in the source, line breaks included, is
+    folded to one space, so no line break of the source reaches the tools; <pre>, <listing>, <xmp> and
+    <textarea> keep theirs (except a line break right after the start tag, which HTML ignores). Soft
+    hyphens (&shy;) are deleted, since a browser shows none; other format characters and no-break
+    spaces are kept. Attributes are never read: a link counts by its text, an image by nothing.
+    <head>, <title>, <script>, <style>, <noscript>, <template>, <iframe>, <noembed>, <noframes>, SVG
+    <desc> and <metadata>, and comments are dropped with everything inside them. Text hidden by the
+    hidden attribute, an inline display:none or visibility:hidden, or a closed <details> is kept, since
+    appendices are often there and CSS is not computed, and its characters are counted. A
+    self-closing "<x/>" ends x. Optional end tags are implied as in HTML (a new <li> ends the open one,
+    a block ends an open <p>); an end tag does not reach out of a table cell for an element opened
+    outside it, and </body> and </html> end nothing. An unterminated tag or comment at the end of the
+    page is dropped.
     """
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.pieces: list[str] = []
-        self.pending = ""  # the line break, empty line or TAB to write before the next text
+        self.pending = ""  # the line break or empty line to write before the next text
+        self.tabs = 0  # the TABs to write before the next text: cell boundaries passed in this row
+        self.row_written = False  # text was written in the current table row
+        self.cell_start = False  # nothing was written yet in the current table cell
         self.stack: list[_Element] = []
         self.hidden_chars = 0
         self.soft_hyphens = 0
@@ -382,9 +454,12 @@ class HtmlText(html.parser.HTMLParser):
         self.at_preformatted_start = False
 
     def _break(self, kind: str, *, row: bool = False) -> None:
-        if self.pending == "\t" and not row:
-            return  # the first block in a table cell starts right after its TAB
-        if len(kind) > len(self.pending) or self.pending == "\t":
+        if row:
+            self.tabs = 0
+            self.cell_start = False
+        elif self.cell_start:
+            return  # a block at the start of a table cell starts right after the cell's TAB
+        if len(kind) > len(self.pending):
             self.pending = kind
 
     def _open(self, name: str) -> int:
@@ -394,8 +469,29 @@ class HtmlText(html.parser.HTMLParser):
                 return index
         return -1
 
+    def _skipping(self) -> _Element | None:
+        """The open element (other than <head>) whose content is dropped, or None."""
+        return next((element for element in self.stack if element.skipped and element.name != "head"), None)
+
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self._start(tag, attrs, self_closing=False)
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self._start(tag, attrs, self_closing=True)
+        if tag not in _VOID:
+            self.handle_endtag(tag)
+
+    def _start(self, tag: str, attrs: list[tuple[str, str | None]], *, self_closing: bool) -> None:
         self.at_preformatted_start = False
+        skipping = self._skipping()
+        if skipping is not None:
+            if tag == skipping.name:  # nested <template>s
+                self.stack.append(_Element(tag, attrs, self.stack[-1]))
+            return
+        if not self_closing and (
+            tag in _RAW_TEXT or (tag == "textarea" and not _ESCAPABLE_RAW_TEXT_BUILT_IN)
+        ):
+            self.set_cdata_mode(tag)
         if tag not in _IN_HEAD:
             self._close("head")  # the head ends where the body starts, with or without </head>
         if tag in _IMPLIED_END:
@@ -421,37 +517,50 @@ class HtmlText(html.parser.HTMLParser):
                 self._break("\n")
             return
         table = next((element.table for element in reversed(self.stack) if element.table is not None), None)
-        if tag == "tr" and table is not None:
-            table[0] = 0
-        elif tag in _CELLS and table is not None:
-            if table[0]:
-                self.pending = "\t"
-            table[0] += 1
         if tag in _PARAGRAPH:
             self._break("\n\n")
         elif tag in _BLOCK:
             self._break("\n", row=tag in _ROW_LEVEL)
+        if tag in ("tr", "table"):
+            self.row_written = False
+            if tag == "tr" and table is not None:
+                table[0] = 0
+        elif tag in _CELLS and table is not None:
+            if table[0]:
+                if self.row_written:
+                    self.pending = ""  # a break from a block in the cell before gives way to the TAB
+                self.tabs += 1
+            table[0] += 1
+            self.cell_start = True
         element = _Element(tag, attrs, self.stack[-1] if self.stack else None)
         self.stack.append(element)
         self.at_preformatted_start = element.preformatted
 
-    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        self.handle_starttag(tag, attrs)
-        if tag not in _VOID:
-            self.handle_endtag(tag)
-
     def handle_endtag(self, tag: str) -> None:
         self.at_preformatted_start = False
+        skipping = self._skipping()
+        if skipping is not None:
+            if tag == skipping.name:
+                self._close(tag)
+            return
         if tag == "br":
             self._write("\n", raw=True)  # browsers read </br> as <br>
         elif tag == "p" and self._open("p") == -1:
             self._break("\n\n")  # and </p> without <p> as an empty paragraph
-        else:
+        elif tag not in ("body", "html"):
             self._close(tag)
 
     def _close(self, tag: str) -> None:
-        index = self._open(tag)
-        if index == -1:
+        """End the innermost open ``tag`` and everything inside it, unless that would reach out of a
+        table cell or table for an element opened outside it."""
+        limits = frozenset() if tag == "table" else {"table"} if tag in _TABLE_PARTS else _CELL_SCOPE
+        for index in range(len(self.stack) - 1, -1, -1):
+            name = self.stack[index].name
+            if name == tag:
+                break
+            if name in limits:
+                return
+        else:
             return  # an end tag without a start tag
         while len(self.stack) > index:
             element = self.stack.pop()
@@ -461,11 +570,14 @@ class HtmlText(html.parser.HTMLParser):
                 self._break("\n", row=element.name in _ROW_LEVEL)
 
     def handle_data(self, data: str) -> None:
-        skipped = [element.name for element in self.stack if element.skipped]
-        if skipped:
-            if skipped != ["head"] or not data.strip(" \t\n\f\r"):
+        if self._skipping() is not None:
+            return
+        if self._open("head") != -1:
+            if not data.strip(" \t\n\f\r"):
                 return
             self._close("head")  # text in the head starts the body
+        if not _ESCAPABLE_RAW_TEXT_BUILT_IN and self._open("textarea") != -1:
+            data = html.unescape(data)
         if "\u00ad" in data:
             self.soft_hyphens += data.count("\u00ad")
             data = data.replace("\u00ad", "")
@@ -489,22 +601,26 @@ class HtmlText(html.parser.HTMLParser):
         return in_closed_details
 
     def _write(self, text: str, *, raw: bool) -> None:
-        if not raw and (self.pending or not self.pieces or self.pieces[-1][-1] in " \n\t"):
+        if not raw and (self.pending or self.tabs or not self.pieces or self.pieces[-1][-1] in " \n\t"):
             text = text.lstrip(" ")  # white space is folded across elements, and dropped at a break
         if not text:
             return
-        if self.pending:
+        if self.pending or self.tabs:
             while self.pieces and not self.pieces[-1].rstrip(" "):
                 self.pieces.pop()
             if self.pieces:
                 self.pieces[-1] = self.pieces[-1].rstrip(" ")
-                self.pieces.append(self.pending)
-            self.pending = ""
+                self.pieces.append(self.pending + "\t" * self.tabs)
+            self.pending, self.tabs = "", 0
+        self.cell_start = False
+        self.row_written = True
         if self._hidden():
             self.hidden_chars += len(text)
         self.pieces.append(text)
 
     def close(self) -> None:
+        if self.rawdata.startswith("<"):
+            self.rawdata = ""  # an unterminated tag or comment, which reaches to the end unshown
         super().close()
         self.unclosed_dropped = [element.name for element in self.stack if element.skipped]
 
@@ -551,7 +667,7 @@ def _marker(marker: str) -> re.Pattern[str]:
     return re.compile(pattern + (r"\s" if marker[-1].isspace() else ""))
 
 
-def appendix(text: str, report: dict[str, Any]) -> str:
+def appendix_span(text: str, report: dict[str, Any]) -> tuple[int, int]:
     """The appendix region: from the start marker to the first end marker after it. The start marker
     must occur once, unless the manifest says which occurrence (1-based) to use; a page whose side bar
     or table of contents repeats the heading would otherwise be cut at the wrong place."""
@@ -572,21 +688,37 @@ def appendix(text: str, report: dict[str, Any]) -> str:
     end = _marker(report["appendix"]["end"]).search(text, start + 1)
     if end is None:
         raise SystemExit(f"{report['id']}: appendix end marker not found")
-    return text[start : end.start()]
+    return start, end.start()
 
 
-def without_format_characters(text: str) -> str:
-    return "".join(char for char in text if unicodedata.category(char) != "Cf")
+def appendix_region(text: str, report: dict[str, Any], parts: list[dict[str, Any]] | None = None) -> str:
+    """The appendix, with format characters (Cf) deleted from what came from a web page, where a soft
+    hyphen is an invisible break hint; text from a PDF keeps them (pypdf's U+00AD is a drawn hyphen).
+    ``parts`` says where each part of the text came from; without it, all of it is the report's format."""
+    start, end = appendix_span(text, report)
+    if parts is None:
+        parts = [{"format": source_format(report), "start": 0, "end": len(text)}]
+    web = [(part["start"], part["end"]) for part in parts if part["format"] == "html"]
+    return "".join(
+        char
+        for index, char in enumerate(text[start:end], start)
+        if unicodedata.category(char) != "Cf" or not any(a <= index < b for a, b in web)
+    )
+
+
+def appendix(text: str, report: dict[str, Any]) -> str:
+    start, end = appendix_span(text, report)
+    return text[start:end]
 
 
 Values = dict[str, list[str]]
 
 
-def ground_truth(text: str, report: dict[str, Any]) -> tuple[Values, Values, Values]:
+def ground_truth(
+    text: str, report: dict[str, Any], parts: list[dict[str, Any]] | None = None
+) -> tuple[Values, Values, Values]:
     """Values of each type listed in the appendix, the masked ones, and the readings of ambiguous ones."""
-    region = appendix(text, report)
-    if source_format(report) == "html":
-        region = without_format_characters(region)
+    region = appendix_region(text, report, parts)
     found: dict[str, set[str]] = {kind: set() for kind in TYPES}
     masked: dict[str, set[str]] = {kind: set() for kind in TYPES}
     for regex, kind in ((_SHA256, "sha256"), (_SHA1, "sha1"), (_MD5, "md5")):
@@ -633,8 +765,12 @@ def ground_truth(text: str, report: dict[str, Any]) -> tuple[Values, Values, Val
 
 def command_truth(name: str) -> None:
     for report in manifest(name):
-        text = text_path(name, report).read_text(encoding="utf-8")
-        truth, masked, ambiguous = ground_truth(text, report)
+        text = read_text(text_path(name, report))
+        conversion = conversion_path(name, report)
+        parts = (
+            json.loads(conversion.read_text(encoding="utf-8")).get("parts") if conversion.exists() else None
+        )
+        truth, masked, ambiguous = ground_truth(text, report, parts)
         out = DATA / name / "truth" / f"{report['id']}.json"
         out.parent.mkdir(parents=True, exist_ok=True)
         data = {"truth": truth, "masked": masked, "ambiguous": ambiguous}
@@ -765,17 +901,14 @@ def command_run(name: str, label: str) -> None:
     reports = []
     for report in manifest(name):
         fmt = source_format(report)
-        text = text_path(name, report).read_text(encoding="utf-8")
+        text = read_text(text_path(name, report))
         conversion = json.loads(conversion_path(name, report).read_text(encoding="utf-8"))
-        text_sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
-        if conversion["text_sha256"] != text_sha256 or conversion["source_sha256"] != sha256(
-            source_path(name, report)
-        ):
-            raise SystemExit(f"{report['id']}: the text or its source changed since `text`; run it again")
+        check_unchanged(name, report, conversion, text)
+        text_sha256 = conversion["text_sha256"]
         truth = load_truth(name, report["id"])
         with tempfile.TemporaryDirectory() as tmp:
             copy = Path(tmp) / "report.txt"
-            copy.write_text(text, encoding="utf-8")
+            copy.write_bytes(text.encode("utf-8"))
             runs = {tool: run_ttprism(copy, flags) for tool, flags in SETTINGS.items()}
         raw = {tool: run["values"] for tool, run in runs.items()}
         raw["iocextract"] = run_iocextract(text)

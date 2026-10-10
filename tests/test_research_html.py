@@ -8,6 +8,7 @@ documentation addresses only.
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -111,6 +112,71 @@ def test_tables(page: str, expected: str) -> None:
     assert text(page) == expected
 
 
+@pytest.mark.parametrize(
+    ("page", "expected"),
+    [
+        # An end tag for an element opened outside a table does not reach into it.
+        (
+            '<div class="entry"><table><tr><td><div>198.51.100.7</div></div></td><td>203.0.113.9</td>'
+            "<td>evil.example.com</td></tr></table></div>",
+            "198.51.100.7\t203.0.113.9\tevil.example.com",
+        ),
+        (
+            "<span><table><tr><td>a.example.com</span></td><td>198.51.100.7</td><td>203.0.113.9</td></tr></table>",
+            "a.example.com\t198.51.100.7\t203.0.113.9",
+        ),
+        (
+            "<html><body><table><tr><td>a.example.com</td><td>1</td></tr></body>"
+            "<tr><td>b.example.com</td><td>c.example.com</td></tr></table>",
+            "a.example.com\t1\nb.example.com\tc.example.com",
+        ),
+        (
+            "<ul><li>x<table><tr><td><li>a.example.com</td><td>198.51.100.7</td></tr></table></ul>",
+            "x\na.example.com\t198.51.100.7",
+        ),
+        ("<html><body><pre>a\n</body>\nb\nc</pre>", "a\n\nb\nc"),
+        # Empty cells keep their TABs and do not take the row's line break.
+        (
+            "<table><tr><td>1</td><td>a.example.com</td></tr><tr><td></td><td>b.example.com</td></tr></table>",
+            "1\ta.example.com\n\tb.example.com",
+        ),
+        ('<h2>C2</h2><table><tr><td><img src="f.png"></td><td>evil.example.com</td></tr></table>',
+         "C2\n\tevil.example.com"),
+        ("<table><tr><td>1</td><td></td><td>x.example.com</td></tr></table>", "1\t\tx.example.com"),
+        ("<table><tr><td>a</td><td><div></div></td><td>b</td></tr></table>", "a\t\tb"),
+    ],
+)  # fmt: skip
+def test_table_structure_survives_stray_tags(page: str, expected: str) -> None:
+    assert text(page) == expected
+
+
+@pytest.mark.parametrize(
+    ("page", "expected"),
+    [
+        # Nothing inside a dropped element counts, not even its tags.
+        ("<p>see <noscript><div>leak.example.com</div></noscript> more</p>", "see more"),
+        ("<head><noscript><div>leak.example.com</div></noscript></head><body><p>kept</p>", "kept"),
+        ("<p>x<template><div>leak.example.com</div></template></p>", "x"),
+        ("<ul><li>a<noscript><li>leak.example.com</li></noscript></ul>", "a"),
+        ("evil.example<noscript><br></noscript>.com", "evil.example.com"),
+        ('<p>see <iframe src="x"><p>fallback.example.com</p></iframe> more</p>', "see more"),
+        ("<template><template>a</template>b</template>c", "c"),
+        ("<svg><title>t</title><desc>Created with Sketch.</desc></svg>Blog", "Blog"),
+        ("<svg><metadata>meta.example.com</metadata></svg>Blog", "Blog"),
+        # The same on every Python release: raw text, escapable raw text, an unterminated tag or comment.
+        ("<xmp>hxxp://evil.example.com/a.php?x=1&amp;y=2</xmp>", "hxxp://evil.example.com/a.php?x=1&amp;y=2"),
+        ('<textarea><a href="x">evil.example.com</a> &amp; x</textarea>',
+         '<a href="x">evil.example.com</a> & x'),
+        ("<textarea>if (a<b) { x.example.com }</textarea>", "if (a<b) { x.example.com }"),
+        ("<p>keep.example.com</p><!-- unclosed c.example.org", "keep.example.com"),
+        ('<p>before <a href="x>link</a> and more.example.com', "before"),
+        ("<p>a<br/>b</p><xmp/>c", "a\nb\n\nc"),
+    ],
+)  # fmt: skip
+def test_dropped_and_raw_text_elements(page: str, expected: str) -> None:
+    assert text(page) == expected
+
+
 def test_no_line_break_of_the_source_reaches_the_tools() -> None:
     page = (
         "<html>\n<body>\n<p>C2:\nupdate-\ncheck.example.com,\r\nfiles-\n.example.net</p>\n</body>\n</html>\n"
@@ -200,10 +266,23 @@ def test_declared_big5_is_decoded_as_cp950() -> None:
 
 
 def test_the_http_header_comes_before_meta() -> None:
-    page = b'<meta charset="gb18030"><p>' + "样本".encode("gbk")
-    _, info = evaluate.decode_html(page, http_charset="gbk")
-    assert (info["encoding"], info["chosen_by"]) == ("gbk", "declared in http")
+    page = b'<meta charset="gb18030"><p>' + "樣本".encode("cp950")
+    decoded, info = evaluate.decode_html(page, http_charset="big5")
+    assert decoded.endswith("<p>樣本")
+    assert (info["encoding"], info["chosen_by"]) == ("cp950", "declared in http")
     assert info["mismatch"] == ["meta declares gb18030"]
+
+
+@pytest.mark.parametrize("label", ["gb2312", "GBK", "x-gbk", "gb18030"])
+def test_gbk_labels_decode_as_browsers_do(label: str) -> None:
+    # Browsers decode the GBK labels as GB 18030, which has characters that Python's gbk lacks.
+    body = "样本 C2 价格 \U00020000"
+    page = f'<meta http-equiv="Content-Type" content="text/html; charset={label}"><p>'.encode() + body.encode(
+        "gb18030"
+    )
+    decoded, info = evaluate.decode_html(page)
+    assert decoded.endswith(body)
+    assert (info["encoding"], info["chosen_by"], info["mismatch"]) == ("gb18030", "declared in meta", [])
 
 
 def test_undeclared_big5_falls_back_to_cp950() -> None:
@@ -281,8 +360,69 @@ def test_attachments_are_read_by_their_kind(tmp_path: Path) -> None:
     page.write_bytes(b"<p>a.example.com</p><p>198.51.100.7</p>")
     plain = tmp_path / "iocs.txt"
     plain.write_text("b.example.com\n", encoding="utf-8")
-    assert evaluate.attachment_text(page) == "a.example.com\n\n198.51.100.7"
-    assert evaluate.attachment_text(plain) == "b.example.com\n"
+    assert evaluate.attachment_format(page) == "html"
+    assert evaluate.attachment_format(plain) == "text"
+    assert evaluate.attachment_format(tmp_path / "iocs.PDF") == "pdf"
+    assert evaluate.convert(page, "html")[0] == "a.example.com\n\n198.51.100.7"
+    assert evaluate.convert(plain, "text")[0] == "b.example.com\n"
     plain.write_bytes(b"\xff")
     with pytest.raises(UnicodeDecodeError):
-        evaluate.attachment_text(plain)  # no lenient decoding here either
+        evaluate.convert(plain, "text")  # no lenient decoding here either
+
+
+def test_text_from_a_pdf_keeps_its_soft_hyphens_in_the_ground_truth() -> None:
+    # A web page's format characters are deleted from the appendix; a PDF attachment's are not, since
+    # pypdf's U+00AD there is a drawn hyphen.
+    page = "IOCs\nup\u00addate.example.com"
+    attachment = "KB\u00adAuto.example.net\nEND"
+    whole = page + "\n\n" + attachment
+    parts = [
+        {"format": "html", "start": 0, "end": len(page)},
+        {"format": "pdf", "start": len(page) + 2, "end": len(whole)},
+    ]
+    region = evaluate.appendix_region(whole, report("IOCs"), parts)
+    assert region == "IOCs\nupdate.example.com\n\nKB\u00adAuto.example.net\n"
+
+
+def test_converted_text_has_only_lf_line_breaks(tmp_path: Path) -> None:
+    plain = tmp_path / "a.txt"
+    plain.write_bytes(b"a\r\nb\rc")
+    page = tmp_path / "a.html"
+    page.write_bytes(b"<pre>x&#13;y</pre>")
+    assert evaluate.convert(plain, "text")[0] == "a\nb\nc"
+    assert evaluate.convert(page, "html")[0] == "x\ny"
+
+
+def test_text_records_every_part_and_run_checks_them(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    entry = {
+        "id": "t01",
+        "format": "html",
+        "appendix": {"start": "IOCs", "end": "END"},
+        "attachments": [{"file": "iocs.html"}],
+    }
+    (tmp_path / "t" / "html").mkdir(parents=True)
+    (tmp_path / "t" / "attachments").mkdir()
+    (tmp_path / "t" / "html" / "t01.html").write_bytes(b"<p>Report</p>")
+    attachment = tmp_path / "t" / "attachments" / "iocs.html"
+    attachment.write_bytes(b'<meta charset="big5"><h2>IOCs</h2><p>a.example.com</p><p hidden>END</p>')
+    monkeypatch.setattr(evaluate, "DATA", tmp_path)
+    monkeypatch.setattr(evaluate, "manifest", lambda name: [entry])
+    evaluate.command_text("t")
+    out = capsys.readouterr().out
+    assert "attachment iocs.html (html)" in out
+    assert "DECLARED CHARSET DISAGREES" not in out  # ASCII only
+    assert "hidden characters kept: 3" in out
+    conversion = json.loads((tmp_path / "t" / "text" / "t01.conversion.json").read_text(encoding="utf-8"))
+    whole = evaluate.read_text(tmp_path / "t" / "text" / "t01.txt")
+    assert whole == "Report\n\nIOCs\n\na.example.com\n\nEND"
+    assert [p["format"] for p in conversion["parts"]] == ["html", "html"]
+    assert conversion["attachments"][0]["decoding"]["chosen_by"] == "valid UTF-8"
+    evaluate.check_unchanged("t", entry, conversion, whole)
+    attachment.write_bytes(b"<p>changed</p>")
+    with pytest.raises(SystemExit, match="changed since"):
+        evaluate.check_unchanged("t", entry, conversion, whole)
+    attachment.unlink()
+    with pytest.raises(SystemExit, match="changed since"):
+        evaluate.check_unchanged("t", entry, conversion, whole)

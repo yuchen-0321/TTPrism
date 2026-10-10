@@ -186,6 +186,8 @@ PATHOLOGICAL = {
     "soft hyphen runs between letters": ("a" + "\u00ad" * 128 + "b") * (SIZE // 130),
     "full-width letters around soft hyphens": "\uff41\u00ad" * (SIZE // 2),
     "hyphens before deleted runs": "-\u200b" * (SIZE // 2) + "\u00ad",
+    "hex groups with deleted runs": ("0123abcd" + "\u200b" * 30 + "\u00ad" + "\u200b" * 30) * (SIZE // 69),
+    "full-width hex groups": ("\uff10\uff21" * 4 + "\u00ad") * (SIZE // 9),
 }
 
 # Command lines reach the ATT&CK rules from CAPE reports: quotes, carets and chaining, glued

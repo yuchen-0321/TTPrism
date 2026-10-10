@@ -350,6 +350,8 @@ def test_soft_hyphens_can_be_read_as_break_hints(text: str, expected: str) -> No
         "KB-\u00adAuto",
         "evil.com\u00ad\u2063kb.net",
         "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",  # a GUID in both readings
+        "{0F1E2D3C\u200b\u00ad\u2060" + "4B5A\u00ad\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",
+        "{\uff10F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00ad\uff21\uff15B4C3D2E1F0}",
     ],
 )
 def test_soft_hyphens_that_both_readings_share(text: str) -> None:

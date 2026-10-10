@@ -200,16 +200,17 @@ Counts of what was dropped are reported under `suppressed`, so nothing disappear
   A break without a hyphen (`mp.weixi` / `n.qq.com`) gives no sign that the line continues, so such
   names and URLs are not joined, and the part on each line may be reported on its own.
 - A soft hyphen (U+00AD) between two letters or digits, or at the end of a line, is read as a
-  hyphen: in text extracted from a PDF it stands where the page shows one (pypdf writes the hyphen
-  of WinAnsi-encoded fonts that way; pdftotext writes `-`). At a line end, with at most 1,024 spaces
-  or format characters between it and the break, it works exactly like `-`; right after a hyphen it
-  is deleted. Text copied from a web page uses soft hyphens as invisible break hints (`&shy;`)
-  instead: there `KB-Auto` should read `KBAuto`, and a hash with one inside it is not reported,
-  since it reads as two pieces. TTPrism warns when deleting the soft hyphens it read as hyphens
-  would change any value it reports; to find out, it extracts the first 8 Mi characters of such a
-  text a second time. Soft hyphens next to
-  U+2063 or the end of a bidi embedding or isolate, and in a run of more than 64 format characters,
-  are deleted.
+  hyphen: in text extracted from a PDF it stands where the page shows one (pypdf gives U+00AD for a
+  hyphen drawn with code 0xAD in a WinAnsi-encoded font; pdftotext gives `-`). At a line end, with at
+  most 1,024 spaces or format characters between it and the break, it works exactly like `-`; right
+  after a hyphen it is deleted. Between two letters or digits it is deleted instead when it stands
+  next to U+2063 or the end of a bidi embedding or isolate, or in a run of more than 64 format
+  characters. Text copied from a web page uses soft hyphens as invisible break hints (`&shy;`)
+  instead: there `KB-Auto` should read `KBAuto`, and a hash with one inside it is lost, while its
+  pieces may be reported as shorter hashes (a SHA-256 split in the middle as two MD5s). TTPrism warns
+  when deleting the soft hyphens it read as hyphens between two letters or digits (not those at line
+  ends or between the groups of a GUID) would change any value it reports; to find out, it extracts
+  the first 8 Mi characters of such a text a second time.
 - CAPE is the only sandbox format so far.
 
 ## Security

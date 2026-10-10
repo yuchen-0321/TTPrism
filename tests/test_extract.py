@@ -1276,9 +1276,11 @@ def test_more_double_extensions(name: str) -> None:
 
 def test_guid_written_with_soft_hyphens_is_not_an_md5() -> None:
     assert pairs("{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}.dll") == []
-    # A soft hyphen inside a hash is read as a hyphen, as anywhere between two letters or digits; the
-    # soft-hyphen warning names the hash that deleting it would give.
-    assert values("MD5 d41d8cd98f00\u00adb204e9800998ecf8427e", IOCType.MD5) == []
+    # A soft hyphen inside a hash is read as a hyphen, as anywhere between two letters or digits, so no
+    # hash is reported; the soft-hyphen warning counts the hash that deleting it would give.
+    assert values("MD5 00b68e6db2bb7412\u00adfabcbaa2192394ad", IOCType.MD5) == []
+    (warning,) = soft_hyphen_warnings("MD5 00b68e6db2bb7412\u00adfabcbaa2192394ad")
+    assert warning.startswith("1 extracted value(s) would differ")
 
 
 @pytest.mark.parametrize(
@@ -1695,6 +1697,10 @@ def test_values_that_soft_hyphens_change_are_reported(text: str) -> None:
         "The com\u00admand-and-con\u00adtrol server: http://198.51.100.7/command.php",
         "It can upload/down\u00adload files: http://198.51.100.7/download.php",
         "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",  # a GUID in both readings
+        "{0F1E2D3C\u200b\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",
+        "{0F1E2D3C\u00ad\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",
+        "{0F1E2D3C\u00ad\u200e4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",
+        "{\uff10F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",
         "update\u00ad\ncheck-server.example.com",  # a line end in both readings
         "http://198.51.100.7/KB-Auto-\u00ad\nwin.exe",
         "\u00adexample.com and example.org\u00ad",
