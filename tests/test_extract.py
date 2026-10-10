@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ipaddress
 from collections import Counter
+from collections.abc import Iterator
 from unittest import mock
 
 import pytest
@@ -15,7 +16,7 @@ from ttprism.extract import (
     known_tlds,
     normalize_ip,
 )
-from ttprism.models import IOCCollector
+from ttprism.models import IOC, IOCCollector
 
 
 def values(text: str, ioc_type: IOCType) -> list[str]:
@@ -1184,7 +1185,7 @@ def test_percent_escapes_after_the_review(text: str, expected: list[tuple[str, s
             [("url", "http://198.51.100.7/bins.sh"), ("ipv4", "198.51.100.7")],
         ),
         ("C2 2001:\u200edb8:85a3::8a2e:370:7334", [("ipv6", "2001:db8:85a3::8a2e:370:7334")]),
-        ("ev\u00ad\u200eil.example.com", [("domain", "evil.example.com")]),
+        ("ev\u00ad\u200eil.example.com", [("domain", "ev-il.example.com")]),
     ],
 )
 def test_bidi_marks_inside_iocs_are_removed(text: str, expected: list[tuple[str, str]]) -> None:
@@ -1275,9 +1276,9 @@ def test_more_double_extensions(name: str) -> None:
 
 def test_guid_written_with_soft_hyphens_is_not_an_md5() -> None:
     assert pairs("{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}.dll") == []
-    assert values("MD5 d41d8cd98f00\u00adb204e9800998ecf8427e", IOCType.MD5) == [
-        "d41d8cd98f00b204e9800998ecf8427e"
-    ]
+    # A soft hyphen inside a hash is read as a hyphen, as anywhere between two letters or digits; the
+    # soft-hyphen warning names the hash that deleting it would give.
+    assert values("MD5 d41d8cd98f00\u00adb204e9800998ecf8427e", IOCType.MD5) == []
 
 
 @pytest.mark.parametrize(
@@ -1288,11 +1289,12 @@ def test_guid_written_with_soft_hyphens_is_not_an_md5() -> None:
         "serial_no=00b68e6db2bb7412fabcbaa2192394ad",
         "序列号：00B68E6DB2BB7412FABCBAA2192394AD",
         "證書序列號 00B68E6DB2BB7412FABCBAA2192394AD",
-        "證書序號 00b68e6db2bb7412fabcbaa2192394ad5f3e2d1c",  # "certificate serial number" needs no colon
+        "證書序號 00b68e6db2bb7412fabcbaa2192394ad5f3e2d1c",
         "憑證序號 00B68E6DB2BB7412FABCBAA2192394AD",
         "證書序號：00b68e6db2bb7412fabcbaa2192394ad5f3e2d1c",
         "序號: 00b68e6db2bb7412fabcbaa2192394ad",
         "序號 ：00b68e6db2bb7412fabcbaa2192394ad",
+        "序號=00b68e6db2bb7412fabcbaa2192394ad",
     ],
 )
 def test_certificate_serial_numbers_are_not_hashes(text: str) -> None:
@@ -1300,18 +1302,34 @@ def test_certificate_serial_numbers_are_not_hashes(text: str) -> None:
     assert stats_for(refang(text))["certificate_serial"] == 1
 
 
+@pytest.mark.parametrize("separator", [" ", "\t", "  "])
+def test_certificate_serial_number_without_a_colon(separator: str) -> None:
+    text = (
+        "數位簽章\n簽署者: Example Software Co., Ltd.\n"
+        f"序號{separator}00b68e6db2bb7412fabcbaa2192394ad\n有效期限: 2019/01/01 - 2020/01/01"
+    )
+    assert values(refang(text), IOCType.MD5) == []
+    assert stats_for(refang(text))["certificate_serial"] == 1
+
+
 @pytest.mark.parametrize(
     "text",
     [
-        "序號 00b68e6db2bb7412fabcbaa2192394ad",  # the row-number column of a table
-        "序號\t00b68e6db2bb7412fabcbaa2192394ad",
-        "序號=00b68e6db2bb7412fabcbaa2192394ad",
-        "樣本序號 00b68e6db2bb7412fabcbaa2192394ad",
-        "序號 1 00b68e6db2bb7412fabcbaa2192394ad",
+        # Tables with a row-number column, as pypdf writes them: row by row, or one cell per line.
+        "序號 檔案名稱 MD5\n1 a.exe 00b68e6db2bb7412fabcbaa2192394ad\n"
+        "2 b.dll d41d8cd98f00b204e9800998ecf8427e",
+        "序號 MD5\n1 00b68e6db2bb7412fabcbaa2192394ad\n2 d41d8cd98f00b204e9800998ecf8427e",
+        "序號\nMD5\n1\n00b68e6db2bb7412fabcbaa2192394ad\n2\nd41d8cd98f00b204e9800998ecf8427e",
+        "表 3 樣本列表\n序號 MD5 說明\n1 00b68e6db2bb7412fabcbaa2192394ad 下載器\n"
+        "2 d41d8cd98f00b204e9800998ecf8427e 後門",
     ],
 )
-def test_row_number_heading_is_not_a_serial_label(text: str) -> None:
-    assert values(refang(text), IOCType.MD5) == ["00b68e6db2bb7412fabcbaa2192394ad"]
+def test_hashes_in_a_table_with_a_row_number_column_are_found(text: str) -> None:
+    assert values(refang(text), IOCType.MD5) == [
+        "00b68e6db2bb7412fabcbaa2192394ad",
+        "d41d8cd98f00b204e9800998ecf8427e",
+    ]
+    assert stats_for(refang(text))["certificate_serial"] == 0
 
 
 def test_values_after_other_labels_are_still_hashes() -> None:
@@ -1434,6 +1452,21 @@ def test_soft_hyphen_at_a_line_end_leaves_a_fragment() -> None:
 
 
 @pytest.mark.parametrize(
+    "hyphen",
+    ["-", "\ufe63", "\uff0d", "\u2010", "\u2011", "\u2212", "-\u200b", "-\u00ad", "-\u2069",
+     "-\u200b\u00ad\u200b"],
+)  # fmt: skip
+@pytest.mark.parametrize("gap", ["", " ", "\u200b", "\u3000 "])
+def test_soft_hyphen_after_a_hyphen_at_a_line_end_is_deleted(hyphen: str, gap: str) -> None:
+    # Read as a hyphen, it would give "KB-Auto--" and end the URL there.
+    options = AnalysisOptions(include_reserved=True)
+    soft = analyze_text(f"http://198.51.100.7/KB-Auto{hyphen}\u00ad{gap}\nwin.exe", options)
+    hard = analyze_text(f"http://198.51.100.7/KB-Auto-{gap}\nwin.exe", options)
+    assert (soft.iocs, soft.suppressed) == (hard.iocs, hard.suppressed)
+    assert "http://198.51.100.7/KB-Auto-win.exe" in soft.iocs_of(IOCType.URL)
+
+
+@pytest.mark.parametrize(
     "gap",
     ["", " ", "\t", " \t  ", "\u00a0", "\u3000", "\u2009", "\u2002", "\u200b", "\u200e", "\u2069", "\u202c",
      "\u2063", "\u2061", "\ufeff", "\u200b" * 4 + " " * 5, " " * 9, "\u2009" * 9],
@@ -1542,6 +1575,56 @@ def test_a_url_that_ended_earlier_on_the_line_is_not_joined(text: str) -> None:
     assert stats_for(refang(text))["line_wrap_fragment"] == 1
 
 
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        # pypdf gives a soft hyphen where a WinAnsi font draws the hyphen of code 0xAD.
+        ("C2: update\u00adcheck.example-host.example", [("domain", "update-check.example-host.example")]),
+        ("C2: KB\u00adAuto.example.com", [("domain", "kb-auto.example.com")]),
+        ("exploits CVE\u00ad2017\u00ad11882", [("cve", "CVE-2017-11882")]),
+        ("range 198.51.100.1\u00ad198.51.100.9", [("ipv4", "198.51.100.1"), ("ipv4", "198.51.100.9")]),
+        ("mail ops\u00adteam@example.org", [("email", "ops-team@example.org")]),
+        (
+            "http://198.51.100.7/1/KB\u00adAuto\u00adwin.exe",
+            [("url", "http://198.51.100.7/1/KB-Auto-win.exe"), ("ipv4", "198.51.100.7")],
+        ),
+        ("C2: up\u00addate[.]example[.]com", [("domain", "up-date.example.com")]),
+        ("C2: \uff4b\uff42\u00ad\uff41\uff55\uff54\uff4f\uff0eexample\uff0ecom",
+         [("domain", "kb-auto.example.com")]),
+        ("C2: KB\u200b\u00ad\u2060Auto.example.com", [("domain", "kb-auto.example.com")]),
+        ("C2: KB\u00ad\u00adAuto.example.com", [("domain", "kb-auto.example.com")]),
+        ("C2: KB\u00ad\u200eAuto.example.com", [("domain", "kb-auto.example.com")]),
+        ("MD5 d41d8cd98f00\u00adb204e9800998ecf8427e", []),
+    ],
+)  # fmt: skip
+def test_soft_hyphens_between_letters_or_digits_are_hyphens(
+    text: str, expected: list[tuple[str, str]]
+) -> None:
+    assert everything(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("C2: KB-\u00adAuto.example.com", [("domain", "kb-auto.example.com")]),
+        ("C2: KB\u00ad-Auto.example.com", [("domain", "kb-auto.example.com")]),
+        ("C2: evil.\u00adexample.com", [("domain", "evil.example.com")]),
+        ("C2: \u00adevil.example.com\u00ad and", [("domain", "evil.example.com")]),
+        # U+2063 and the end of a bidi isolate separate two names.
+        (
+            "C2 evil.example.com\u00ad\u2063kb.example.net",
+            [("domain", "evil.example.com"), ("domain", "kb.example.net")],
+        ),
+        (
+            "C2 \u2066evil.example.com\u2069\u00ad\u2066kb.example.net\u2069",
+            [("domain", "evil.example.com"), ("domain", "kb.example.net")],
+        ),
+    ],
+)
+def test_other_soft_hyphens_are_deleted(text: str, expected: list[tuple[str, str]]) -> None:
+    assert everything(text) == expected
+
+
 def soft_hyphen_warnings(text: str) -> list[str]:
     result = analyze_text(text, AnalysisOptions(include_reserved=True))
     return [w for w in result.warnings if "U+00AD" in w]
@@ -1573,6 +1656,12 @@ def soft_hyphen_warnings(text: str) -> list[str]:
         "Payload: KB\u00adAuto-Update.example.com",
         "Sender: kb\u00adauto-ops@example.org",
         "C2: micro\u00adsoft-online-update[.]example[.]net",
+        # Every type: hashes, addresses and CVE IDs, too.
+        "md5=00b68e6db2bb\u00ad7412fabcbaa2192394ad.",
+        "sha1 1c3cbeaaddc4aaa8f3b7\u00ad43f4d7e8537f4c1ea597",
+        "exploits CVE\u00ad2017\u00ad11882",
+        "range 198.51.100.1\u00ad198.51.100.9",
+        "C2 2001:db8::1\u00ad2001:db8::2",
         # Joined across a line break.
         "C2: http://files.kb-auto-\n.exam\u00adple/x.exe now",
         "C2: kb-auto-\n.exam\u00adple now",
@@ -1581,7 +1670,7 @@ def soft_hyphen_warnings(text: str) -> list[str]:
         "C2: kb\u00adauto\u00ad\n.example.net was used",
     ],
 )
-def test_soft_hyphens_inside_names_and_urls_are_reported(text: str) -> None:
+def test_values_that_soft_hyphens_change_are_reported(text: str) -> None:
     assert len(soft_hyphen_warnings(text)) == 1
 
 
@@ -1589,7 +1678,7 @@ def test_soft_hyphens_inside_names_and_urls_are_reported(text: str) -> None:
     "text",
     [
         "Hyphen\u00adation in prose, and c2.example.com",
-        "please up\u00addate now: http://198.51.100.7/update.exe",  # the word touches no name punctuation
+        "please up\u00addate now: http://198.51.100.7/update.exe",
         "The loader tries to down\u00adload: http://198.51.100.7/download.php",
         "It impersonates Micro\u00adsoft. Phishing page: https://microsoft-login.example.net/",
         "e\u00admail: ops@example.org and https://email.example.net/",
@@ -1605,10 +1694,14 @@ def test_soft_hyphens_inside_names_and_urls_are_reported(text: str) -> None:
         "Indicators\n----------\nDown\u00adload server: http://198.51.100.7/download.php",
         "The com\u00admand-and-con\u00adtrol server: http://198.51.100.7/command.php",
         "It can upload/down\u00adload files: http://198.51.100.7/download.php",
-        "md5=00b68e6db2bb\u00ad7412fabcbaa2192394ad.",  # hashes have no hyphens to lose
-        "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",
-        "update\u00ad\ncheck-server.example.com",
+        "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",  # a GUID in both readings
+        "update\u00ad\ncheck-server.example.com",  # a line end in both readings
+        "http://198.51.100.7/KB-Auto-\u00ad\nwin.exe",
         "\u00adexample.com and example.org\u00ad",
+        "KB-\u00adAuto.example.com",
+        "C2 evil.example.com\u00ad\u2063kb.example.net",
+        "C2 \u2066evil.example.com\u2069\u00ad\u2066kb.example.net\u2069",
+        "Contact: kb\u00ad\u2063auto.example.com",
     ],
 )
 def test_other_soft_hyphens_are_not_reported(text: str) -> None:
@@ -1617,12 +1710,14 @@ def test_other_soft_hyphens_are_not_reported(text: str) -> None:
 
 def test_soft_hyphen_warning_counts_the_values() -> None:
     (warning,) = soft_hyphen_warnings("a\u00adb.example.com c\u00add.example.net e.example.org")
-    assert warning.startswith("2 extracted name(s)")
+    assert warning.startswith("2 extracted value(s) would differ")
     # Only values that change count, not others with the same word.
     (warning,) = soft_hyphen_warnings("KB\u00adAuto.example.com and kbauto.example.net")
-    assert warning.startswith("1 extracted name(s)")
+    assert warning.startswith("1 extracted value(s)")
     (warning,) = soft_hyphen_warnings("http://198.51.100.7/KB\u00adAuto.exe")
-    assert warning.startswith("1 extracted name(s)")  # the URL, not its address
+    assert warning.startswith("1 extracted value(s)")  # the URL, not its address
+    (warning,) = soft_hyphen_warnings("198.51.100.1\u00ad198.51.100.9")
+    assert warning.startswith("2 extracted value(s)")
 
 
 def test_soft_hyphen_check_reads_a_bounded_amount_of_text() -> None:
@@ -1632,9 +1727,31 @@ def test_soft_hyphen_check_reads_a_bounded_amount_of_text() -> None:
         (warning,) = soft_hyphen_warnings(
             "KB\u00adAuto.example.com " + "x " * 30 + "up\u00addate.example.net"
         )
-    assert warning.startswith(
-        "1 extracted name(s), e-mail address(es) or URL(s) (from the first 40 characters)"
-    )
+    assert warning.startswith("1 extracted value(s) (from the first 40 characters) would differ")
+
+
+class _NotWalked(list[IOC]):
+    def __iter__(self) -> Iterator[IOC]:
+        raise AssertionError("walked every reported value")
+
+
+class _CollectorNotWalked(IOCCollector):
+    def __iter__(self) -> Iterator[tuple[IOCType, str, frozenset[str]]]:
+        raise AssertionError("walked every extracted value")
+
+
+def test_soft_hyphen_check_of_a_long_text_looks_values_up() -> None:
+    # Past the checked part, the cost must not grow with the values of the rest of the text.
+    from ttprism import analyze
+
+    collector = _CollectorNotWalked()
+    collector.add(IOCType.DOMAIN, "kb-auto.example.com", "text")
+    text = "KB\u00adAuto.example.com " + "x " * 30
+    with mock.patch.object(analyze, "MAX_SOFT_HYPHEN_CHECK_CHARS", 30):
+        (warning,) = analyze._soft_hyphen_warning(
+            text, collector, _NotWalked(), AnalysisOptions(include_reserved=True)
+        )
+    assert warning.startswith("1 extracted value(s) (from the first 30 characters)")
 
 
 @pytest.mark.parametrize(
@@ -1651,20 +1768,9 @@ def test_soft_hyphen_warning_when_the_joined_value_also_occurs(text: str) -> Non
 
 
 def test_soft_hyphen_warning_when_the_joined_value_is_allowlisted() -> None:
-    result = analyze_text("C2 server: micro\u00adsoft.com")  # micro-soft.com would be reported
+    result = analyze_text("C2 server: micro\u00adsoft.com")  # microsoft.com would not be reported
+    assert result.iocs_of(IOCType.DOMAIN) == ["micro-soft.com"]
     assert [w for w in result.warnings if "U+00AD" in w]
-
-
-@pytest.mark.parametrize(
-    "text",
-    [
-        "C2 evil.example.com\u00ad\u2063kb.example.net",  # U+2063 separates the two names
-        "C2 \u2066evil.example.com\u2069\u00ad\u2066kb.example.net\u2069",
-        "Contact: kb\u00ad\u2063auto.example.com",
-    ],
-)
-def test_soft_hyphens_beside_separators_give_no_warning(text: str) -> None:
-    assert soft_hyphen_warnings(text) == []
 
 
 @pytest.mark.parametrize(

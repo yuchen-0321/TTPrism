@@ -151,9 +151,8 @@ By default TTPrism drops (the name in brackets is the key under `suppressed`):
 - **Browser versions** (`version_like`): `Chrome/120.0.0.0` in a User-Agent string is not an IPv4
   address.
 - **Certificate serial numbers** (`certificate_serial`): hex right after a serial-number label
-  (`SerialNumber:`, `Serial Number`, `序列号`, `憑證序號`, `序號：`) has the length of a hash but is
-  not one. A bare `序號` counts only with a colon, since it also heads the row-number column of a
-  table; `證書序號` and `憑證序號` (certificate serial number) need none.
+  (`SerialNumber:`, `Serial Number`, `序列号`, `序號`, `憑證序號`, with or without a colon) has the
+  length of a hash but is not one.
 - **Masked names** (`masked_name`): names, e-mail addresses and URL hosts with a label of three or
   more `x` (`wiki.xxxx.com`), which reports use to hide the real value.
 - **Antivirus detection names** (`detection_name`): `Backdoor.Win32.Ht` or `Trojan.MSIL.Bot`, whose
@@ -189,17 +188,28 @@ Counts of what was dropped are reported under `suppressed`, so nothing disappear
   breaks after one of its own hyphens (`/KB-Auto-win-` / `update.exe`, over as many lines as it
   takes; while the URL is still in its host, only a line of letters, digits, dots and hyphens, or
   one that goes on to a port or path, carries it to a further line, so a URL that wraps again after
-  a user name or password is cut there). This misjudges two cases: a URL that really ends in `-` at
-  the end of a line is joined with the start of the next line, and a name at the start of a line
-  after a line ending in a letter or digit and `-` (`2019-` / `evil.com`) is dropped as a fragment.
+  a user name or password is cut there). This misjudges some cases:
+  - a URL that really ends in `-` at the end of a line is joined with the start of the next line;
+  - a hyphen that the converter added where it broke a URL is kept (`/download-` / `file.exe` gives
+    `/download-file.exe` also when the URL is `/downloadfile.exe`), over as many lines as it takes;
+  - a name at the start of a line after a line ending in a letter or digit and `-` (`2019-` /
+    `evil.com`) is dropped as a fragment;
+  - a URL broken at a hyphen in its password (`http://user:pa-` / `ss@evil.com/x`) is lost
+    entirely: the first line ends in no URL and the second starts with a fragment.
+
   A break without a hyphen (`mp.weixi` / `n.qq.com`) gives no sign that the line continues, so such
   names and URLs are not joined, and the part on each line may be reported on its own.
-- A soft hyphen (U+00AD) between two letters or digits is deleted as a break hint. A converter
-  that writes every hyphen as a soft hyphen therefore makes names and URLs lose their hyphens
-  (`KB-Auto` read as `KBAuto`). TTPrism warns when reading those soft hyphens as hyphens would
-  change the names, e-mail addresses or URLs it reports; to find out, it extracts the first 8 Mi
-  characters of such a text a second time. Soft hyphens between the groups of a GUID and at the end
-  of a line are read as hyphens.
+- A soft hyphen (U+00AD) between two letters or digits, or at the end of a line, is read as a
+  hyphen: in text extracted from a PDF it stands where the page shows one (pypdf writes the hyphen
+  of WinAnsi-encoded fonts that way; pdftotext writes `-`). At a line end, with at most 1,024 spaces
+  or format characters between it and the break, it works exactly like `-`; right after a hyphen it
+  is deleted. Text copied from a web page uses soft hyphens as invisible break hints (`&shy;`)
+  instead: there `KB-Auto` should read `KBAuto`, and a hash with one inside it is not reported,
+  since it reads as two pieces. TTPrism warns when deleting the soft hyphens it read as hyphens
+  would change any value it reports; to find out, it extracts the first 8 Mi characters of such a
+  text a second time. Soft hyphens next to
+  U+2063 or the end of a bidi embedding or isolate, and in a run of more than 64 format characters,
+  are deleted.
 - CAPE is the only sandbox format so far.
 
 ## Security

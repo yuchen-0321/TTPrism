@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from ttprism import IOCType, defang, refang
-from ttprism.refang import show_inner_soft_hyphens
+from ttprism.refang import refang_soft_hyphens_as_hints
 
 
 @pytest.mark.parametrize(
@@ -28,7 +28,7 @@ from ttprism.refang import show_inner_soft_hyphens
         ("ｅｖｉｌ．ｃｏｍ", "evil.com"),
         # Invisible characters inserted by PDF converters.
         ("evil\u200b.com", "evil.com"),
-        ("ev\u00adil.com", "evil.com"),
+        ("evil.\u00adcom", "evil.com"),
     ],
 )
 def test_refang_dots(defanged: str, expected: str) -> None:
@@ -135,7 +135,6 @@ def test_refang_does_not_expand_text() -> None:
 @pytest.mark.parametrize(
     "mark",
     [
-        "\u00ad",  # soft hyphen
         "\u061c",  # Arabic letter mark
         "\u180e",  # Mongolian vowel separator
         *"\u200b\u200c\u200d\u200e\u200f",  # zero-width characters, LRM, RLM
@@ -240,12 +239,8 @@ def test_soft_hyphens_in_a_guid_become_hyphens() -> None:
     # Some PDF converters write every hyphen of a document as a soft hyphen.
     guid = "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}"
     assert refang(guid) == "{0F1E2D3C-4B5A-6978-8796-A5B4C3D2E1F0}"
-    # Soft hyphens that only allow a line break inside a hash are still deleted.
-    assert refang("d41d8cd98f00\u00adb204e9800998ecf8427e") == "d41d8cd98f00b204e9800998ecf8427e"
-    assert (
-        refang("0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0A")
-        == "0F1E2D3C4B5A69788796A5B4C3D2E1F0A"
-    )
+    # So do the soft hyphens in a hash: like anywhere between two letters or digits, they are hyphens.
+    assert refang("d41d8cd98f00\u00adb204e9800998ecf8427e") == "d41d8cd98f00-b204e9800998ecf8427e"
 
 
 @pytest.mark.parametrize(
@@ -255,13 +250,14 @@ def test_soft_hyphens_in_a_guid_become_hyphens() -> None:
         ("update\u00ad  \r\ncheck", "update-  \r\ncheck"),
         ("update\u00ad\u200b\u00a0\ncheck", "update- \ncheck"),
         ("a\u00ad\u00ad\nb", "a-\nb"),  # only the last one before the break
-        ("update\u00adcheck\u00ad", "updatecheck"),  # not at a line end
         ("update\u00ad" + " " * 9 + "\ncheck", "update-" + " " * 9 + "\ncheck"),
         ("update\u00ad\u2069\ncheck", "update- \ncheck"),  # a bidi control before the break
         ("update\u00ad\u2009\u3000\ncheck", "update-  \ncheck"),
+        ("update\u00ad" + "\u2009" * 1024 + "\ncheck", "update-" + " " * 1024 + "\ncheck"),
         ("update\u00ad" + "\u2009" * 1025 + "\ncheck", "update" + " " * 1025 + "\ncheck"),
         ("update\u00ad\r\u200b\ncheck", "update-\r\ncheck"),  # deleted characters between CR and LF
         ("update\u00ad\r \ncheck", "update\r \ncheck"),  # a space there ends the line break
+        (".\u00ad\ncheck", ".-\ncheck"),
     ],
 )
 def test_soft_hyphen_at_a_line_end_becomes_a_hyphen(text: str, expected: str) -> None:
@@ -271,29 +267,90 @@ def test_soft_hyphen_at_a_line_end_becomes_a_hyphen(text: str, expected: str) ->
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
+        ("KB-\u00ad\nAuto", "KB-\nAuto"),
+        ("KB-\u00ad \u200b\nAuto", "KB- \nAuto"),
+        ("KB-\u00ad\u00ad\nAuto", "KB-\nAuto"),
+        ("KB-\u200b\u00ad\u2060\nAuto", "KB-\nAuto"),
+        ("KB-\u2069\u00ad\nAuto", "KB-\nAuto"),
+        # Characters that refang folds to a hyphen.
+        ("KB\ufe63\u00ad\nAuto", "KB-\nAuto"),
+        ("KB\uff0d\u00ad\nAuto", "KB-\nAuto"),
+        ("KB\u2010\u00ad\nAuto", "KB-\nAuto"),
+        ("KB\u2011\u00ad\nAuto", "KB-\nAuto"),
+        ("KB\u2212\u00ad\nAuto", "KB-\nAuto"),
+        # Not right after the hyphen: then it is read as one.
+        ("KB- \u00ad\nAuto", "KB- -\nAuto"),
+        ("KB-x\u00ad\nAuto", "KB-x-\nAuto"),
+    ],
+)
+def test_soft_hyphen_after_a_hyphen_at_a_line_end_is_deleted(text: str, expected: str) -> None:
+    assert refang(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
         ("KB\u00adAuto.exe", "KB-Auto.exe"),
         ("KB\u00ad\u00adAuto", "KB-Auto"),
         ("KB\u200b\u00ad\u2060Auto", "KB-Auto"),  # one run of deleted characters, one hyphen
-        ("\uff2b\uff22\u00ad\uff21uto", "\uff2b\uff22-\uff21uto"),  # full-width letters fold to ASCII
-        ("\ufb01\u00adle", "\ufb01-le"),
+        ("KB\u00ad\u200eAuto", "KB-Auto"),
+        ("\uff2b\uff22\u00ad\uff21uto", "KB-Auto"),  # full-width letters fold to ASCII
+        ("\ufb01\u00adle", "fi-le"),
         ("a\u00adb c\u00add", "a-b c-d"),
+        ("CVE\u00ad2017\u00ad11882", "CVE-2017-11882"),
+        ("198.51.100.1\u00ad198.51.100.9", "198.51.100.1-198.51.100.9"),
+        ("update\u00adcheck\u00ad", "update-check"),
+        ("a" + "\u200b" * 63 + "\u00adb", "a-b"),
     ],
 )
-def test_inner_soft_hyphens_can_be_shown(text: str, expected: str) -> None:
-    assert show_inner_soft_hyphens(text) == expected
+def test_soft_hyphens_between_letters_or_digits_become_hyphens(text: str, expected: str) -> None:
+    assert refang(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("\u00adword and word\u00ad", "word and word"),  # not between two letters or digits
+        ("caf\u00e9\u00adbar", "caf\u00e9bar"),  # a non-ASCII letter that does not fold to ASCII
+        ("KB-\u00adAuto", "KB-Auto"),
+        ("KB\u00ad-Auto", "KB-Auto"),
+        ("evil.\u00adcom", "evil.com"),
+        ("evil.com\u00ad\u2063kb.net", "evil.com kb.net"),  # U+2063 separates two names
+        ("a\u2069\u00ad\u2066b", "a b"),  # so do the end and start of two bidi isolates
+        ("a\u00ad\u202cb", "ab"),
+        ("a" + "\u200b" * 64 + "\u00adb", "ab"),  # more than 64 deleted characters
+    ],
+)
+def test_other_soft_hyphens_are_deleted(text: str, expected: str) -> None:
+    assert refang(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("KB\u00adAuto.exe", "KBAuto.exe"),
+        ("C2 up\u00addate[.]example[.]com", "C2 update.example.com"),
+        ("update\u00ad\ncheck KB\u00adAuto", "update-\ncheck KBAuto"),  # a line end in both readings
+        (
+            "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0} a\u00adb",
+            "{0F1E2D3C-4B5A-6978-8796-A5B4C3D2E1F0} ab",
+        ),
+    ],
+)  # fmt: skip
+def test_soft_hyphens_can_be_read_as_break_hints(text: str, expected: str) -> None:
+    assert refang_soft_hyphens_as_hints(text) == expected
 
 
 @pytest.mark.parametrize(
     "text",
     [
         "no soft hyphen",
-        "\u00adword and word\u00ad",  # not between two letters or digits
-        "caf\u00e9\u00adbar",  # a non-ASCII letter that does not fold to ASCII
-        "KB\u200bAuto",  # deleted characters without a soft hyphen
-        "line\u00ad\nbreak",  # refang reads this one as a hyphen anyway
-        "evil.com\u00ad\u2063kb.net",  # U+2063 and bidi controls separate two names
-        "a\u2069\u00ad\u2066b",
+        "\u00adword and word\u00ad",
+        "line\u00ad\nbreak",
+        "KB-\u00adAuto",
+        "evil.com\u00ad\u2063kb.net",
+        "{0F1E2D3C\u00ad4B5A\u00ad6978\u00ad8796\u00adA5B4C3D2E1F0}",  # a GUID in both readings
     ],
 )
-def test_other_soft_hyphens_are_not_shown(text: str) -> None:
-    assert show_inner_soft_hyphens(text) is None
+def test_soft_hyphens_that_both_readings_share(text: str) -> None:
+    assert refang_soft_hyphens_as_hints(text) is None

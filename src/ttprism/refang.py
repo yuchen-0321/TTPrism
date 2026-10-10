@@ -80,22 +80,24 @@ _BIDI_BREAK_RE = re.compile(
 )
 
 
-# Some PDF converters write every hyphen as a soft hyphen. In a GUID, deleting them would leave
-# 32 hex digits that read as an MD5: "{92BA1818\u00ad0119\u00ad4F79\u00ad874E\u00adE3BF79C355B8}".
-_SOFT_HYPHEN_GUID_RE = re.compile(
-    r"(?<![0-9A-Fa-f])[0-9A-Fa-f]{8}(?:\u00ad[0-9A-Fa-f]{4}){3}\u00ad[0-9A-Fa-f]{12}(?![0-9A-Fa-f])"
-)
-
-
-def _guid_hyphens(match: re.Match[str]) -> str:
-    return match.group(0).replace("\u00ad", "-")
-
-
-# A soft hyphen at the end of a line is where a word was broken, as a hyphen there is, so it is
-# read as one and the line-break rules of the extractor decide what it joins. Between it and the
-# line break there may be anything that refang turns into a space or deletes (spaces, zero-width and
-# bidi marks), so that the result is the same as for "-". _soft_hyphen_break_re builds the pattern.
+# Soft hyphens (U+00AD). A PDF draws only visible characters, so where text extracted from a PDF has
+# a soft hyphen, the page shows a hyphen: pypdf gives U+00AD for the hyphen of code 0xAD in fonts
+# with the WinAnsi encoding, where pdftotext gives "-". A soft hyphen between two letters or digits
+# ("KB\u00adAuto", "CVE\u00ad2017\u00ad11882") or at the end of a line is therefore read as a hyphen,
+# and the line-break rules of the extractor decide what a line-end one joins; one right after a
+# hyphen is deleted, so that "KB-Auto-\u00ad" at a line end does not get two. Other soft hyphens are
+# deleted, and so are those beside U+2063 or the end of a bidi embedding or isolate, which separate
+# two names. Text copied from a web page has soft hyphens as invisible break hints instead (&shy;);
+# refang_soft_hyphens_as_hints gives that reading, so that the caller can see which values depend
+# on it.
+#
+# Between a line-end soft hyphen and the line break there may be anything that refang turns into a
+# space or deletes (spaces, zero-width and bidi marks), up to _MAX_BREAK_GAP characters, so that the
+# result is the same as for "-"; between "\r" and "\n", only characters it deletes.
 _MAX_BREAK_GAP = 1024
+# Deleted characters around an inner soft hyphen, or between a hyphen and a line-end one.
+_MAX_RUN = 64
+_ASCII_ALNUM = frozenset("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
 
 
 def _char_class(codes: set[int]) -> str:
@@ -112,68 +114,56 @@ def _char_class(codes: set[int]) -> str:
 
 
 @functools.cache
-def _soft_hyphen_break_re() -> re.Pattern[str]:
-    gap = {0x09, 0x20} | {code for code, value in _fold_table().items() if value in (None, " ")} - {0xAD}
-    # Between "\r" and "\n" only characters that are deleted outright, not turned into a space.
-    deleted = set(_format_table()) - {0xAD}
-    return re.compile(
-        f"\\u00ad(?=[{_char_class(gap)}]{{0,{_MAX_BREAK_GAP}}}"
-        f"(?:\\r[{_char_class(deleted)}]{{0,{_MAX_BREAK_GAP}}})?\\n)"
+def _soft_hyphen_res() -> tuple[re.Pattern[str], re.Pattern[str], re.Pattern[str]]:
+    """The patterns for soft hyphens after a hyphen at a line end, at a line end, and inside a word."""
+    table = _fold_table()
+    deleted = {code for code, value in table.items() if value is None}
+    gap = {0x09, 0x20} | {code for code, value in table.items() if value == " "} | deleted - {0xAD}
+    line_end = (
+        f"(?=[{_char_class(gap)}]{{0,{_MAX_BREAK_GAP}}}"
+        f"(?:\\r[{_char_class(set(_format_table()) - {0xAD})}]{{0,{_MAX_BREAK_GAP}}})?\\n)"
     )
+    hyphens = {ord("-")} | {code for code, value in table.items() if value == "-"}
+    after_hyphen = f"(?<=[{_char_class(hyphens)}])[{_char_class(deleted)}]{{0,{_MAX_RUN}}}\\u00ad{line_end}"
+    # Letters and digits, also those that refang folds to one (full-width letters, ligatures).
+    alnum = {ord(char) for char in _ASCII_ALNUM}
+    ends_alnum = alnum | {code for code, value in table.items() if value and value[-1] in _ASCII_ALNUM}
+    starts_alnum = alnum | {code for code, value in table.items() if value and value[0] in _ASCII_ALNUM}
+    run = deleted - {0x2063, 0x202C, 0x2069}
+    inner = (
+        f"(?<=[{_char_class(ends_alnum)}])(?=[{_char_class(run - {0xAD})}]{{0,{_MAX_RUN - 1}}}+\\u00ad)"
+        f"[{_char_class(run)}]{{1,{_MAX_RUN}}}+(?=[{_char_class(starts_alnum)}])"
+    )
+    return re.compile(after_hyphen), re.compile(f"\\u00ad{line_end}"), re.compile(inner)
 
 
-def _soft_hyphens_as_hyphens(text: str) -> str:
-    """Soft hyphens between the groups of a GUID and at the end of a line become hyphens."""
-    text = _SOFT_HYPHEN_GUID_RE.sub(_guid_hyphens, text)
-    return _soft_hyphen_break_re().sub("-", text)
+def _line_end_soft_hyphens(text: str) -> str:
+    after_hyphen, line_end, _ = _soft_hyphen_res()
+    return line_end.sub("-", after_hyphen.sub("", text))
 
 
-# Other soft hyphens are deleted, as break hints. That is wrong when a converter wrote every hyphen
-# as one ("KB\u00adAuto" becomes "KBAuto"); show_inner_soft_hyphens gives the reading in which they
-# are hyphens, so that the caller can see which extracted values depend on it.
-_ASCII_ALNUM = frozenset("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+# In a GUID, soft hyphens are hyphens in both readings: deleting them would leave 32 hex digits that
+# read as an MD5 ("{92BA1818\u00ad0119\u00ad4F79\u00ad874E\u00adE3BF79C355B8}").
+_SOFT_HYPHEN_GUID_RE = re.compile(
+    r"(?<![0-9A-Fa-f])[0-9A-Fa-f]{8}(?:\u00ad[0-9A-Fa-f]{4}){3}\u00ad[0-9A-Fa-f]{12}(?![0-9A-Fa-f])"
+)
 
 
-@functools.cache
-def _deleted_run_re() -> re.Pattern[str]:
-    deleted = {code for code, value in _fold_table().items() if value is None}
-    return re.compile(f"[{_char_class(deleted)}]{{1,64}}")
+def _guid_hyphens(match: re.Match[str]) -> str:
+    return match.group(0).replace("\u00ad", "-")
 
 
-def _folds_to_alnum(char: str, last: bool) -> bool:
-    """True if ``char`` is, or refang folds it to, an ASCII letter or digit (the last one of a
-    folded sequence such as the "fi" ligature when ``last``, else the first)."""
-    if char in _ASCII_ALNUM:
-        return True
-    folded = _fold_table().get(ord(char)) if char else None
-    return bool(folded) and folded is not None and (folded[-1] if last else folded[0]) in _ASCII_ALNUM
-
-
-# Characters that refang reads as a space between two names, not as part of one.
-_SEPARATING = frozenset(chr(code) for code in (*_BIDI_CODES, 0x2063))
-
-
-def _inner_run_as_hyphen(match: re.Match[str]) -> str:
-    run, text = match.group(0), match.string
-    start, end = match.span()
-    if (
-        "\u00ad" in run
-        and _SEPARATING.isdisjoint(run)
-        and _folds_to_alnum(text[start - 1 : start], last=True)
-        and _folds_to_alnum(text[end : end + 1], last=False)
-    ):
-        return "-"
-    return run
-
-
-def show_inner_soft_hyphens(text: str) -> str | None:
-    """``text`` with each run of deleted characters that holds a soft hyphen and stands between two
-    letters or digits written as "-" ("KB\u00adAuto" as "KB-Auto"), or None if there is none. Runs
-    with a character that separates two names (U+2063, bidi controls) are left alone."""
+def refang_soft_hyphens_as_hints(text: str) -> str | None:
+    """``text`` refanged with the soft hyphens that :func:`refang` reads as hyphens between two
+    letters or digits deleted instead, as the break hints of web pages (except between the groups of
+    a GUID), or None if refang reads no soft hyphen that way."""
     if "\u00ad" not in text:
         return None
-    shown = _deleted_run_re().sub(_inner_run_as_hyphen, text)
-    return None if shown == text else shown
+    lines = _line_end_soft_hyphens(text)
+    hinted = _SOFT_HYPHEN_GUID_RE.sub(_guid_hyphens, lines)
+    if _soft_hyphen_res()[2].sub("-", lines) == hinted:
+        return None
+    return _refang_rest(hinted)
 
 
 @functools.cache
@@ -221,11 +211,12 @@ def refang(text: str) -> str:
     are folded to their plain equivalents, except full-width punctuation that
     cannot be part of a URL; Unicode spaces become plain spaces. Other
     compatibility characters (superscripts, circled numbers) are kept, so they
-    never merge into an adjacent IOC. Soft hyphens between the groups of a GUID
-    and at the end of a line become hyphens.
+    never merge into an adjacent IOC. Soft hyphens between two letters or
+    digits and at the end of a line, as PDF text has them where the page shows
+    a hyphen, become hyphens.
     """
     if "\u00ad" in text:
-        text = _soft_hyphens_as_hyphens(text)
+        text = _soft_hyphen_res()[2].sub("-", _line_end_soft_hyphens(text))
     return _refang_rest(text)
 
 

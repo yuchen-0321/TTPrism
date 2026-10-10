@@ -148,7 +148,7 @@ PATHOLOGICAL = {
     "names after hyphen line ends": "a-\nb.com " * (SIZE // 9),
     "masked names": "xxxx.com " * (SIZE // 9),
     "detection names": "Trojan.Win32.Ht " * (SIZE // 16),
-    # Soft hyphens at line ends and inside names (the warning about deleted ones).
+    # Soft hyphens at line ends and inside names (the warning about reading them as break hints).
     "soft hyphens at line ends": "a\u00ad\n" * (SIZE // 3),
     "soft hyphens before long gaps": ("a\u00ad" + "\u200b" * 9 + "\n") * (SIZE // 12),
     "soft hyphens inside words": "a\u00adb " * (SIZE // 4),
@@ -173,6 +173,19 @@ PATHOLOGICAL = {
     "soft hyphens inside many lines of names": "a\u00adb.example.com\n" * (SIZE // 17),
     "url hosts wrapped at dots and hyphens": "http://a.-\n" + "b-\nc.-\n" * (SIZE // 7),
     "userinfo lines in wrapped hosts": ("http://a-\n" + "b:c-\n" * 50) * (SIZE // 260),
+    # Soft hyphens read as hyphens: between letters, after a hyphen at a line end. A soft hyphen
+    # between letters makes the first 8 Mi characters be extracted a second time, so the worst case
+    # above with one of them costs about twice as much.
+    "worst case with a soft hyphen between letters": "a\u00adb " + "\u5740:1:2:3::" * (SIZE // 9),
+    "soft hyphens after hyphens at line ends": "a-\u00ad\n" * (SIZE // 4),
+    "deleted runs after hyphens before long gaps": ("-" + "\u200b" * 64 + "\u00ad" + " " * 1024 + "x")
+    * (SIZE // 1091),
+    "soft hyphen runs after hyphens": ("-" + "\u00ad" * 64 + "x") * (SIZE // 66),
+    "long deleted runs between letters": ("a" + "\u200b" * 63 + "\u00ad" + "\u200b" * 70 + "b")
+    * (SIZE // 135),
+    "soft hyphen runs between letters": ("a" + "\u00ad" * 128 + "b") * (SIZE // 130),
+    "full-width letters around soft hyphens": "\uff41\u00ad" * (SIZE // 2),
+    "hyphens before deleted runs": "-\u200b" * (SIZE // 2) + "\u00ad",
 }
 
 # Command lines reach the ATT&CK rules from CAPE reports: quotes, carets and chaining, glued

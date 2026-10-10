@@ -21,7 +21,7 @@ from ttprism.inputs import (
     read_bytes,
 )
 from ttprism.models import IOC, AnalysisResult, IOCCollector, IOCType, sort_iocs
-from ttprism.refang import refang, show_inner_soft_hyphens
+from ttprism.refang import refang, refang_soft_hyphens_as_hints
 
 
 @dataclass
@@ -100,7 +100,6 @@ def analyze_text(text: str, options: AnalysisOptions | None = None) -> AnalysisR
     return result
 
 
-_NAME_TYPES = (IOCType.URL, IOCType.DOMAIN, IOCType.EMAIL)
 # The soft-hyphen check extracts the text a second time; it reads at most this much of it.
 MAX_SOFT_HYPHEN_CHECK_CHARS = 8 * 1024 * 1024
 
@@ -108,35 +107,30 @@ MAX_SOFT_HYPHEN_CHECK_CHARS = 8 * 1024 * 1024
 def _soft_hyphen_warning(
     text: str, collector: IOCCollector, iocs: list[IOC], options: AnalysisOptions
 ) -> list[str]:
-    """A warning when reading the soft hyphens deleted between two letters or digits as hyphens would
-    change the names, e-mail addresses or URLs reported: some PDF converters write every hyphen that
-    way, so the values found may have lost hyphens. The first MAX_SOFT_HYPHEN_CHECK_CHARS characters
-    are extracted a second time in that reading; the count is the larger of the reported values it
-    lacks and the values it would report besides."""
+    """A warning when deleting the soft hyphens that refang reads as hyphens between two letters or
+    digits, as the break hints of web pages, would change the values reported. The first
+    MAX_SOFT_HYPHEN_CHECK_CHARS characters are extracted a second time in that reading; the count is
+    the larger of the values it would report besides and, if that was the whole text, the reported
+    values it lacks. Lookups go to ``collector``, so the cost does not grow with the rest of the text.
+    """
     checked = text[:MAX_SOFT_HYPHEN_CHECK_CHARS]
-    shown = show_inner_soft_hyphens(checked)
-    if shown is None:
+    hinted = refang_soft_hyphens_as_hints(checked)
+    if hinted is None:
         return []
     other = IOCCollector()
-    extract_into(other, refang(shown), "text")
-    first = {(t, v) for t, v, _ in collector if t in _NAME_TYPES}
-    second = {(t, v) for t, v, _ in other if t in _NAME_TYPES}
-    lacking = sum(1 for i in iocs if i.type in _NAME_TYPES and (i.type, i.value) not in second)
-    besides = sum(
-        1
-        for i in _filter(other, options, Counter())
-        if i.type in _NAME_TYPES and (i.type, i.value) not in first
-    )
-    count = max(lacking, besides) if len(checked) == len(text) else besides
+    extract_into(other, hinted, "text")
+    count = sum(1 for ioc in _filter(other, options, Counter()) if (ioc.type, ioc.value) not in collector)
+    truncated = len(checked) < len(text)
+    if not truncated:
+        count = max(count, sum(1 for ioc in iocs if (ioc.type, ioc.value) not in other))
     if not count:
         return []
-    where = (
-        f" (from the first {MAX_SOFT_HYPHEN_CHECK_CHARS:,} characters)" if len(checked) < len(text) else ""
-    )
+    where = f" (from the first {MAX_SOFT_HYPHEN_CHECK_CHARS:,} characters)" if truncated else ""
     return [
-        f"{count} extracted name(s), e-mail address(es) or URL(s){where} would differ if the soft hyphens "
-        "(U+00AD) deleted between letters or digits were read as hyphens; some PDF converters write every "
-        "hyphen as a soft hyphen, so the values found may have lost hyphens (KB-Auto read as KBAuto)"
+        f"{count} extracted value(s){where} would differ if the soft hyphens (U+00AD) between letters or "
+        "digits were deleted instead of read as hyphens. Text taken from a PDF has a soft hyphen where the "
+        "page shows a hyphen; text copied from a web page (&shy;) has them as invisible break hints, which "
+        "would make KB-Auto read KBAuto."
     ]
 
 

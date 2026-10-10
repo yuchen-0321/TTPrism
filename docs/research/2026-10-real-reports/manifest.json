@@ -1,5 +1,18 @@
 {
   "description": "Public TLP:CLEAR Chinese-language threat reports used to evaluate IOC extraction. PDFs are not committed: zh-cn copies come from github.com/CyberMonitor/APT_CyberCriminal_Campagin_Collections (commit cbf136e24f5d2a4d89619580455aae8b9b0aeadb, blob SHA-1 below); zh-tw files were downloaded by the maintainer. The original URL is the publisher's own page; 'url_source' says how it was established.",
+  "fields": {
+    "format": "\"pdf\" (the default) or \"html\"; the source file is eval-data/<set>/<format>/<id>.<format> unless 'source' names it",
+    "html_source": "for a web page: \"server\" (the HTML the server sent, preferred) or \"rendered\" (the DOM saved from a browser, used only when the server's HTML lacks the content), with the reason",
+    "http_charset": "for a web page: the charset of the Content-Type header it was served with, if known; it takes precedence over a <meta> charset",
+    "attachments": "files in eval-data/<set>/attachments/ whose text follows the page text, when the indicators are only there (PDF read with pypdf, a web page converted like a page, anything else as UTF-8 text); their SHA-256 is recorded",
+    "appendix": "start and end markers of the IOC appendix; the start marker must occur once in the text, or 'start_occurrence' (1-based) says which occurrence begins the appendix",
+    "truth_corrections": "hand corrections of the ground truth (add, remove, ambiguous), each with a reason"
+  },
+  "text_conversion": {
+    "pdf": "pypdf (version in requirements.txt and in each results file): page.extract_text() for each page, joined with line breaks; page headers and footers kept",
+    "html": "evaluate.py: decode_html (strict decoding: byte-order mark, valid UTF-8, charset declared in the HTTP header, then in <meta>, then Big5 as cp950; nothing decoded leniently) and HtmlText (Python standard library html.parser; visible text of the whole <body>, navigation and footer included; block elements on their own lines, table cells separated by TAB; source line breaks folded to spaces; soft hyphens deleted; hidden content kept and counted; attributes not read). The rules are in their docstrings. html.parser's handling of malformed markup changed in Python security releases, so the Python version is recorded with each conversion; the fixture tests in tests/test_research_html.py pass on 3.11.4 (the evaluation environment) and on 3.11.17 to 3.14.",
+    "choice": "When a report exists as both PDF and web page, only the one at original_url is evaluated."
+  },
   "sets": {
     "zh-cn": [
       {
@@ -27,7 +40,9 @@
         "collection_blob": "45ea0b4c6d8e579c1ca1b87c6287c9d2ef6329b6",
         "appendix": {
           "start": "附录 1：文件 MD5 列表",
-          "end": "附录 3：360 追日团队"
+          "end": "附录 3：360 追日团队",
+          "start_occurrence": 2,
+          "start_occurrence_reason": "the heading also occurs earlier in the text; the appendix is the second occurrence"
         }
       },
       {
@@ -79,7 +94,9 @@
         "collection_blob": "02b4ef717342c5c6cecfb3b2b0b3c4d90f2a0dc7",
         "appendix": {
           "start": "IOCs ",
-          "end": "附录1  奇安信威胁情报中心"
+          "end": "附录1  奇安信威胁情报中心",
+          "start_occurrence": 2,
+          "start_occurrence_reason": "the heading also occurs earlier in the text; the appendix is the second occurrence"
         }
       },
       {
@@ -232,5 +249,9 @@
       }
     ],
     "zh-tw": []
-  }
+  },
+  "skipped": {
+    "zh-tw": []
+  },
+  "skipped_fields": "reports considered for a set but not used: id or title, publisher, URL, and the reason"
 }
