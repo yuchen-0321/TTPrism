@@ -3,7 +3,7 @@
   "set": "zh-cn",
   "label": "after",
   "date": "2026-10-10",
-  "ttprism_commit": "a2dc77a76c9bb7341ad148c42f08f389b94037e0",
+  "ttprism_commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
   "ttprism": {
    "version": "0.1.0.dev0",
    "path": "src/ttprism/__init__.py"
@@ -20,13 +20,14 @@
    "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
    "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
   },
-  "evaluate_sha256": "7a53b303a08a07d1b36c6c76791b0cf784d60536bb79950fb1641cf78794ae68",
+  "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
   "installed": [
    "PyYAML==6.0.3",
    "Pygments==2.21.0",
    "certifi==2026.7.22",
    "charset-normalizer==3.5.2",
    "click==8.5.0",
+   "hypothesis==6.168.5",
    "idna==3.20",
    "iniconfig==2.3.1",
    "ioc_fanger==5.1.1",
@@ -39,6 +40,7 @@
    "pytest==9.1.1",
    "regex==2026.9.29",
    "requests==2.34.2",
+   "sortedcontainers==2.4.0",
    "ttprism==0.1.0.dev0",
    "urllib3==2.8.0"
   ],
@@ -62,7 +64,9 @@
      "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
      "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
     },
-    "evaluate_sha256": "7a53b303a08a07d1b36c6c76791b0cf784d60536bb79950fb1641cf78794ae68",
+    "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
+    "conversion_inputs_sha256": "6e671e8a46ad2437aa884d77d5f290bd451639adc6a2d91bcb8173d8eb7b4734",
+    "commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
     "pages": 11,
     "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
     "parts": [
@@ -328,7 +332,9 @@
      "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
      "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
     },
-    "evaluate_sha256": "7a53b303a08a07d1b36c6c76791b0cf784d60536bb79950fb1641cf78794ae68",
+    "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
+    "conversion_inputs_sha256": "6e671e8a46ad2437aa884d77d5f290bd451639adc6a2d91bcb8173d8eb7b4734",
+    "commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
     "pages": 78,
     "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
     "parts": [
@@ -1382,7 +1388,9 @@
      "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
      "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
     },
-    "evaluate_sha256": "7a53b303a08a07d1b36c6c76791b0cf784d60536bb79950fb1641cf78794ae68",
+    "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
+    "conversion_inputs_sha256": "6e671e8a46ad2437aa884d77d5f290bd451639adc6a2d91bcb8173d8eb7b4734",
+    "commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
     "pages": 12,
     "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
     "parts": [
@@ -1769,7 +1777,9 @@
      "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
      "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
     },
-    "evaluate_sha256": "7a53b303a08a07d1b36c6c76791b0cf784d60536bb79950fb1641cf78794ae68",
+    "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
+    "conversion_inputs_sha256": "6e671e8a46ad2437aa884d77d5f290bd451639adc6a2d91bcb8173d8eb7b4734",
+    "commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
     "pages": 73,
     "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
     "parts": [
@@ -2381,7 +2391,9 @@
      "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
      "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
     },
-    "evaluate_sha256": "7a53b303a08a07d1b36c6c76791b0cf784d60536bb79950fb1641cf78794ae68",
+    "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
+    "conversion_inputs_sha256": "6e671e8a46ad2437aa884d77d5f290bd451639adc6a2d91bcb8173d8eb7b4734",
+    "commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
     "pages": 47,
     "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
     "parts": [
@@ -2946,7 +2958,9 @@
      "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
      "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
     },
-    "evaluate_sha256": "7a53b303a08a07d1b36c6c76791b0cf784d60536bb79950fb1641cf78794ae68",
+    "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
+    "conversion_inputs_sha256": "6e671e8a46ad2437aa884d77d5f290bd451639adc6a2d91bcb8173d8eb7b4734",
+    "commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
     "pages": 52,
     "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
     "parts": [
@@ -3509,7 +3523,9 @@
      "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
      "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
     },
-    "evaluate_sha256": "7a53b303a08a07d1b36c6c76791b0cf784d60536bb79950fb1641cf78794ae68",
+    "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
+    "conversion_inputs_sha256": "6e671e8a46ad2437aa884d77d5f290bd451639adc6a2d91bcb8173d8eb7b4734",
+    "commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
     "pages": 23,
     "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
     "parts": [
@@ -3969,7 +3985,9 @@
      "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
      "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
     },
-    "evaluate_sha256": "7a53b303a08a07d1b36c6c76791b0cf784d60536bb79950fb1641cf78794ae68",
+    "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
+    "conversion_inputs_sha256": "6e671e8a46ad2437aa884d77d5f290bd451639adc6a2d91bcb8173d8eb7b4734",
+    "commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
     "pages": 25,
     "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
     "parts": [

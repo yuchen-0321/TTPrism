@@ -7,7 +7,7 @@ appendix as the ground truth.
 **Status:** the Simplified-Chinese set (8 reports) was measured before and after fixing what it
 showed. The Traditional-Chinese set (3–4 reports chosen by the maintainer) is held out: it will be
 measured once, at the end, and has not been looked at during the fixes. TTPrism (`src/`) and the
-evaluation script are frozen at FREEZE_COMMIT, the commit at which the "after" results below were
+evaluation script are frozen at 435bb97, the commit at which the "after" results below were
 made; after it, only the Traditional-Chinese entries of the manifest (selection rule first, before
 anyone looks at the files), the documentation and the results may change.
 
@@ -48,7 +48,7 @@ domains, IPv4 and MD5 only.
   before Python's 2025 security releases loses page content (3.11.4 drops everything after a comment
   ending in `--!>` up to the next `-->`, and raises on `<![ if … ]>`), so the script converts canary
   pages first and refuses such a Python. Versions: iocextract 1.16.1, ioc-finder 9.4.1; TTPrism at
-  d53b3ed (baseline, Python 3.11.4) and FREEZE_COMMIT (after the fixes, Python 3.11.17; the first fix
+  d53b3ed (baseline, Python 3.11.4) and 435bb97 (after the fixes, Python 3.11.17; the first fix
   commit, 6d0012d, gave the same output, see section 4). The PDF text is the same on both Pythons
   (same SHA-256). The "after" results file lists every installed package, the Python version and
   the SHA-256 of the files that parse HTML; the baseline, made earlier, records only the tool
@@ -187,7 +187,7 @@ digit and `-` (`2019-` / `example.com`) is dropped as a fragment.
 **Changes made before the freeze from reading the code, not from these data.** A first round
 (6857503, then 6c655c8, 60a0d1f, a7d7e7b and 88bda72 after four rounds of adversarial review), a
 second one after the maintainer's review of it (19952b5, then 7b985f0 after one more review round)
-and a third after the maintainer's freeze check (91327ec and a2dc77a, then FREEZE_COMMIT after a
+and a third after the maintainer's freeze check (91327ec and a2dc77a, then 435bb97 after a
 review round):
 
 - **Every soft hyphen is a hyphen.** A PDF draws only visible characters, so a soft hyphen in text
@@ -227,7 +227,7 @@ review round):
   only a line of host characters, or one going on to a port or path, carries it further.
 
 None of these changed any scored output on the eight reports (6d0012d, 6c655c8, 60a0d1f, a7d7e7b,
-88bda72, 19952b5, 7b985f0 and FREEZE_COMMIT give identical results; only the wording of cn01's
+88bda72, 19952b5, 7b985f0 and 435bb97 give identical results; only the wording of cn01's
 warning changed). cn01's converter wrote every hyphen as a soft
 hyphen; reading them as hyphens changes none of its domains, URLs, addresses or hashes, but adds two
 CVE IDs, which are not scored: `CVE-2017-11882`, and `CVE-2017-1188` from `CVE\u00ad2017\u00ad1188` /
