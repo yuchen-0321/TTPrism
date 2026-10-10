@@ -228,18 +228,45 @@ def test_extraction_is_linear(text: str) -> None:
 
 def test_soft_hyphen_check_costs_at_most_a_second_extraction() -> None:
     # A soft hyphen that refang reads as a hyphen makes the first 8 Mi characters be extracted a second
-    # time, so the worst case costs about twice as much with one. Measured against the same input with
-    # the soft hyphen read as a hyphen, so that the ratio does not depend on the machine; that input
-    # itself is held to the absolute limit.
+    # time, so the worst case costs about twice as much with one. Measured against the same input
+    # without the soft hyphen, so that the ratio does not depend on the machine; that input itself is
+    # held to the absolute limit.
     worst = "\u5740:1:2:3::" * (SIZE // 9)
     options = AnalysisOptions(include_reserved=True)
-    with_soft_hyphen, with_hyphen = "a\u00adb " + worst, "a-b " + worst
-    plain = seconds_per_mb(lambda: analyze_text(with_hyphen, options), size_mb(with_hyphen), repeat=2)
+    with_soft_hyphen, without = "a\u00adb " + worst, "ab " + worst
+    plain = seconds_per_mb(lambda: analyze_text(without, options), size_mb(without), repeat=2)
     soft = seconds_per_mb(
         lambda: analyze_text(with_soft_hyphen, options), size_mb(with_soft_hyphen), repeat=2
     )
     assert plain < TEXT_SECONDS_PER_MB, f"{plain:.2f} s/MB"
     assert soft / plain <= SOFT_HYPHEN_CHECK_RATIO, f"{soft / plain:.2f} times the cost without it"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        # Blank runs that may not be cut: after a line-end hyphen, next to a bracket.
+        "-\u200b \n" * (SIZE // 4),
+        " [" * (SIZE // 2),
+        # One blank run of format characters with no space in it, and none at all.
+        "\u200b" * SIZE,
+        "a" * SIZE,
+    ],
+    ids=["hyphenated lines", "brackets", "format characters", "no blank"],
+)
+def test_soft_hyphen_check_cut_is_linear(text: str) -> None:
+    # The search for the cut reads only the last _CUT_WINDOW characters before the limit; here the
+    # window is the whole 1 MB.
+    from unittest import mock
+
+    from ttprism import analyze
+
+    with (
+        mock.patch.object(analyze, "MAX_SOFT_HYPHEN_CHECK_CHARS", len(text) - 1),
+        mock.patch.object(analyze, "_CUT_WINDOW", len(text)),
+    ):
+        cost = seconds_per_mb(lambda: analyze._checked_part(text), size_mb(text))
+    assert cost < TEXT_SECONDS_PER_MB, f"{cost:.2f} s/MB"
 
 
 @pytest.mark.parametrize("command", PATHOLOGICAL_COMMANDS.values(), ids=PATHOLOGICAL_COMMANDS.keys())

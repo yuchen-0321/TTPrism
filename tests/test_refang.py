@@ -267,7 +267,9 @@ def test_soft_hyphen_at_a_line_end_becomes_a_hyphen(text: str, expected: str) ->
     [
         ("KB-\u00ad\nAuto", "KB-\nAuto"),
         ("KB-\u00ad \u200b\nAuto", "KB- \nAuto"),
-        ("KB-\u00ad\u00ad\nAuto", "KB-\nAuto"),
+        # Only the one at the line end: another soft hyphen before it is a hyphen, as pdftotext gives it.
+        ("KB-\u00ad\u00ad\nAuto", "KB---\nAuto"),
+        ("KB-\u00ad\u200b\u00ad\nAuto", "KB---\nAuto"),
         ("KB-\u200b\u00ad\u2060\nAuto", "KB-\nAuto"),
         ("KB-\u2069\u00ad\nAuto", "KB-\nAuto"),
         # Characters that refang folds to a hyphen.

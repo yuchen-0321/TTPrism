@@ -30,25 +30,26 @@ their advisory.
   (`LIKE '%198.51.100.7%'`) is not read as a percent escape.
 - Fixes from an evaluation on eight public Chinese-language reports
   (`docs/research/2026-10-real-reports.md`): certificate serial numbers labelled as such
-  (`SerialNumber: 00B7...`, `序列号：`, `序號 00B7...`) and GUIDs whose hyphens a PDF converter
-  wrote as soft hyphens are no longer read as hashes; names and URLs broken across PDF lines are joined where
-  the hyphen at the break cannot be part of them (`evil.-` / `com`, `evil-` / `.com`) or is part of a
-  URL (`/KB-Auto-win-` / `update.exe`), and otherwise the rest of a name on the next line is dropped
-  as a fragment (`line_wrap_fragment`); masked names (`wiki.xxxx.com`) and antivirus detection
-  names (`Backdoor.Win32.Ht`) are dropped (`masked_name`, `detection_name`). Every soft hyphen is
-  read as a hyphen, one for one, since text extracted from a PDF has one where the page shows a
-  hyphen (`KB\u00adAuto`, `xn\u00ad\u00adbcher`, `/\u00ad/raw/`), so pypdf and `pdftotext -raw` text of
-  the same PDF give the same IOCs; at a line end, also before up to 1,024 spaces or format
-  characters, the line-break rules apply to it as to `-`. It is deleted right after a hyphen at a
-  line end, in a run of format characters with U+2063 or the end of a bidi embedding or isolate,
-  and in a run of more than 64 format characters. A warning says when deleting every soft hyphen, as the break hints of web pages
-  (`&shy;`), would change any value reported (at most the first 8 Mi characters of such a text, cut
-  at a line end, are extracted a second time to find out). A line ending in a hyphen is joined with
-  the next as part of a URL only when the URL really reaches the hyphen, not when a URL ended
-  earlier on the line (Chinese text without spaces) or at its closing quote, and a URL wrapped
-  after its own hyphens over several lines is joined at every break, also after a dot wrap; while
-  it is still in its host, only a line of host characters, or one going on to a port or path,
-  carries it further.
+  (`SerialNumber: 00B7...`, `序列号：`, `序號 00B7...`) and GUIDs whose hyphens a PDF converter wrote as
+  soft hyphens are no longer read as hashes; names and URLs broken across PDF lines are joined where
+  the hyphen at the break cannot be part of them (`evil.-` / `com`, `evil-` / `.com`) or is part of
+  a URL (`/KB-Auto-win-` / `update.exe`), and otherwise the rest of a name on the next line is
+  dropped as a fragment (`line_wrap_fragment`); masked names (`wiki.xxxx.com`) and antivirus
+  detection names (`Backdoor.Win32.Ht`) are dropped (`masked_name`, `detection_name`). Every soft
+  hyphen is read as a hyphen, one for one, since text extracted from a PDF has one where the page
+  shows a hyphen (`KB\u00adAuto`, `xn\u00ad\u00adbcher`, `/\u00ad/raw/`), so pypdf and
+  `pdftotext -raw` text of the same PDF give the same IOCs except where one is deleted; at a line
+  end, also before up to 1,024 spaces or format characters, the line-break rules apply to it as to
+  `-`. It is deleted right after a hyphen at a line end (where `pdftotext -raw` gives `--`), in a
+  run of format characters with U+2063 or the end of a bidi embedding or isolate, and in a run of
+  more than 64 format characters. A warning says when deleting every soft hyphen, as the break hints
+  of web pages (`&shy;`), would change any value reported (at most the first 8 Mi characters of such
+  a text, cut where no value can go on, are extracted a second time to find out; in a longer text
+  only values that deleting them would add are found). A line ending in a hyphen is joined with the
+  next as part of a URL only when the URL really reaches the hyphen, not when a URL ended earlier on
+  the line (Chinese text without spaces) or at its closing quote, and a URL wrapped after its own
+  hyphens over several lines is joined at every break, also after a dot wrap; while it is still in
+  its host, only a line of host characters, or one going on to a port or path, carries it further.
 - Refanging of common and CJK defang styles: `[.]`, `(.)`, `[dot]`, `【.】`, `〔.〕`, `[。]`,
   the same markers with a space on each side (` [.] `, ` (at) `, ` {dot} `), `[/]`, `[//]`,
   full-width characters (`．`, `［＠］`, `１９８．５１…`), `hxxp`, `hxxp[s]`, `hxxp(s)`,

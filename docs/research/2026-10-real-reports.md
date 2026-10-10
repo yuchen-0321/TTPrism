@@ -50,15 +50,18 @@ domains, IPv4 and MD5 only.
   pages first and refuses such a Python. Versions: iocextract 1.16.1, ioc-finder 9.4.1; TTPrism at
   d53b3ed (baseline, Python 3.11.4) and FREEZE_COMMIT (after the fixes, Python 3.11.17; the first fix
   commit, 6d0012d, gave the same output, see section 4). The PDF text is the same on both Pythons
-  (same SHA-256). Each results file lists every installed package, the Python version and the
-  SHA-256 of the files that parse HTML.
+  (same SHA-256). The "after" results file lists every installed package, the Python version and
+  the SHA-256 of the files that parse HTML; the baseline, made earlier, records only the tool
+  versions and Python 3.11.4.
 - **TTPrism settings.** *default* (the main numbers) and *raw* (`--include-reserved
   --no-default-allowlist`). Comparisons with the other tools use raw.
 - **Ground truth.** The values in the appendix, found with plain line rules, then corrected by hand.
-  In PDF text every soft hyphen is read as a hyphen first, as TTPrism reads it; the rules take only
-  ASCII letters and digits as part of a value (so a name right after Chinese text is found), read
-  `[.]` and `(.)` as dots, and find URLs, e-mail addresses, IPv4 addresses, domains and hashes.
-  Rebuilt with these rules, the ground truth of all eight reports is unchanged: cn01's appendix has
+  In PDF text every soft hyphen is read as a hyphen first, as TTPrism reads it, and other invisible
+  format characters are deleted (those that separate two names become spaces); the rules take only
+  printable ASCII as part of a value (so a name right after Chinese text is found, and a URL ends at
+  Chinese text or full-width punctuation), read `[.]` and `(.)` as dots and the common defangs of
+  `://` and `@`, and find URLs, e-mail addresses, IPv4 addresses, domains and hashes. Rebuilt with
+  these rules, the ground truth of all eight reports is unchanged: cn01's appendix has
   ten soft hyphens, all in file names and GUIDs, and no appendix lists an e-mail address. The
   corrections: the report's own address printed as a page header inside the appendix and a section
   heading read as a domain (`0x04.IOCs`) were removed; in cn06 a layout put a `-` at every wrap in
@@ -163,7 +166,7 @@ of the rules were refined later (see below); the table describes them as they ar
 | Baseline issue | Count | Change |
 | --- | --- | --- |
 | Certificate serial numbers (`SerialNumber:` + 32 hex) read as MD5 (all three tools) | 3 c | Hex values right after a serial-number label (`serial`, `serial number`, `序列号`, `序列號`, `序號`, with or without a colon) are counted as `certificate_serial` |
-| GUIDs whose hyphens the PDF converter wrote as soft hyphens read as MD5 | 2 c | Soft hyphens between the groups of a GUID become hyphens (now: between any two letters or digits, see below) |
+| GUIDs whose hyphens the PDF converter wrote as soft hyphens read as MD5 | 2 c | Soft hyphens between the groups of a GUID become hyphens (now: every soft hyphen, see below) |
 | Names wrapped at a hyphen next to a dot (`serveuser.-` / `com`) missed | 7 recall | Joined without the hyphen |
 | URLs wrapped after one of their own hyphens (`KB-Auto-win-` / `update.exe`) cut | 6 c | Joined keeping the hyphen, when a URL on the line runs up to the hyphen (also over several lines) |
 | The rest of a name after any other hyphen at a line end (`daters.com`, `dns.net`) | 14 c | Dropped as a fragment (`line_wrap_fragment`); the hyphen may or may not belong to the name |
@@ -207,9 +210,11 @@ review round):
 - **The warning goes the other way.** Text copied from a web page uses soft hyphens as invisible
   break hints (`&shy;`), which should be deleted. TTPrism warns when deleting every soft hyphen would
   change any value it reports, of any type, by extracting at most the first 8 Mi characters a second
-  time in that reading, cut at a line end that no value crosses. The first round warned in the
-  opposite case, and walked every extracted value of the whole text to count; values are now looked
-  up, so the cost of the check is bounded by the 8 Mi characters it reads.
+  time in that reading, cut where no value can go on (a line end or a space in the last 64 Ki
+  characters before that). In a longer text it finds only the values that deleting the soft hyphens
+  would add, not those it would lose. The first round warned in the opposite case, and walked every
+  extracted value of the whole text to count; values are now looked up, so the cost of the check is
+  bounded by the 8 Mi characters it reads.
 - **`序號` is a label with or without a colon again**, as in 6d0012d. The first round required a
   colon because `序號` also heads the row-number column of tables, but pypdf writes a table row by
   row, so that heading is followed by the other headings, not by a hash, and tables gave the same
@@ -259,16 +264,20 @@ same regression.
   lists `he-moondelight.96.lt`, the body `the-moondelight.96.lt`); the ground truth follows the
   appendix.
 - Eight reports from three vendors and one community team, 2018–2020; only these years had
-  suitable Simplified-Chinese reports with IOC appendices in the collection. The PDF text depends
+  suitable Simplified-Chinese reports with IOC appendices in the collection. The candidates were
+  picked by hand, not by a fixed criterion, and the screening missed one: Gcow's SideWinder report
+  of 2020-01-01, which has a `[.]`-defanged IOC appendix, was never offered and was found only when
+  the selection was written down (the manifest's `selection_rule` records all 19 candidates). The PDF text depends
   on pypdf and on how each PDF was made; another converter would give other artifacts.
 
 ## 6. Reproducing
 
-A web page needs a Python with the 2025 `html.parser` security fixes (3.11.17 was used; `text`
-refuses one without them).
+`text` needs a Python with the 2025 `html.parser` security fixes, also for a set of PDFs only, and
+refuses one without them (3.11.17 was used; 3.11.4 is refused). The selection rule of a set must be
+committed before `text` runs.
 
 ```sh
-uv venv -p 3.11 /tmp/eval
+uv venv -p 3.11.17 /tmp/eval
 uv pip install -p /tmp/eval/bin/python -r docs/research/2026-10-real-reports/requirements.txt -e .
 E=docs/research/2026-10-real-reports/evaluate.py
 /tmp/eval/bin/python -I $E text zh-cn && /tmp/eval/bin/python -I $E truth zh-cn

@@ -2,7 +2,7 @@
 
 Run from the repository root in a virtual environment with the pinned tools and TTPrism:
 
-    uv venv -p 3.11 /tmp/eval
+    uv venv -p 3.11.17 /tmp/eval    # a Python with the 2025 html.parser security fixes
     uv pip install -p /tmp/eval/bin/python -r docs/research/2026-10-real-reports/requirements.txt -e .
     E=docs/research/2026-10-real-reports/evaluate.py
     /tmp/eval/bin/python -I $E text zh-cn             # PDF or HTML -> text, one method per format
@@ -14,7 +14,8 @@ Source files go in eval-data/<set>/<format>/<id>.<format> (format "pdf" unless t
 "html"), attachments in eval-data/<set>/attachments/; eval-data/ is git-ignored, and so are the
 extracted text and the ground-truth values. Only this script, the manifest, the judgements and the
 results (tool outputs and counts) are committed. The manifest is checked first: an unknown or missing
-field stops every command, and `text` stops while the set has no selection rule.
+field, or a value of the wrong shape, stops every command, and `text` stops while the set has no
+selection rule or its rule is not committed as it stands.
 
 Text: PDFs are read with pypdf (page.extract_text() per page, headers and footers included). Web
 pages are decoded strictly and laid out by HtmlText below (Python's html.parser, no CSS); see
@@ -24,21 +25,23 @@ any other Python. When a report's indicators are only in an attachment, its text
 text, and the conversion records where each part starts. Line breaks are LF throughout. `text`
 prints, for each report and each web page in it, how it was decoded and converted, and where the
 appendix starts and ends; never an indicator count. Each step records the SHA-256 of what it was
-made from, and the next one stops if that changed: `run` if the text, its source, an attachment or
-this script changed since `text`; `run` and `score` if the text, this script or the report's
-appendix markers and corrections changed since `truth`.
+made from, and the next one stops if that changed: `truth` and `run` if the text, its source, an
+attachment, the manifest's format, source, charsets or attachments, or this script changed since
+`text`; `run` and `score` if the text, this script or the report's appendix markers and corrections
+changed since `truth`; `score` if this script changed since `run`.
 
 Ground truth: the values in each report's IOC appendix, found with the plain line rules below and
 corrected by hand as the manifest lists (with a reason for each); none of the evaluated tools is used
 for it. The appendix runs from its start marker (which must occur once, or the manifest names the
-occurrence) to the first end marker after it. In the parts of it that came from a PDF, every soft
-hyphen is read as a hyphen first, since pypdf's U+00AD is a drawn hyphen (as TTPrism reads it); in
-the parts that came from a web page, format characters (Cf) are deleted, since a soft hyphen there
-is an invisible break hint. The line rules take only ASCII letters and digits as part of a name, so
-a name right after Chinese text is found, and read [.] and (.) as dots. Masked entries
-("wiki.xxxx.com") and entries whose spelling the source leaves ambiguous are left out, and so are
-tool outputs equal to them. A URL in the appendix adds its host to the domains; an e-mail address
-does not.
+occurrence) to the first end marker after it. Each part of it is read by where it came from
+(read_part): in text from a PDF or a text attachment every soft hyphen is read as a hyphen first,
+since pypdf's U+00AD is a drawn hyphen (as TTPrism reads it), and in every part other format
+characters (Cf) are deleted, except those that separate two names, which become spaces. The line
+rules take only printable ASCII as part of a value, so a value right after Chinese text is found and
+a URL ends at Chinese text or full-width punctuation; they read the common defangs ([.], (.), [:],
+[://], [at] ...; see the rules below). Masked entries ("wiki.xxxx.com") and entries whose spelling
+the source leaves ambiguous are left out, and so are tool outputs equal to them. A URL in the
+appendix adds its host to the domains; an e-mail address does not.
 
 Matching: domains lower-cased without a trailing dot; URLs refanged, with scheme and host
 lower-cased, scored both as whole URLs and by host; e-mail addresses refanged and lower-cased;
@@ -88,12 +91,12 @@ PIPELINE_FILES = (ROOT / "src", ROOT / "pyproject.toml", SCRIPT, MANIFEST, HERE 
 
 # --------------------------------------------------------------------------- normalisation
 
-_EMAIL_AT = re.compile(r"\[@\]|\(@\)|\[at\]|\(at\)", re.IGNORECASE)
+_EMAIL_AT = re.compile(r" ?(?:\[@\]|\(@\)|\[at\]|\(at\)) ?|\uff20", re.IGNORECASE)
 
 
 def light_refang(value: str) -> str:
     """Undo the defang styles that the appendix tables use; plain replacements only."""
-    for old, new in (("[.]", "."), ("[:]", ":"), ("[://]", "://"), ("(.)", ".")):
+    for old, new in (("[.]", "."), ("[:]", ":"), ("[://]", "://"), ("\uff1a//", "://"), ("(.)", ".")):
         value = value.replace(old, new)
     return re.sub(r"(?i)^hxxp", "http", value)
 
@@ -146,6 +149,7 @@ _APPENDIX_FIELDS = ({"start", "end"}, {"start_occurrence", "start_occurrence_rea
 _SAVED_FIELDS = ({"kind", "method", "tool"}, {"reason", "note"})
 _CHARSET_OVERRIDE_FIELDS = ({"charset", "reason"}, set[str]())
 _CORRECTION_FIELDS = (set[str](), {"add", "remove", "ambiguous", "notes"})
+_SKIPPED_FIELDS = ({"title", "publisher", "url", "reason"}, {"id"})
 _UTC_TIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?Z")
 
 
@@ -179,6 +183,8 @@ def _source_problems(where: str, entry: dict[str, Any]) -> list[str]:
             problems += _text(f"{where}.saved.reason (why the server's was not enough)", saved.get("reason"))
         problems += _text(f"{where}.saved.method", saved.get("method"))
         problems += _text(f"{where}.saved.tool", saved.get("tool"))
+    if "http_charset" in entry and _codec(str(entry["http_charset"])) is None:
+        problems.append(f"{where}: unknown http_charset {entry['http_charset']!r}")
     if "charset_override" in entry:
         override = entry["charset_override"]
         problems += _fields(f"{where}.charset_override", override, _CHARSET_OVERRIDE_FIELDS)
@@ -196,8 +202,13 @@ def _report_problems(where: str, report: Any) -> list[str]:
     problems += _source_problems(where, report)
     if report.get("format", "pdf") not in ("pdf", "html"):
         problems.append(f"{where}: format must be 'pdf' or 'html'")
+    if report.get("format", "pdf") == "pdf" and report.keys() & {"charset_override", "http_charset"}:
+        problems.append(f"{where}: a PDF has no charset to declare or override")
     appendix = report.get("appendix")
     problems += _fields(f"{where}.appendix", appendix, _APPENDIX_FIELDS)
+    if isinstance(appendix, dict):
+        problems += _text(f"{where}.appendix.start", appendix.get("start"))
+        problems += _text(f"{where}.appendix.end", appendix.get("end"))
     if isinstance(appendix, dict) and "start_occurrence" in appendix:
         occurrence = appendix["start_occurrence"]
         if not isinstance(occurrence, int) or isinstance(occurrence, bool) or occurrence < 1:
@@ -208,15 +219,42 @@ def _report_problems(where: str, report: Any) -> list[str]:
         problems += _fields(f"{where}.attachments[{index}]", attachment, _ATTACHMENT_FIELDS)
         if isinstance(attachment, dict):
             problems += _source_problems(f"{where}.attachments[{index}]", attachment)
+            is_pdf = str(attachment.get("file", "")).lower().endswith(".pdf")
+            if is_pdf and attachment.keys() & {"charset_override", "http_charset"}:
+                problems.append(f"{where}.attachments[{index}]: a PDF has no charset to declare or override")
     if "truth_corrections" in report:
-        corrections = report["truth_corrections"]
-        problems += _fields(f"{where}.truth_corrections", corrections, _CORRECTION_FIELDS)
-        if isinstance(corrections, dict):
-            for change in ("add", "remove", "ambiguous"):
-                unknown = sorted(set(corrections.get(change, {})) - set(TYPES))
-                problems += [f"{where}.truth_corrections.{change}: unknown type {k!r}" for k in unknown]
-            if corrections.keys() & {"add", "remove", "ambiguous"} and not corrections.get("notes"):
-                problems.append(f"{where}.truth_corrections: every correction needs a reason in notes")
+        problems += _correction_problems(f"{where}.truth_corrections", report["truth_corrections"])
+    return problems
+
+
+def _strings(value: Any) -> bool:
+    return isinstance(value, list) and all(isinstance(item, str) and item.strip() for item in value)
+
+
+def _correction_problems(where: str, corrections: Any) -> list[str]:
+    """add and remove map a type to a list of values, ambiguous a type to a list of entries, each a
+    list of two or more readings; notes is a list of reasons, needed whenever there is a correction."""
+    problems = _fields(where, corrections, _CORRECTION_FIELDS)
+    if not isinstance(corrections, dict):
+        return problems
+    for change in ("add", "remove", "ambiguous"):
+        values = corrections.get(change, {})
+        if not isinstance(values, dict):
+            problems.append(f"{where}.{change}: not an object keyed by type")
+            continue
+        for kind, entries in values.items():
+            if kind not in TYPES:
+                problems.append(f"{where}.{change}: unknown type {kind!r}")
+            elif change != "ambiguous" and not _strings(entries):
+                problems.append(f"{where}.{change}.{kind}: not a list of values")
+            elif change == "ambiguous" and not (
+                isinstance(entries, list) and all(_strings(entry) and len(entry) > 1 for entry in entries)
+            ):
+                problems.append(f"{where}.{change}.{kind}: not a list of entries of two or more readings")
+    if "notes" in corrections and not _strings(corrections["notes"]):
+        problems.append(f"{where}.notes: not a list of reasons")
+    if corrections.keys() & {"add", "remove", "ambiguous"} and not corrections.get("notes"):
+        problems.append(f"{where}: every correction needs a reason in notes")
     return problems
 
 
@@ -230,8 +268,17 @@ def manifest_problems(data: Any) -> list[str]:
         return [*problems, "manifest: sets and selection_rule must be objects keyed by set name"]
     for name in sorted(rules.keys() - sets.keys()):
         problems.append(f"selection_rule: unknown set {name!r}")
-    for name in sorted(data.get("skipped", {}).keys() - sets.keys()):
+    skipped = data.get("skipped", {})
+    if not isinstance(skipped, dict):
+        return [*problems, "manifest: skipped must be an object keyed by set name"]
+    for name in sorted(skipped.keys() - sets.keys()):
         problems.append(f"skipped: unknown set {name!r}")
+    for name, entries in skipped.items():
+        if not isinstance(entries, list):
+            problems.append(f"skipped.{name}: not a list")
+            continue
+        for index, entry in enumerate(entries):
+            problems += _fields(f"skipped.{name}[{index}]", entry, _SKIPPED_FIELDS)
     for name, reports in sets.items():
         if not isinstance(rules.get(name), str):
             problems.append(f"selection_rule: set {name!r} needs a selection rule (a string)")
@@ -261,7 +308,13 @@ def manifest(name: str) -> list[dict[str, Any]]:
 
 
 def selection_rule(name: str) -> str:
+    """The set's selection rule; stop unless it is committed as it stands, since it has to be written
+    before anyone looks at the files."""
     rule: str = load_manifest()["selection_rule"].get(name, "")
+    git = ["git", "-C", str(ROOT), "show", f"HEAD:{MANIFEST.relative_to(ROOT).as_posix()}"]
+    committed = subprocess.run(git, capture_output=True, text=True, encoding="utf-8")  # noqa: S603
+    if committed.returncode != 0 or json.loads(committed.stdout).get("selection_rule", {}).get(name) != rule:
+        raise SystemExit(f"the selection rule of set {name!r} is not committed as it stands; commit it first")
     return rule
 
 
@@ -274,6 +327,14 @@ def sha256(path: Path) -> str:
 
 def text_sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def conversion_inputs_sha256(report: dict[str, Any]) -> str:
+    """The SHA-256 of what `text` takes from the manifest: the format, the source file, the charsets
+    and the attachments."""
+    inputs = {key: report.get(key) for key in ("format", "source", "http_charset", "charset_override")}
+    inputs["attachments"] = report.get("attachments", [])
+    return hashlib.sha256(json.dumps(inputs, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
 
 
 def truth_rules_sha256(report: dict[str, Any]) -> str:
@@ -340,6 +401,12 @@ def convert(
         text, counts = html_to_text(page)
         info["method"] = HTML_METHOD
         info.update(counts)
+    elif override is not None:
+        codec = _codec(override)
+        if codec is None:
+            raise SystemExit(f"unknown charset override {override!r}")
+        text = path.read_bytes().decode(codec)  # strict, as UTF-8 is
+        info["method"] = f"text decoded as {codec} (charset override in the manifest)"
     else:
         text = read_text(path)
         info["method"] = "UTF-8 text"
@@ -363,6 +430,8 @@ def command_text(name: str) -> None:
         info["python"] = parser["python"]
         info["html_parser_sha256"] = parser["sha256"]
         info["evaluate_sha256"] = sha256(SCRIPT)
+        info["conversion_inputs_sha256"] = conversion_inputs_sha256(report)
+        info["commit"] = git_commit()
         if "charset_override" in report:
             info["charset_override"] = report["charset_override"]
         info.update(source_info)
@@ -431,6 +500,11 @@ def check_unchanged(name: str, report: dict[str, Any], conversion: dict[str, Any
     ):
         raise SystemExit(
             f"{report['id']}: the text, its source or an attachment changed since `text`; run it again"
+        )
+    if conversion.get("conversion_inputs_sha256") != conversion_inputs_sha256(report):
+        raise SystemExit(
+            f"{report['id']}: the manifest's format, source, charsets or attachments changed since "
+            "`text`; run it again"
         )
     if conversion.get("evaluate_sha256") != sha256(SCRIPT):
         raise SystemExit(f"{report['id']}: another version of evaluate.py made the text; run `text` again")
@@ -742,7 +816,6 @@ class HtmlText(html.parser.HTMLParser):
         self.unclosed_dropped: list[str] = []
         self.at_preformatted_start = False
         self.script_state = _SCRIPT_DATA
-        self.keep_cdata = False  # an end tag that html.parser will clear raw-text mode for is script data
         self.foster_tabs: int | None = None  # in a line of fostered text: the TABs it put off
 
     # ----------------------------------------------------------------- open elements
@@ -830,11 +903,15 @@ class HtmlText(html.parser.HTMLParser):
             self.handle_comment(rawdata[i + 4 : match.start()])
         return match.end()
 
-    def clear_cdata_mode(self) -> None:
-        if self.keep_cdata:
-            self.keep_cdata = False  # the "</script>" was script data
-            return
-        super().clear_cdata_mode()
+    def parse_endtag(self, i: int) -> int:
+        """In a doubly escaped script, "</script" and the character after it only take the script
+        back to the escaped state, as in browsers; what follows is script data again. html.parser
+        would read the whole tag and end the script."""
+        if self.cdata_elem == "script" and self.script_state == _SCRIPT_DOUBLE_ESCAPED:
+            self.script_state = _SCRIPT_ESCAPED
+            return i + len("</script") + 1
+        end: int = super().parse_endtag(i)
+        return end
 
     def _scan_script(self, data: str) -> None:
         """Follow the script data states through ``data``."""
@@ -919,10 +996,6 @@ class HtmlText(html.parser.HTMLParser):
 
     def handle_endtag(self, tag: str) -> None:
         self.at_preformatted_start = False
-        if tag == "script" and self.cdata_elem == "script" and self.script_state == _SCRIPT_DOUBLE_ESCAPED:
-            self.script_state = _SCRIPT_ESCAPED
-            self.keep_cdata = True
-            return
         skipping = self._skipping()
         if skipping is not None and skipping.name == "rp" and -1 < self._open(tag) < self.skipped_open[0]:
             self._close("rp")  # the end of an element it is in, such as </ruby>, ends an <rp>
@@ -1029,27 +1102,34 @@ def html_to_text(page: str) -> tuple[str, dict[str, Any]]:
 
 # --------------------------------------------------------------------------- ground truth
 
-# The line rules. Only ASCII letters and digits (and, in hashes, only hex digits) count as part of a
-# value, so a value right after Chinese text is found; re.ASCII also keeps IGNORECASE from matching
-# the non-ASCII letters that fold to ASCII ones (U+017F, U+212A). A URL ends at white space (any
-# Unicode white space, listed because re.ASCII would narrow \s) or a parenthesis, except one of "(.)".
-_SPACE = "".join(re.escape(chr(code)) for code in range(0x3001) if chr(code).isspace())
+# The line rules. A value is made of printable ASCII only (names of ASCII letters, digits and
+# hyphens, hashes of hex digits), so a value right after Chinese text is found and one right before
+# Chinese text or full-width punctuation ends there; re.ASCII also keeps IGNORECASE from matching the
+# non-ASCII letters that fold to ASCII ones (U+017F, U+212A). "[.]" and "(.)" are dots everywhere;
+# "[:]", "[://]" and a full-width colon defang a URL's "://"; "[@]", "(@)", "[at]" and "(at)", with
+# or without a space around them, and a full-width at sign are an e-mail address's "@". A URL ends
+# at white space, at a character that is not printable ASCII, or at a parenthesis other than "(.)".
+# No value starts right after a defanged dot, which also keeps the search linear on chains of them.
 _DOT = r"(?:\.|\[\.\]|\(\.\))"
+_NOT_AFTER_DOT = r"(?<!\[\.\])(?<!\(\.\))"
 _MD5 = re.compile(r"(?<![0-9A-Fa-f])[0-9A-Fa-f]{32}(?![0-9A-Fa-f])")
 _SHA1 = re.compile(r"(?<![0-9A-Fa-f])[0-9A-Fa-f]{40}(?![0-9A-Fa-f])")
 _SHA256 = re.compile(r"(?<![0-9A-Fa-f])[0-9A-Fa-f]{64}(?![0-9A-Fa-f])")
 _URL = re.compile(
-    rf"(?<![A-Za-z0-9_])(?:https?|hxxps?|ftp)(?:://|\[:\]//)(?:[^{_SPACE}（）()]|\(\.\))+",
+    r"(?<![A-Za-z0-9_])(?:https?|hxxps?|ftp)(?:://|\[:\]//|\[://\]|\uff1a//)(?:[\x21-\x27\x2a-\x7e]|\(\.\))+",
     re.ASCII | re.IGNORECASE,
 )
+_AT = r"(?:@|\uff20| ?(?:\[@\]|\(@\)|\[at\]|\(at\)) ?)"
 _EMAIL = re.compile(
-    rf"(?<![A-Za-z0-9._%+\-])[A-Za-z0-9._%+\-]+(?:@|\[@\]|\(@\)|\[at\]|\(at\))"
+    rf"(?<![A-Za-z0-9._%+\-]){_NOT_AFTER_DOT}[A-Za-z0-9_%+\-]+(?:{_DOT}[A-Za-z0-9_%+\-]+)*{_AT}"
     rf"(?:[A-Za-z0-9\-]+{_DOT})+[A-Za-z]{{2,24}}(?![A-Za-z0-9_\-])",
     re.ASCII | re.IGNORECASE,
 )
-_IPV4 = re.compile(rf"(?<![0-9.])(?:[0-9]{{1,3}}{_DOT}){{3}}[0-9]{{1,3}}(?![0-9.])", re.ASCII)
+_IPV4 = re.compile(
+    rf"(?<![0-9.]){_NOT_AFTER_DOT}(?:[0-9]{{1,3}}{_DOT}){{3}}[0-9]{{1,3}}(?![0-9]|{_DOT}[0-9])", re.ASCII
+)
 _DOMAIN = re.compile(
-    rf"(?<![A-Za-z0-9_.\-@/])(?:[A-Za-z0-9\-]+{_DOT})+[A-Za-z]{{2,24}}(?![A-Za-z0-9_\-])",
+    rf"(?<![A-Za-z0-9_.\-@/]){_NOT_AFTER_DOT}(?:[A-Za-z0-9\-]+{_DOT})+[A-Za-z]{{2,24}}(?![A-Za-z0-9_\-])",
     re.ASCII | re.IGNORECASE,
 )
 _NOT_DOMAINS = re.compile(
@@ -1093,11 +1173,29 @@ def appendix_span(text: str, report: dict[str, Any]) -> tuple[int, int]:
     return start, end.start()
 
 
+# Format characters that separate two names (TTPrism reads them so): an invisible separator and the
+# end of a bidi embedding or isolate.
+_SEPARATING_FORMAT = frozenset("\u2063\u202c\u2069")
+
+
+def read_part(piece: str, fmt: str) -> str:
+    """Text of one part of the appendix as the line rules read it. A soft hyphen in text from a PDF
+    is a drawn hyphen (pypdf gives U+00AD for one), and so it is in a text attachment, as TTPrism
+    reads it; one from a web page was already deleted by HtmlText (an invisible break hint). Other
+    format characters (Cf) are invisible: they are deleted, except the separators above, which become
+    spaces."""
+    if fmt in ("pdf", "text"):
+        piece = piece.replace("\u00ad", "-")
+    return "".join(
+        " " if char in _SEPARATING_FORMAT else char
+        for char in piece
+        if char in _SEPARATING_FORMAT or unicodedata.category(char) != "Cf"
+    )
+
+
 def appendix_region(text: str, report: dict[str, Any], parts: list[dict[str, Any]] | None = None) -> str:
-    """The appendix, read by where each part came from: in text from a PDF every soft hyphen is a
-    hyphen (pypdf's U+00AD is a drawn hyphen), and from text from a web page format characters (Cf)
-    are deleted (a soft hyphen there is an invisible break hint); other text is kept as it is.
-    ``parts`` says where each part of the text came from; without it, all of it is the report's format."""
+    """The appendix, each part read by where it came from (read_part). ``parts`` says where each part
+    of the text came from; without it, all of it is the report's format."""
     start, end = appendix_span(text, report)
     if parts is None:
         parts = [{"format": source_format(report), "start": 0, "end": len(text)}]
@@ -1108,12 +1206,7 @@ def appendix_region(text: str, report: dict[str, Any], parts: list[dict[str, Any
         if first >= last:
             continue
         pieces.append(text[position:first])  # the "\n\n" between parts
-        piece = text[first:last]
-        if part["format"] == "pdf":
-            piece = piece.replace("\u00ad", "-")
-        elif part["format"] == "html":
-            piece = "".join(char for char in piece if unicodedata.category(char) != "Cf")
-        pieces.append(piece)
+        pieces.append(read_part(text[first:last], part["format"]))
         position = last
     pieces.append(text[position:end])
     return "".join(pieces)
@@ -1185,11 +1278,9 @@ def truth_path(name: str, report_id: str) -> Path:
 def command_truth(name: str) -> None:
     for report in manifest(name):
         text = read_text(text_path(name, report))
-        conversion = conversion_path(name, report)
-        parts = (
-            json.loads(conversion.read_text(encoding="utf-8")).get("parts") if conversion.exists() else None
-        )
-        truth, masked, ambiguous = ground_truth(text, report, parts)
+        conversion = json.loads(conversion_path(name, report).read_text(encoding="utf-8"))
+        check_unchanged(name, report, conversion, text)
+        truth, masked, ambiguous = ground_truth(text, report, conversion["parts"])
         out = truth_path(name, report["id"])
         out.parent.mkdir(parents=True, exist_ok=True)
         data = {
@@ -1521,6 +1612,11 @@ def command_score(name: str, label: str) -> None:
     )
     if sorted(by_id) != sorted(report["id"] for report in results["reports"]):
         raise SystemExit(f"the results do not cover the reports of set {name!r} in the manifest; run again")
+    made_by = results["meta"].get("evaluate_sha256")
+    if made_by is None:
+        print("note: these results were made before `run` recorded the SHA-256 of evaluate.py")
+    elif made_by != sha256(SCRIPT):
+        raise SystemExit("another version of evaluate.py made these results; run them again")
     unjudged: dict[str, dict[str, list[str]]] = {}
     lost: dict[str, Values] = {}
     for report in results["reports"]:

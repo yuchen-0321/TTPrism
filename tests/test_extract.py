@@ -1455,8 +1455,7 @@ def test_soft_hyphen_at_a_line_end_leaves_a_fragment() -> None:
 
 @pytest.mark.parametrize(
     "hyphen",
-    ["-", "\ufe63", "\uff0d", "\u2010", "\u2011", "\u2212", "-\u200b", "-\u00ad", "-\u2069",
-     "-\u200b\u00ad\u200b"],
+    ["-", "\ufe63", "\uff0d", "\u2010", "\u2011", "\u2212", "-\u200b", "-\u2069"],
 )  # fmt: skip
 @pytest.mark.parametrize("gap", ["", " ", "\u200b", "\u3000 "])
 def test_soft_hyphen_after_a_hyphen_at_a_line_end_is_deleted(hyphen: str, gap: str) -> None:
@@ -1466,6 +1465,15 @@ def test_soft_hyphen_after_a_hyphen_at_a_line_end_is_deleted(hyphen: str, gap: s
     hard = analyze_text(f"http://198.51.100.7/KB-Auto-{gap}\nwin.exe", options)
     assert (soft.iocs, soft.suppressed) == (hard.iocs, hard.suppressed)
     assert "http://198.51.100.7/KB-Auto-win.exe" in soft.iocs_of(IOCType.URL)
+
+
+def test_soft_hyphens_before_a_line_end_one_after_a_hyphen_are_hyphens() -> None:
+    # Only the soft hyphen at the line end is deleted; pdftotext gives "---" for the same PDF line.
+    options = AnalysisOptions(include_reserved=True)
+    for gap in ("", "\u200b"):
+        soft = analyze_text(f"http://198.51.100.7/KB-\u00ad{gap}\u00ad\nAuto.exe", options)
+        hard = analyze_text(f"http://198.51.100.7/KB--{gap}-\nAuto.exe", options)
+        assert (soft.iocs, soft.suppressed) == (hard.iocs, hard.suppressed)
 
 
 @pytest.mark.parametrize(
@@ -1770,7 +1778,7 @@ def test_soft_hyphen_check_reads_a_bounded_amount_of_text() -> None:
         (warning,) = soft_hyphen_warnings(
             "KB\u00adAuto.example.com " + "x " * 30 + "up\u00addate.example.net"
         )
-    assert warning.startswith("1 extracted value(s) (from the first 40 characters) would differ")
+    assert warning.startswith("1 extracted value(s) (from the first 39 characters) would differ")
 
 
 def test_soft_hyphen_check_stops_at_a_line_end() -> None:
@@ -1788,10 +1796,41 @@ def test_soft_hyphen_check_skips_what_the_line_break_rules_skip() -> None:
     # A no-break space or a zero-width space after the hyphen does not end the URL's line.
     from ttprism import analyze
 
-    for gap in ("\u00a0", "\u200b", " \u200b\t"):
+    # U+13439 is a format character that refang deletes, but not one in the Unicode data of Python 3.11.
+    for gap in ("\u00a0", "\u200b", " \u200b\t", "\U00013439"):
         text = f"KB\u00adAuto.example.com\nhttp://198.51.100.7/update-{gap}\nwin.exe now\n" + "x " * 30
         with mock.patch.object(analyze, "MAX_SOFT_HYPHEN_CHECK_CHARS", 55):
             assert analyze._checked_part(text) == "KB\u00adAuto.example.com"
+
+
+@pytest.mark.parametrize(
+    ("text", "limit", "checked"),
+    [
+        # Line ends of CR alone, and a text of one line: cut at the last blank run before the limit.
+        ("KB\u00adAuto.example.com\rsee http://198.51.100.7/payload/update.exe\rend\r", 38,
+         "KB\u00adAuto.example.com\rsee"),
+        ("Report\n" + "C2 KB\u00adAuto.example.com " * 4 + "\n", 60,
+         "Report\n" + "C2 KB\u00adAuto.example.com " * 2 + "C2"),
+        # Not inside a spaced defang, which refang joins.
+        ("a.example.com evil [.] example [.] com x", 33, "a.example.com"),
+        ("a.example.com ops [at] example.org x", 26, "a.example.com"),
+        # No blank run in the window: cut at the limit.
+        ("KB\u00adAuto.example.com,see,http://198.51.100.7/a", 30, "KB\u00adAuto.example.com,see,http:/"),
+    ],
+)  # fmt: skip
+def test_soft_hyphen_check_cuts_where_no_value_goes_on(text: str, limit: int, checked: str) -> None:
+    from ttprism import analyze
+
+    with mock.patch.object(analyze, "MAX_SOFT_HYPHEN_CHECK_CHARS", limit):
+        assert analyze._checked_part(text) == checked
+
+
+def test_soft_hyphen_check_cut_on_a_line_without_line_breaks_gives_no_false_warning() -> None:
+    from ttprism import analyze
+
+    text = "Build KB\u00adAuto\r" + "lorem ipsum\r" * 3 + "see http://198.51.100.7/payload/update.exe\rend\r"
+    with mock.patch.object(analyze, "MAX_SOFT_HYPHEN_CHECK_CHARS", text.index("payload") + 3):
+        assert soft_hyphen_warnings(text) == []
 
 
 class _NotWalked(list[IOC]):
@@ -1815,7 +1854,7 @@ def test_soft_hyphen_check_of_a_long_text_looks_values_up() -> None:
         (warning,) = analyze._soft_hyphen_warning(
             text, collector, _NotWalked(), AnalysisOptions(include_reserved=True)
         )
-    assert warning.startswith("1 extracted value(s) (from the first 30 characters)")
+    assert warning.startswith("1 extracted value(s) (from the first 29 characters)")
 
 
 @pytest.mark.parametrize(

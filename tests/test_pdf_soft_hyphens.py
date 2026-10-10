@@ -48,6 +48,8 @@ LINES = [
     b"date.example.com",
     b"Dot soft: files.\\255",
     b"example.net",
+    b"Hard, two soft: http://198.51.100.7/KB-\\255\\255",
+    b"Auto.exe",
 ]
 # The first lines have soft hyphens only inside them.
 MID_LINE = 8

@@ -512,6 +512,9 @@ def test_canaries_pass_on_a_fixed_python() -> None:
         ("<p>a<script><!-- document.write('<script>x</script>'); leak.example.com --></script>b</p>", "ab"),
         ("<p>a<script><!-- x --></script>b<script>y</script>c</p>", "abc"),
         ("<p>a<script><!--<script></script>--></script>b</p>", "ab"),
+        # Only "</script" and one character leave the doubly escaped state; the rest is script data.
+        ("<p>A<script><!--<script></script --><script>x</script>B.example.com</p>", "AB.example.com"),
+        ("<p>A<script><!--<script></script x='<script>'></script>B.example.com</p>", "A"),
         # "<!-->" and "<!--->" are empty comments.
         ("<p>a</p><!--><p>b</p><!-- y --><p>c</p>", "a\n\nb\n\nc"),
         ("<p>a</p><!---><p>b</p><!-- y --><p>c</p>", "a\n\nb\n\nc"),
@@ -568,13 +571,41 @@ def truth_of(appendix_text: str) -> dict[str, list[str]]:
 
 
 def test_values_right_after_chinese_text_are_found() -> None:
-    assert truth_of("網域evil.example.com，位址198.51.100.7，網址http://203.0.113.9/a.exe 下載") == {
+    assert truth_of("網域evil.example.com，位址198.51.100.7，網址http://203.0.113.9/a.exe下載") == {
         "domain": ["evil.example.com"],
         "ipv4": ["198.51.100.7"],
         "url": ["http://203.0.113.9/a.exe"],
     }
     # Only ASCII letters and digits are part of a name: not U+017F, which IGNORECASE folds to "s".
     assert truth_of("evil.\u017fx.com") == {"domain": ["x.com"]}
+
+
+def test_a_url_ends_at_the_first_character_that_is_not_printable_ascii() -> None:
+    assert truth_of("http://evil.example.com/a.php?id=1，样本 hxxp://evil[.]example[.]net/a。") == {
+        "domain": ["evil.example.com", "evil.example.net"],
+        "url": ["http://evil.example.com/a.php?id=1", "http://evil.example.net/a"],
+    }
+    assert truth_of("https://a.example.com/x、https://b.example.net/y")["url"] == [
+        "https://a.example.com/x",
+        "https://b.example.net/y",
+    ]
+    # A full-width colon and "[://]" defang the scheme's "://".
+    assert truth_of("http\uff1a//a.example.com/x hxxp[://]b.example.net/y")["url"] == [
+        "http://a.example.com/x",
+        "http://b.example.net/y",
+    ]
+
+
+def test_an_address_before_a_full_stop_is_found() -> None:
+    assert truth_of("C2 is 198.51.100.7. Backup 203[.]0[.]113[.]9.") == {
+        "ipv4": ["198.51.100.7", "203.0.113.9"]
+    }
+
+
+def test_chains_of_defanged_dots_cost_linear_time() -> None:
+    for unit in ("a(.)", "a[.]", "1(.)"):
+        cost = seconds_per_mb(lambda u=unit: truth_of(u * 100_000), 0.4)
+        assert cost < 2, unit  # quadratic: minutes
 
 
 def test_parenthesised_dots_are_dots() -> None:
@@ -591,6 +622,22 @@ def test_email_addresses_are_found_and_their_domains_are_not_domains() -> None:
     ) == {
         "email": ["admin@example.net", "info@example.com", "ops@example.org", "x@evil.example.com"],
     }
+    assert truth_of("first[.]last@a.example.com, b(.)c [at] b.example.net, d\uff20c.example.org") == {
+        "email": ["b.c@b.example.net", "d@c.example.org", "first.last@a.example.com"],
+    }
+
+
+def test_each_part_of_the_appendix_is_read_by_its_kind() -> None:
+    # Soft hyphens are hyphens in PDF and text parts; other format characters are deleted, except
+    # those that separate two names (U+2063, the end of a bidi isolate), which become spaces.
+    piece = "update\u00adcheck.example.org up\u200bdate.example.net a.example.com\u2063b.example.com"
+    assert evaluate.read_part(piece, "text") == evaluate.read_part(piece, "pdf")
+    assert evaluate.read_part(piece, "pdf") == (
+        "update-check.example.org update.example.net a.example.com b.example.com"
+    )
+    assert (
+        evaluate.read_part("a.example.com\u2069\u2066b.example.com", "html") == "a.example.com b.example.com"
+    )
 
 
 # --------------------------------------------------------------------------- what each step was made from
@@ -601,24 +648,60 @@ def test_truth_records_what_it_was_made_from_and_later_steps_check_it(
 ) -> None:
     entry = {
         **report("IOCs"),
-        "format": "pdf",
         "truth_corrections": {"remove": {"domain": ["a.example.com"]}, "notes": ["test"]},
     }
-    (tmp_path / "t" / "text").mkdir(parents=True)
-    (tmp_path / "t" / "text" / "t01.txt").write_bytes(b"IOCs\nb.example.com\nEND")
+    (tmp_path / "t" / "html").mkdir(parents=True)
+    source = tmp_path / "t" / "html" / "t01.html"
+    source.write_bytes(b"<p>IOCs</p><p>a.example.com b.example.com</p><p>END</p>")
     monkeypatch.setattr(evaluate, "DATA", tmp_path)
     monkeypatch.setattr(evaluate, "manifest", lambda name: [entry])
+    monkeypatch.setattr(evaluate, "selection_rule", lambda name: "every test page")
+    monkeypatch.setattr(evaluate, "check_html_parser", evaluate.html_parser_info)
+    evaluate.command_text("t")
     evaluate.command_truth("t")
-    text_hash = evaluate.text_sha256("IOCs\nb.example.com\nEND")
+    text_hash = evaluate.text_sha256(evaluate.read_text(tmp_path / "t" / "text" / "t01.txt"))
     assert evaluate.load_truth("t", entry, text_hash)["truth"]["domain"] == ["b.example.com"]
     with pytest.raises(SystemExit, match="another version of the text"):
         evaluate.load_truth("t", entry, "0" * 64)
     changed = {**entry, "truth_corrections": {"notes": ["test"]}}
     with pytest.raises(SystemExit, match="another version of its appendix markers or corrections"):
         evaluate.load_truth("t", changed, text_hash)
+    # A charset given in the manifest after `text` stops `truth` (and `run`) until `text` runs again.
+    monkeypatch.setattr(evaluate, "manifest", lambda name: [{**entry, "http_charset": "big5"}])
+    with pytest.raises(SystemExit, match="charsets or attachments changed"):
+        evaluate.command_truth("t")
+    monkeypatch.setattr(evaluate, "manifest", lambda name: [entry])
+    source.write_bytes(b"<p>IOCs</p><p>c.example.com</p><p>END</p>")
+    with pytest.raises(SystemExit, match="changed since `text`"):
+        evaluate.command_truth("t")
     monkeypatch.setattr(evaluate, "sha256", lambda path: "0" * 64)
     with pytest.raises(SystemExit, match=r"another version of evaluate\.py"):
         evaluate.load_truth("t", entry, text_hash)
+
+
+def test_score_stops_on_results_of_another_evaluate_py(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    results = tmp_path / "results.json"
+    results.write_text(json.dumps({"meta": {"evaluate_sha256": "0" * 64}, "reports": []}), encoding="utf-8")
+    monkeypatch.setattr(evaluate, "manifest", lambda name: [])
+    monkeypatch.setattr(evaluate, "results_path", lambda name, label: results)
+    with pytest.raises(SystemExit, match=r"another version of evaluate\.py made these results"):
+        evaluate.command_score("t", "after")
+
+
+def test_text_needs_a_committed_selection_rule(monkeypatch: pytest.MonkeyPatch) -> None:
+    head = {"selection_rule": {"t": "written before"}}
+
+    def fake_run(cmd: list[str], **kwargs: Any) -> mock.Mock:
+        return mock.Mock(returncode=0, stdout=json.dumps(head))
+
+    monkeypatch.setattr(evaluate, "load_manifest", lambda: {"selection_rule": {"t": "edited later"}})
+    monkeypatch.setattr(evaluate.subprocess, "run", fake_run)
+    with pytest.raises(SystemExit, match="not committed as it stands"):
+        evaluate.selection_rule("t")
+    head["selection_rule"]["t"] = "edited later"
+    assert evaluate.selection_rule("t") == "edited later"
 
 
 def test_the_executed_ttprism_is_this_repository() -> None:
@@ -722,6 +805,26 @@ def valid_manifest() -> dict[str, Any]:
         ),
         (lambda m: m["sets"]["t"].append(dict(m["sets"]["t"][0])), "id 't01' occurs twice"),
         (lambda m: m["selection_rule"].pop("t"), "needs a selection rule"),
+        (
+            lambda m: m["sets"]["t"][0].update(
+                truth_corrections={"remove": {"domain": "a.example"}, "notes": ["r"]}
+            ),
+            "not a list of values",
+        ),
+        (
+            lambda m: m["sets"]["t"][0].update(
+                truth_corrections={"ambiguous": {"domain": ["a", "b"]}, "notes": ["r"]}
+            ),
+            "two or more readings",
+        ),
+        (lambda m: m["sets"]["t"][0].update(truth_corrections={"notes": "r"}), "not a list of reasons"),
+        (lambda m: m["sets"]["t"][0].update(format="html", http_charset="gb-2312"), "unknown http_charset"),
+        (
+            lambda m: m["sets"]["t"][0].update(charset_override={"charset": "gbk", "reason": "r"}),
+            "a PDF has no charset",
+        ),
+        (lambda m: m["sets"]["t"][0]["appendix"].update(start=""), "appendix.start"),
+        (lambda m: m.update(skipped={"t": [{"titel": "x"}]}), "skipped.t[0]: unknown field 'titel'"),
     ],
 )
 def test_manifest_problems_are_reported(change: Any, problem: str) -> None:
@@ -731,3 +834,13 @@ def test_manifest_problems_are_reported(change: Any, problem: str) -> None:
     assert any(problem in found for found in evaluate.manifest_problems(data)), evaluate.manifest_problems(
         data
     )
+
+
+def test_a_charset_override_decodes_a_text_attachment(tmp_path: Path) -> None:
+    plain = tmp_path / "iocs.txt"
+    plain.write_bytes("樣本 a.example.com\n".encode("gbk"))
+    with pytest.raises(UnicodeDecodeError):
+        evaluate.convert(plain, "text")
+    text, info = evaluate.convert(plain, "text", override="gbk")
+    assert text == "樣本 a.example.com\n"
+    assert info["method"] == "text decoded as gb18030 (charset override in the manifest)"

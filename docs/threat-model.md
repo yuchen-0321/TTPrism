@@ -86,23 +86,25 @@ whose entries are each checked, and each URL of `network.http`, `http_ex` and `h
 bounded by `--max-size` like text reports, not by the caps.
 
 A text with a soft hyphen that refang reads as a hyphen has at most its first 8 Mi characters
-(`MAX_SOFT_HYPHEN_CHECK_CHARS`, cut at a line end) extracted a second time, to see whether deleting
-the soft hyphens would change any value. The extra cost is bounded by those 8 Mi characters, so it is at most about
-twice the cost of the same text without the soft hyphen; on 64 MiB of the worst pathological text it
-added 37 s here. The comparison looks values up instead of walking all of them, so it does not grow
-with the rest of the text. Faster IOC extraction is planned for v0.2 (issue #2).
+(`MAX_SOFT_HYPHEN_CHECK_CHARS`, cut where no value can go on) extracted a second time, to see
+whether deleting the soft hyphens would change any value. The extra cost is bounded by those 8 Mi
+characters, so it is at most about twice the cost of the same text without the soft hyphen; on 64
+MiB of the worst pathological text it added 37 s here. The comparison looks values up instead of
+walking all of them, so it does not grow with the rest of the text. Faster IOC extraction is planned
+for v0.2 (issue #2).
 
 ## Known limitations
 
 - **Encoding guesses.** Non-UTF-8 input is decoded with replacement characters unless the analyst
   passes `--encoding` (for example `big5` or `gb18030`). A warning is printed.
 - **Memory.** Parsed JSON can take many times the input size in memory: crafted 64 MiB CAPE reports
-  of millions of tiny objects peaked at 1.0 to 2.0 GB, and at 6.0 GB with 4.2 million distinct
-  addresses kept by `--include-reserved` (see "Measured cost"). Every distinct extracted value is
-  kept, with where it was seen, until the output is written, so a text report of millions of
-  distinct short values takes far more: 8.1 GB for 64 MiB of distinct short names and 9.9 GB for 64
-  MiB of distinct short URLs in the measurements above. Lower `--max-size` when processing untrusted
-  reports in bulk or on small machines. Bounding memory is planned for v0.2 (issue #3).
+  of millions of tiny objects peaked at 0.9 to 2.0 GB with the default filtering, and at 2.1 GB (1.3
+  million URLs) and 6.0 GB (4.2 million addresses) with those values kept by `--include-reserved`
+  (see "Measured cost"). Every distinct extracted value is kept, with where it was seen, until the
+  output is written, so a text report of millions of distinct short values takes far more: 8.1 GB
+  for 64 MiB of distinct short names and 9.9 GB for 64 MiB of distinct short URLs in the
+  measurements above. Lower `--max-size` when processing untrusted reports in bulk or on small
+  machines. Bounding memory is planned for v0.2 (issue #3).
 - **Time.** The 64 MiB text reports measured took one to about six and a half minutes, and the 64
   MiB CAPE reports up to about three minutes (see "Measured cost"); other inputs may take longer.
   Lower `--max-size` to bound the time per input when processing untrusted reports in bulk.

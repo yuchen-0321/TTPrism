@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import unicodedata
 from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -22,7 +21,7 @@ from ttprism.inputs import (
     read_bytes,
 )
 from ttprism.models import IOC, AnalysisResult, IOCCollector, IOCType, sort_iocs
-from ttprism.refang import refang, refang_soft_hyphens_as_hints
+from ttprism.refang import blank_run_res, refang, refang_soft_hyphens_as_hints
 
 
 @dataclass
@@ -105,31 +104,35 @@ def analyze_text(text: str, options: AnalysisOptions | None = None) -> AnalysisR
 MAX_SOFT_HYPHEN_CHECK_CHARS = 8 * 1024 * 1024
 
 
+# A part of a long text is cut within this many characters before MAX_SOFT_HYPHEN_CHECK_CHARS.
+_CUT_WINDOW = 65536
 # Characters that, at the end of a line, may join it to the next.
 _LINE_JOINING = frozenset("-\u00ad\u2010\u2011\u2212\ufe63\uff0d")
-
-
-def _line_end_gap(char: str) -> bool:
-    """Characters between a line-end hyphen and the line break that the line-break rules skip:
-    spaces and format characters other than the soft hyphen (refang deletes or folds them first)."""
-    return char in " \t\r" or (unicodedata.category(char) in ("Zs", "Cf") and char != "\u00ad")
+# Brackets of a spaced defang, which refang joins across the spaces ("evil [.] com", "a [at] b.com").
+_OPENING = frozenset("[(\uff08\uff3b\u3010")
+_CLOSING = frozenset("])\uff09\uff3d\u3011")
 
 
 def _checked_part(text: str) -> str:
-    """At most MAX_SOFT_HYPHEN_CHECK_CHARS characters from the start of ``text``, cut after a line
-    that does not end in a hyphen if there is one, so that no value is cut in two and reported in
-    part as if the soft hyphens had changed it."""
-    if len(text) <= MAX_SOFT_HYPHEN_CHECK_CHARS:
+    """At most MAX_SOFT_HYPHEN_CHECK_CHARS characters from the start of ``text``, cut where no value
+    can go on, so that none is cut in two and reported in part as if the soft hyphens had changed it.
+    The cut is at the start of the last blank run (white space, line breaks and what refang deletes)
+    in the last _CUT_WINDOW characters before the limit that leaves a space or line break, and that
+    neither follows a line-end hyphen (the line-break rules may join the lines) nor touches a bracket
+    (refang joins a spaced "[.]" or "[at]"). Without one, the text is cut at the limit."""
+    limit = MAX_SOFT_HYPHEN_CHECK_CHARS
+    if len(text) <= limit:
         return text
-    cut = text.rfind("\n", 0, MAX_SOFT_HYPHEN_CHECK_CHARS)
-    while cut > 0:
-        end = cut
-        while end > 0 and _line_end_gap(text[end - 1]):
-            end -= 1
-        if text[end - 1 : end] not in _LINE_JOINING:
-            return text[:cut]
-        cut = text.rfind("\n", 0, end)
-    return text[:MAX_SOFT_HYPHEN_CHECK_CHARS]
+    blank_run, leaves_space = blank_run_res()
+    for run in reversed(list(blank_run.finditer(text, max(0, limit - _CUT_WINDOW), limit))):
+        start, end = run.span()
+        before, after = text[start - 1 : start], text[end : end + 1]
+        if not leaves_space.search(run.group()) or before in _CLOSING or after in _OPENING:
+            continue
+        if "\n" in run.group() and before in _LINE_JOINING:
+            continue
+        return text[:start]
+    return text[:limit]
 
 
 def _soft_hyphen_warning(

@@ -126,7 +126,11 @@ def _soft_hyphen_res() -> tuple[re.Pattern[str], re.Pattern[str], re.Pattern[str
     )
     hyphens = {ord("-")} | {code for code, value in table.items() if value == "-"}
     run = _char_class(deleted)
-    after_hyphen = f"(?<=[{_char_class(hyphens)}])[{run}]{{0,{_MAX_RUN}}}\\u00ad{line_end}"
+    # Only the soft hyphen at the line end is deleted: another one before it is a hyphen ("KB-" and
+    # two soft hyphens at a line end is "KB--").
+    after_hyphen = (
+        f"(?<=[{_char_class(hyphens)}])[{_char_class(deleted - {0xAD})}]{{0,{_MAX_RUN}}}\\u00ad{line_end}"
+    )
     # A whole run (the lookbehind keeps the search from starting inside one) with a soft hyphen, and a
     # separator or more than _MAX_RUN characters. Each lookahead reads the run once.
     deleted_runs = (
@@ -134,6 +138,17 @@ def _soft_hyphen_res() -> tuple[re.Pattern[str], re.Pattern[str], re.Pattern[str
         f"(?:(?=[{run}]*[{_char_class(_SEPARATORS)}])|(?=[{run}]{{{_MAX_RUN + 1}}}))[{run}]+"
     )
     return re.compile(after_hyphen), re.compile(f"\\u00ad{line_end}"), re.compile(deleted_runs)
+
+
+@functools.cache
+def blank_run_res() -> tuple[re.Pattern[str], re.Pattern[str]]:
+    """Patterns for a run of white space, line breaks and characters that refang deletes or turns
+    into a space (the soft hyphen, which it reads as a hyphen, excepted), and for a character in such
+    a run that leaves a space or a line break."""
+    table = _fold_table()
+    spaces = {0x09, 0x0A, 0x0D, 0x20} | {code for code, value in table.items() if value == " "}
+    deleted = {code for code, value in table.items() if value is None} - {0xAD}
+    return re.compile(f"[{_char_class(spaces | deleted)}]+"), re.compile(f"[{_char_class(spaces)}]")
 
 
 def _without_soft_hyphens(match: re.Match[str]) -> str:
