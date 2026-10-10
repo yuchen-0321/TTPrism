@@ -32,7 +32,7 @@ TTPrism makes no network requests and never executes, decompresses or opens refe
 | Path traversal / clobbering | Output name derived from report content; a crash half-way through writing `-o` | The output path comes only from `-o`; nothing is derived from input. Writing over the input file is refused. Output is encoded first and written to a temporary file that replaces the target only on success, so an existing file is never left truncated. Where a new file cannot take the old one's place (other hard links, a bind-mounted file, a directory the user cannot write to, an owner or group the new file would not get), the file is overwritten in place, as before. Lone surrogates (from non-UTF-8 file names or JSON escapes) are replaced instead of crashing the encoder. Short writes and closed pipes are handled without tracebacks. | `test_cli.py::test_refuses_to_overwrite_input`, `test_cli.py::test_failed_write_keeps_the_existing_output_file`, `test_cli.py::test_output_is_written_in_place_when_it_cannot_be_replaced`, `test_cli.py::test_unencodable_output_is_replaced`, `test_cli.py::test_closed_pipe_fails_quietly` |
 | CSV formula injection | A value starting with `=`, `+`, `-`, `@` opens as a formula in Excel | Cells starting with those characters (or tab/CR/LF) are prefixed with `'`. | `test_export.py`, `test_fuzz.py::test_csv_cells_never_start_a_formula` |
 | Terminal escape injection | A command line containing `ESC]0;…BEL`, an IPv6 zone ID or a YAML key carrying escapes, printed to a terminal | One character set (C0 and C1 controls, DEL, lone surrogates, bidi marks, embeddings, overrides and isolates) is replaced with U+FFFD in evidence, in the input file name written to JSON and STIX, and in every message TTPrism or its argument parser prints; unknown config keys are shown with `repr()`; scoped IPv6 addresses (`%zone`) are rejected. JSON output escapes C0 controls anyway, but not C1 or bidi characters. | `test_export.py::test_output_never_contains_raw_control_characters`, `test_cli.py::test_messages_are_safe_for_terminals`, `test_cli.py::test_argument_errors_are_safe_for_terminals`, `test_cli.py::test_input_name_and_evidence_are_safe_for_terminals`, `test_extract.py::test_scoped_addresses_are_rejected` |
-| Misleading IOCs from Unicode tricks | `microsоft.com` with a Cyrillic о read as `ft.com`; a superscript footnote `45.77.123.9²` read as `45.77.123.92`; zero-width or bidi marks splitting a name | Only width variants, ligatures, hyphens and a few dot forms are folded to ASCII (not full NFKC), so footnote and list digits stay separate and text never grows more than 3x. Format (Cf) characters are removed inside a name; bidi controls between names separate them instead of merging them into one. A name glued to a non-ASCII letter of a space-separated, left-to-right script is dropped instead of truncated; emoji selectors and keycaps are not letters. | `test_refang.py::test_refang_keeps_other_compatibility_characters`, `test_refang.py::test_refang_does_not_expand_text`, `test_extract.py::test_domain_glued_to_other_letters_is_not_truncated`, `test_extract.py::test_bidi_controls_between_names_separate_them`, `test_extract.py::test_emoji_and_right_to_left_letters_next_to_names` |
+| Misleading IOCs from Unicode tricks | `microsоft.com` with a Cyrillic о read as `ft.com`; a superscript footnote `45.77.123.9²` read as `45.77.123.92`; zero-width or bidi marks splitting a name | Only width variants, ligatures, hyphens and a few dot forms are folded to ASCII (not full NFKC), so footnote and list digits stay separate and text never grows more than 3x. Format (Cf) characters are removed inside a name, except that a soft hyphen between two letters or digits is read as a hyphen, as text extracted from a PDF has one where the page shows a hyphen; bidi controls between names separate them instead of merging them into one. A name glued to a non-ASCII letter of a space-separated, left-to-right script is dropped instead of truncated; emoji selectors and keycaps are not letters. | `test_refang.py::test_refang_keeps_other_compatibility_characters`, `test_refang.py::test_refang_does_not_expand_text`, `test_extract.py::test_domain_glued_to_other_letters_is_not_truncated`, `test_extract.py::test_bidi_controls_between_names_separate_them`, `test_extract.py::test_emoji_and_right_to_left_letters_next_to_names` |
 | STIX pattern injection | A URL containing `'` breaking out of the pattern literal | Values are escaped per the STIX patterning grammar and validated by the `stix2` library in tests. | `test_stix.py::test_pattern_escaping` |
 | Hidden characters in our own source | Zero-width or bidi characters that hide code from review (Trojan Source) | Test data spells such characters as escapes; a test fails if any text file contains them. | `tests/test_repo_hygiene.py` |
 | Supply chain | Compromised maintainer token or CI action | No long-lived PyPI token (Trusted Publishing); GitHub Actions pinned by commit SHA and updated by Dependabot; least-privilege workflow permissions; one runtime dependency (PyYAML). | `.github/workflows/`, `docs/maintainer-setup.md` |
@@ -50,36 +50,45 @@ about twice as slow. Costs are per MB of input.
 | Rule matching | Worst pathological case in `tests/test_redos.py` | 0.9 s/MB |
 | IOC extraction | CAPE command lines, everyday content | 0.8–1.1 s/MB |
 | IOC extraction | Report text (`tests/data/report_zh.md` repeated) | 0.9–1.2 s/MB |
-| IOC extraction | Report text with soft hyphens between letters (the eight evaluation reports repeated) | 1.0–1.2 s/MB, about twice the cost without them |
+| IOC extraction | Report text with a soft hyphen between two letters or digits: its first 8 Mi characters are extracted a second time | At most about twice the cost of the same text without it; 5.4 s/MB on the worst pathological case with one added |
 | IOC extraction | Worst pathological case in `tests/test_redos.py` | 2.3–3.5 s/MB |
 
-At the default `--max-size` of 64 MiB, a whole analysis (`ttprism analyze`, reading and decoding
+At the default `--max-size` of 64 MiB, a whole analysis (`ttprism extract`, reading and decoding
 included) took:
 
-| Input of about 64 MiB | Time |
-| --- | --- |
-| Text report, everyday content | 83 s |
-| Text report, the worst pathological text, repeated | 235 s |
-| CAPE report whose command lines are all pathological text (both 8 Mi caps reached) | 25 s |
-| CAPE report of 1.7 million network host entries | 14 s |
+| Input of 64 MiB | Time | Peak memory |
+| --- | --- | --- |
+| Text report, everyday content (`tests/data/report_zh.md` repeated) | 79 s | 0.4 GB |
+| Text report, the worst pathological text of `tests/test_redos.py` repeated | 186 s | 0.3 GB |
+| The same with one soft hyphen between two letters | 223 s | 0.4 GB |
+| Text report of distinct names with a soft hyphen each (`h0\u00adx.example.com …`) | 125 s | 1.5 GB |
+| Invalid UTF-8 (every byte `0xFF`, read as U+FFFD) | 130 s | 0.4 GB |
+| Distinct short names (`a.0.io a.1.io …`, 5.7 million values) | 345 s | 8.1 GB |
+| CAPE report whose command lines are all pathological text (both 8 Mi caps reached) | 25 s | |
+| CAPE report of 1.7 million network host entries | 14 s | |
 
-Text reports are bounded only by `--max-size`, so a hostile 64 MiB text costs about four minutes of
-CPU time but no more; the CAPE caps keep a hostile report under half a minute. A text with a soft
-hyphen between two letters or digits has its first 8 Mi characters extracted a second time, to see
-whether reading the soft hyphens as hyphens changes any name or URL (`MAX_SOFT_HYPHEN_CHECK_CHARS`);
-on the worst pathological case of `tests/test_redos.py` that added 19 s here (8.4 million
-characters, 10.3 MB), so about half a minute at most, or up to a minute on a machine twice as
-slow. Faster IOC extraction is
-planned for v0.2 (issue #2).
+Text reports are bounded only by `--max-size`, so a 64 MiB text costs one to about six minutes of
+CPU time but no more: 79 to 345 s here, the most for millions of distinct short names (the
+maintainer's review measured the equivalent of 5 to 5.7 minutes for those and for invalid UTF-8 on
+its machine and inputs). The CAPE caps keep a hostile report under half a minute.
+
+A text with a soft hyphen between two letters or digits has its first 8 Mi characters
+(`MAX_SOFT_HYPHEN_CHECK_CHARS`) extracted a second time, to see whether deleting those soft hyphens
+would change any value. The extra cost is bounded by those 8 Mi characters, so it is at most about
+twice the cost of the same text without the soft hyphen; on 64 MiB of the worst pathological text it
+added 37 s here. The comparison looks values up instead of walking all of them, so it does not grow
+with the rest of the text. Faster IOC extraction is planned for v0.2 (issue #2).
 
 ## Known limitations
 
 - **Encoding guesses.** Non-UTF-8 input is decoded with replacement characters unless the analyst
   passes `--encoding` (for example `big5` or `gb18030`). A warning is printed.
 - **Memory.** Parsed JSON can take up to about 25 times the input size in memory: a crafted
-  64 MiB report (millions of tiny objects) peaks around 1.6 GB. Lower `--max-size` when processing
-  untrusted reports in bulk or on small machines.
-- **Time.** A 64 MiB text report takes one to four minutes (see "Measured cost"). Lower
+  64 MiB report (millions of tiny objects) peaks around 1.6 GB. Every distinct extracted value is
+  kept, with where it was seen, until the output is written, so a text report of millions of
+  distinct short names takes far more: 8.1 GB for 64 MiB of them (5.7 million values). Lower
+  `--max-size` when processing untrusted reports in bulk or on small machines.
+- **Time.** A 64 MiB text report takes one to about six minutes (see "Measured cost"). Lower
   `--max-size` to bound the time per input when processing untrusted reports in bulk.
 - **Python versions.** The JSON nesting guarantee relies on CPython's recursion guard, which every
   supported version (3.11+) provides. The deepest document accepted differs between versions
