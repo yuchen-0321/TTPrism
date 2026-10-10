@@ -65,14 +65,25 @@ included) took:
 | Invalid UTF-8 (every byte `0xFF`, read as U+FFFD) | 130 s | 0.4 GB |
 | Distinct short names (`a.0.io a.1.io …`, 5.7 million values) | 345 s | 8.1 GB |
 | Distinct short URLs (`http://a.0.io/ …`, 3.4 million URLs and as many hosts) | 379 s | 9.9 GB |
-| CAPE report whose command lines are all pathological text (both 8 Mi caps reached) | 25 s | |
-| CAPE report of 1.7 million network host entries | 14 s | |
+| CAPE report of 8 KiB URIs of pathological text in `network.http` (or paths in `https_ex`) | 151 s | 0.2 GB |
+| CAPE report of 4.2 million distinct host addresses, kept (`--include-reserved`) | 186 s | 6.0 GB |
+| The same, filtered as reserved (the default) | 79 s | 2.0 GB |
+| CAPE report of 1.3 million distinct URLs in `network.http`, kept (`--include-reserved`) | 90 s | 2.1 GB |
+| The same, filtered as reserved (the default) | 56 s | 0.9 GB |
+| CAPE report of 1.1 million dropped files with distinct hashes | 40 s | 1.8 GB |
+| CAPE report of 1.5 million DNS queries with answers, filtered as reserved | 33 s | 1.2 GB |
+| CAPE report whose command lines are all pathological text (both 8 Mi caps reached) | 31 s | 0.2 GB |
+| CAPE report of 3 million distinct API names | 8 s | 1.0 GB |
 
 Text reports are bounded only by `--max-size`. These are measured examples, not upper bounds: the
 64 MiB texts above took 79 to 379 s here, about one to six and a half minutes, the most for millions
 of distinct short URLs and names, which also take the most memory (the maintainer's review measured
 the equivalent of 5 to 5.7 minutes for distinct short names and for invalid UTF-8 on its machine and
-inputs). The CAPE caps keep a hostile report under half a minute.
+inputs). CAPE reports of 64 MiB took 8 to 186 s, up to about three minutes: the caps bound
+command lines and the behaviour lists, but not the network sections, dropped files or payloads,
+whose entries are each checked, and each URL of `network.http`, `http_ex` and `https_ex` (up to
+8 KiB) is searched for IOCs with no cap on their total length. Hostile CAPE reports are therefore
+bounded by `--max-size` like text reports, not by the caps.
 
 A text with a soft hyphen that refang reads as a hyphen has at most its first 8 Mi characters
 (`MAX_SOFT_HYPHEN_CHECK_CHARS`, cut at a line end) extracted a second time, to see whether deleting
@@ -85,15 +96,16 @@ with the rest of the text. Faster IOC extraction is planned for v0.2 (issue #2).
 
 - **Encoding guesses.** Non-UTF-8 input is decoded with replacement characters unless the analyst
   passes `--encoding` (for example `big5` or `gb18030`). A warning is printed.
-- **Memory.** Parsed JSON can take up to about 25 times the input size in memory: a crafted
-  64 MiB report (millions of tiny objects) peaks around 1.6 GB. Every distinct extracted value is
+- **Memory.** Parsed JSON can take many times the input size in memory: crafted 64 MiB CAPE reports
+  of millions of tiny objects peaked at 1.0 to 2.0 GB, and at 6.0 GB with 4.2 million distinct
+  addresses kept by `--include-reserved` (see "Measured cost"). Every distinct extracted value is
   kept, with where it was seen, until the output is written, so a text report of millions of
-  distinct short values takes far more: 8.1 GB for 64 MiB of distinct short names and 9.9 GB for
-  64 MiB of distinct short URLs in the measurements above. Lower `--max-size` when processing
-  untrusted reports in bulk or on small machines.
-- **Time.** The 64 MiB text reports measured took one to about six and a half minutes (see
-  "Measured cost"); other inputs may take longer. Lower `--max-size` to bound the time per input
-  when processing untrusted reports in bulk.
+  distinct short values takes far more: 8.1 GB for 64 MiB of distinct short names and 9.9 GB for 64
+  MiB of distinct short URLs in the measurements above. Lower `--max-size` when processing untrusted
+  reports in bulk or on small machines. Bounding memory is planned for v0.2 (issue #3).
+- **Time.** The 64 MiB text reports measured took one to about six and a half minutes, and the 64
+  MiB CAPE reports up to about three minutes (see "Measured cost"); other inputs may take longer.
+  Lower `--max-size` to bound the time per input when processing untrusted reports in bulk.
 - **Python versions.** The JSON nesting guarantee relies on CPython's recursion guard, which every
   supported version (3.11+) provides. The deepest document accepted differs between versions
   (see the nesting row above), so the same deep input may be accepted on one version and rejected
