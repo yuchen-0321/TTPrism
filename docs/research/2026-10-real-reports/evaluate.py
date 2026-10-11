@@ -1534,8 +1534,15 @@ _NAME_CUT_TAIL = re.compile(r"(?<![A-Za-z0-9.\-])[A-Za-z0-9][A-Za-z0-9.\-]*[.\-]
 _NAME_CUT_HEAD = re.compile(r"\s*[.\-][A-Za-z0-9]")
 _SCHEME_START = re.compile(r"\s*(?:https?|hxxps?|ftp|fxp)://", re.IGNORECASE)
 # Chinese text that goes on with a file extension or path ("年度計畫 .rar", pypdf's "年第 1 季報告 .pdf").
-_CJK_PATH_HEAD = re.compile(r"\s*[^\x00-\x7f\s](?:[^\x00-\x7f]|[0-9() ]){0,63}?[./_?=&-][A-Za-z0-9]")
-_ROW_HEAD = re.compile(r"\s*(?:\(?[0-9]{1,3}[.)\u3001]?|[A-Za-z]{1,8}:?|[-*\u2022\u2027])[\t ]+")
+_CJK_PATH_HEAD = re.compile(
+    r"\s*[^\x00-\x7f\s](?:[^\x00-\x7f]|[0-9() ]){0,63}?(?:\.[A-Za-z]|[/_?=&-][A-Za-z0-9])"
+)
+# A list number or a short cell before the next row's value: "2.", "2、", pypdf's "2 、", "(2)", "一、",
+# "-", or a type cell ("URL", "IP", "C2", "SHA256", "SHA-1").
+_ROW_HEAD = re.compile(
+    r"\s*(?:(?:\(?[0-9]{1,3}\s?[.)\u3001]|[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341]{1,3}"
+    r"\s?[\u3001.])[\t ]*|(?:[0-9]{1,3}|[A-Za-z][A-Za-z0-9\-]{0,7}:?|[-*\u2022\u2027])[\t ]+)"
+)
 _OTHER_SCHEME = re.compile(
     r"(?<![A-Za-z0-9+.\-])[A-Za-z][A-Za-z0-9+.\-]{0,15}://(?:[^\s/@]{0,64}@)?", re.ASCII
 )
@@ -1767,7 +1774,8 @@ WARNING_KINDS = {
     "naming several types names none)",
     "name-cut": "a name that ends at the end of a line with '.' or '-' before a line that starts with a "
     "name character or with '.' or '-', or a line that starts with '.' or '-' after a line that ends in "
-    "a name: the name may go on in the next line",
+    "a name: the name may go on in the next line; or digits and dots at a line end and the next line's "
+    "start that make an IPv4 address together: the address may be cut",
     "url-cut": "in PDF text, a URL that reaches the end of a line before a line that does not start with "
     "a value or a scheme (past a list number or a short cell), that starts with the full-width form of a "
     "URL character, or that is Chinese text when the URL ends in '/', '=', '?', '&', '-' or '_' or the "
@@ -1782,8 +1790,8 @@ WARNING_KINDS = {
     "stops before non-ASCII letters (after a space, only when it ends in a separator or the text goes on "
     "with a file extension or path) or before the full-width form of a URL character: it may go on",
     "masked": "a masked value (an asterisk inside it, or 'xxx' standing alone), left out of the draft",
-    "mask-next": "a value next to a mask character (* ＊ # ○ ●, or x after an address): it may be the "
-    "visible part of a masked value",
+    "mask-next": "a value next to a mask character (* ＊ # ○ ●, or x after an address; also across a "
+    "spaced dot or at sign), or with 'xxx' inside a label: it may be the visible part of a masked value",
     "own-address": "a value at the report's own address (original_url or final_url): often a page header "
     "printed inside the appendix",
     "loose-defang": "numbering glued to a value by a full-width dot, read as part of no value "
@@ -1965,7 +1973,9 @@ def draft_truth(
                 warnings.add(
                     n,
                     "mask-next",
-                    f"{entry['type']} {entry['value']} is next to {mask!r}: it may be the visible part of a "
+                    f"{entry['type']} {entry['value']} "
+                    + ("contains 'xxx'" if mask == "xxx" else f"is next to {mask!r}")
+                    + ": it may be the visible part of a "
                     "masked value, or the mark may be a footnote or bullet",
                     [entry["value"]],
                 )
@@ -2062,11 +2072,14 @@ def _mask_next_to(text: str, entry: dict[str, Any]) -> str:
     if entry["type"] in _HASH_TYPES:
         return ""
     masks = _MASKS + ("xX" if entry["type"] == "ipv4" else "")
-    before = text[max(0, entry["start"] - 6) : entry["start"]].rstrip(" \u3000")
-    if before[-1:] in (".", "@", "\uff0e", "\uff20"):
-        before = before[:-1].rstrip(" \u3000")
+    before = text[max(0, entry["start"] - 6) : entry["start"]]
     if before[-1:] and before[-1:] in masks:
         return before[-1:]
+    spaced = before.rstrip(" \u3000")
+    if spaced[-1:] in (".", "@", "\uff0e", "\uff20"):
+        spaced = spaced[:-1].rstrip(" \u3000")
+        if spaced[-1:] and spaced[-1:] in masks:
+            return spaced[-1:]
     after = entry["end"]
     if text[after : after + 1] == "." and entry["type"] != "url":
         after += 1
@@ -2074,7 +2087,11 @@ def _mask_next_to(text: str, entry: dict[str, Any]) -> str:
         while after < limit and text[after].isascii() and (text[after].isalnum() or text[after] == "-"):
             after += 1
     following = text[after : after + 1]
-    return following if following and following in masks else ""
+    if following and following in masks:
+        return following
+    # "xxx" inside a label is a word ("foxxxy") or a mask ("mail.nxxxx.gov.tw"), which the reviewer
+    # tells apart.
+    return "xxx" if re.search("xxx", text[entry["start"] : entry["end"]], re.IGNORECASE) else ""
 
 
 def _url_end_warnings(warnings: _Warnings, n: int, entry: dict[str, Any], reading: Reading) -> None:
@@ -2169,12 +2186,32 @@ def _loose_defang_warnings(warnings: _Warnings, n: int, reading: Reading, result
         warnings.add(
             n,
             "loose-defang",
-            f"full-width dots or at signs read as '.' or '@' that are part of no value ({len(forms)}, e.g. "
-            f"{forms[0]!r}): they may be numbering glued to a value, which may be wrong or missing",
+            f"numbering glued to a value by a full-width dot ({len(forms)}, e.g. {forms[0]!r}): the dot is "
+            "part of no value or is read into one, and the value may be wrong or missing",
         )
 
 
-_GLUED_NUMBER = re.compile(r"[0-9]{1,3}\.(?=[A-Za-z])")
+# The digits and dots that start a line (a full-width dot there is not read: nothing before it).
+_ADDRESS_HEAD = re.compile("\\s*([.\uff0e]?[0-9][0-9.]{0,14})")
+
+
+def _trailing_address_run(text: str) -> str:
+    """The run of digits and dots (at most 15) at the end of a line, past white space, or "" when it
+    goes on from a letter or digit before it."""
+    end = len(text)
+    while end > 0 and end > len(text) - 64 and text[end - 1].isspace():
+        end -= 1
+    start = end
+    while start > max(0, end - 15) and text[start - 1] in "0123456789.":
+        start -= 1
+    if start == end or not any(char.isdigit() for char in text[start:end]):
+        return ""
+    if start > 0 and text[start - 1].isascii() and text[start - 1].isalnum():
+        return ""
+    return text[start:end]
+
+
+_GLUED_NUMBER = re.compile(r"[0-9]{1,3}\.(?=[A-Za-z0-9])")
 
 
 def _date_or_version(text: str, index: int) -> bool:
@@ -2272,6 +2309,21 @@ def _cut_warnings(
         return
     lead = len(after) - len(after.lstrip())
     starting = [e["value"] for e in results[index + 1]["found"] if e["start"] <= lead]
+    # An IPv4 address cut by a line break, as a narrow cell breaks full-width digits anywhere: digits
+    # and dots at the end of this line and the start of the next that make an address together,
+    # when this line's do not end in a whole one ("１９８．５１．１" / "００．２３").
+    tail_run = _trailing_address_run(text)
+    head_run = _ADDRESS_HEAD.match(after)
+    if tail_run and head_run and (tail_run.count(".") < 3 or tail_run.endswith(".")):
+        joined_run = tail_run + head_run.group(1).replace("\uff0e", ".")
+        address = _IPV4.search(joined_run)
+        if address and address.start() < len(tail_run) < address.end():
+            warnings.add(
+                n,
+                "name-cut",
+                f"the line ends in {tail_run!r} and the next starts with {head_run.group(1)!r}: the address "
+                f"{address.group(0)} may be cut",
+            )
     cut = _NAME_CUT_TAIL.search(text)
     if cut and (_starts_with_name_character(after) or _NAME_CUT_HEAD.match(after)):
         first = after.split()[0] if after.strip() else ""
@@ -2350,9 +2402,27 @@ _META_TAKEN_OUT = re.compile(
     r"<meta\b[^>]{0,65536}?\bhttp-equiv\s*=\s*[\"']?\s*(?:refresh|content-security-policy)\b[^>]{0,65536}>",
     re.IGNORECASE,
 )
-# Where our style sheet goes: first in the page (after its doctype, so that the page keeps its mode),
-# so that no unterminated comment or element at the end of the page takes it in.
-_DOCTYPE = re.compile(r"\A(?:\s|<!--.*?-->)*<!doctype\b[^>]{0,1024}>", re.IGNORECASE | re.DOTALL)
+_DOCTYPE = re.compile(r"<!doctype\b[^>]{0,1024}>", re.IGNORECASE)
+
+
+def _after_doctype(page: str) -> int:
+    """Where our style sheet goes: first in the page, after its doctype (past white space and comments
+    before it) so that the page keeps its mode; so that no unterminated comment or element at the end
+    of the page takes it in. Linear: each comment is skipped with one search."""
+    position = 0
+    while True:
+        while position < len(page) and page[position].isspace():
+            position += 1
+        if not page.startswith("<!--", position):
+            break
+        end = page.find("-->", position + 4)
+        if end == -1:
+            return 0
+        position = end + 3
+    doctype = _DOCTYPE.match(page, position)
+    return doctype.end() if doctype else 0
+
+
 # A web page is drawn without its own styles: it is served with a Content-Security-Policy that refuses
 # every style sheet and style attribute of the page (and everything else but inline images), so that
 # nothing the page hides, clips, overlays or scrolls is left out of the screenshots. One style sheet
@@ -2373,8 +2443,9 @@ _REVEAL = (
     ":root{color-scheme:only light!important;background:#fff!important}"
     "body,body *{color:#000!important;background:transparent!important;overflow-wrap:anywhere!important}"
     "body img{color:transparent!important}"
-    "svg *{opacity:1!important;fill-opacity:1!important}svg g{display:inline!important}"
-    "svg text,svg tspan,svg textPath{fill:#000!important;stroke:none!important;visibility:visible!important;"
+    "svg g,svg text,svg tspan,svg textPath{opacity:1!important}svg g{display:inline!important}"
+    "svg text,svg tspan,svg textPath{fill:#000!important;fill-opacity:1!important;stroke:none!important;"
+    "visibility:visible!important;"
     "display:inline!important}"
     "pre,xmp,listing,plaintext,textarea,code,td,th{white-space:pre-wrap!important}"
     "textarea{field-sizing:content!important;width:100%!important}"
@@ -2392,8 +2463,7 @@ def reviewable_page(page_text: str) -> tuple[bytes, list[dict[str, str]]]:
 
     nonce = secrets.token_hex(16)
     page = _META_TAKEN_OUT.sub("", page_text)
-    doctype = _DOCTYPE.match(page)
-    at = doctype.end() if doctype else 0
+    at = _after_doctype(page)
     body = page[:at] + f'<style nonce="{nonce}">{_REVEAL}</style>' + page[at:]
     policy = f"default-src 'none'; img-src data:; style-src 'nonce-{nonce}'"
     headers = [
@@ -3887,6 +3957,7 @@ def judging_path(name: str, label: str) -> Path:
 
 
 _CONTEXT_WINDOW = 200
+_LINE_EDGE = " \t\u00a0\u3000.?,:;!-#"
 # Characters that would make a hit part of a longer value of the type, before and after it.
 _VALUE_CHARS = {
     "url": (
@@ -3948,18 +4019,33 @@ def _contexts(text: str, values: set[tuple[str, str]]) -> dict[tuple[str, str], 
                 + [window(i, 0, len(lowered[i])) for i in range(first + 1, last)]
                 + [window(last, 0, end)]
             )
-        if end >= len(lowered[last].rstrip()) and last + 1 < len(lowered) and lowered[last + 1].strip():
+        # Past white space and the punctuation a tool leaves off a value (a "?" or "." before the break,
+        # a hyphen pypdf gives for one the break hid).
+        if (
+            not lowered[last][end:].strip(_LINE_EDGE)
+            and last + 1 < len(lowered)
+            and lowered[last + 1].strip()
+        ):
             shown += f" / (next line) {window(last + 1, 0, 0)}"
-        if start <= lost[first] and first > 0 and lowered[first - 1].strip():
+        if not lowered[first][:start].strip(_LINE_EDGE) and first > 0 and lowered[first - 1].strip():
             previous = len(lowered[first - 1])
             shown = f"(line before) {window(first - 1, previous, previous)} / {shown}"
         return shown
 
     def bounded(kind: str, position: int, length: int) -> bool:
+        """Whether a hit is not part of a longer value: the characters around it would go on with it
+        (a letter or digit, or a value's punctuation with a letter or digit beyond it; not sentence
+        punctuation, nor a footnote number before a URL)."""
         before_chars, after_chars = _VALUE_CHARS.get(kind, ("abcdefghijklmnopqrstuvwxyz0123456789",) * 2)
-        before = joined[position - 1 : position] if position else ""
-        after = joined[position + length : position + length + 1]
-        return not (before and before in before_chars) and not (after and after in after_chars)
+        before = joined[max(0, position - 2) : position]
+        after = joined[position + length : position + length + 2]
+        if after[:1] and after[:1] in after_chars and (after[:1].isalnum() or after[1:2].isalnum()):
+            return False
+        if kind == "url":
+            return not (before[-1:].isascii() and before[-1:].isalpha())
+        return not (
+            before[-1:] and before[-1:] in before_chars and (before[-1:].isalnum() or before[:1].isalnum())
+        )
 
     def in_lines(needle: str, kind: str) -> list[str]:
         found: list[str] = []
@@ -4137,8 +4223,9 @@ def command_judge(name: str, label: str) -> None:
 # the forms ascii_reading reads ("all"; the full-width dot and at sign wherever they are, although
 # they are read only after an ASCII letter or digit), and again only where the writing is part of a
 # value the line rules find ("in values"). The second count leaves out "１．" numbering, dates and
-# the full-width colon of body text, but still counts values that are not indicators (version
-# numbers, contact addresses); whether a report writes indicators so is decided by _writing_use. The
+# the full-width colon of body text where they are not part of a value, but still counts numbering
+# read into a value ("１．evil.example.com") and values that are not indicators (version numbers,
+# contact addresses); whether a report writes indicators so is decided by _writing_use. The
 # styles cover exactly what ascii_reading reads, and a form is full-width or CJK when it has a
 # non-ASCII character other than the spaces around it, as for the writing classes.
 DEFANG_STYLES = {

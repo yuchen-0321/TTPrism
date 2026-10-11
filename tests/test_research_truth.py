@@ -1653,3 +1653,69 @@ def test_contexts_show_the_value_in_a_window_and_the_next_line_at_a_wrap() -> No
     assert window.endswith("…")
     assert "(next line) report.html" in contexts[("url", "https://blog.example.com/2026/")][0]
     assert contexts[("domain", "example.com")][0].startswith("(inside a longer value)")
+
+
+# --------------------------------------------------------------------------- review round 10
+
+
+def test_a_full_width_address_cut_by_a_line_break_is_flagged() -> None:
+    for lines in (
+        ["C2 位址 １９８．５１．１", "００．２３"],
+        ["２０３．０．１１", "３．１５７"],
+        ["１９８．５１", "．１００．２３"],
+    ):
+        assert warnings(lines) == [(0, "name-cut")], lines
+    # Whole addresses in numbered rows, dates and versions are not cut addresses.
+    assert warnings(["1 198.51.100.23", "2 198.51.100.24", "3 198.51.100.25"]) == []
+    assert warnings(["c2[.]example[.]net 113.06.01", "evil[.]example[.]com 113.06.02"]) == []
+
+
+def test_bullets_and_words_before_a_value_are_not_masks() -> None:
+    lines = [
+        "● update[.]example[.]com",
+        "○ c2[.]example[.]net",
+        "* evil[.]example[.]org",
+        "Linux 198.51.100.23",
+    ]
+    assert warnings(lines) == []
+    assert [kind for _, kind in warnings(["mail.nxxxx.gov.tw"])] == ["mask-next"]
+
+
+def test_more_list_and_row_heads_are_skipped() -> None:
+    for first, second in (
+        ("1 、 hxxp://a[.]example[.]com/x.js", "2 、 hxxp://b[.]example[.]com/y.js"),
+        ("(1)hxxp://a[.]example[.]com/x", "(2)hxxp://b[.]example[.]com/y"),
+        ("一、 hxxp://198[.]51[.]100[.]1:8080/", "二、 hxxp://198[.]51[.]100[.]2:8080/"),
+        ("C2 hxxp://c2-1[.]example[.]net/gate.php", "C2 198[.]51[.]100[.]1"),
+        ("SHA256 hxxp://a[.]example[.]com/x", "SHA-1 hxxp://b[.]example[.]com/y"),
+    ):
+        assert warnings([first, second]) == [], first
+    # A description with a date after a URL is not the rest of it.
+    assert warnings(["hxxps://cdn0[.]example[.]com/app.js 釣魚網頁 2024.05.01"]) == []
+
+
+def test_numbering_glued_to_a_name_starting_with_a_digit_is_flagged() -> None:
+    for line in ("１．123456789@qq.com", "２．360safe-update.example.com"):
+        assert sorted(kind for _, kind in warnings([line])) == ["loose-defang", "non-ascii"], line
+
+
+def test_a_page_without_a_doctype_that_starts_with_comments_costs_linear_time() -> None:
+    def cost(junctions: int) -> float:
+        page = "<!-- banner -->\n" + "<!-- a -->\n<!-- b -->\n" * junctions + "<p>x</p>"
+        return seconds_per_mb(lambda: evaluate.reviewable_page(page), len(page) / 1_000_000, repeat=3)
+
+    assert cost(40_000) < 2.5 * cost(10_000)
+    body, _ = evaluate.reviewable_page("<!-- saved -->\n<!DOCTYPE html><p>x</p>")
+    assert body.startswith(b"<!-- saved -->\n<!DOCTYPE html><style nonce=")
+
+
+def test_contexts_of_values_before_punctuation() -> None:
+    text = (
+        "上傳網址為 http://198.51.100.24/do/index.php?id=ssss：\n參考 hxxps://a.example.com/auth.php?\nsid=1"
+    )
+    contexts = evaluate._contexts(
+        text,
+        {("url", "http://198.51.100.24/do/index.php?id=ssss"), ("url", "https://a.example.com/auth.php")},
+    )
+    assert not contexts[("url", "http://198.51.100.24/do/index.php?id=ssss")][0].startswith("(inside")
+    assert "(next line) sid=1" in contexts[("url", "https://a.example.com/auth.php")][0]

@@ -332,10 +332,11 @@ spaces around them between ASCII letters or digits; after Chinese text, as in
 `網域．bad.example.net`, they are punctuation), the full-width colon, slash and hyphen, full-width letters and digits, the hyphens
 U+2010, U+2011, U+2212 and U+FE63, and the ligatures U+FB00 to U+FB06 (which pypdf gives for some
 fonts in Chromium-printed PDFs) as their letters — and finds URLs, e-mail addresses, IPv4 addresses,
-names and hashes in the ASCII text that results. Numbering with a space after its full-width dot
-stays apart from the value after it (`１． 198.51.100.23`). Numbering glued to the value is read
-with it (`１．198.51.100.23` gives no address, `１．evil.example.com` gives `1.evil.example.com`),
-and the line gets a `loose-defang` warning; a full-width dot in a run of digits with at most two
+names and hashes in the ASCII text that results. Numbering with a full-width digit and a space after
+its full-width dot stays apart from the value after it (`１． 198.51.100.23`). Numbering glued to the
+value, or an ASCII digit before a spaced full-width dot (`1． 198.51.100.23`), is read with the value
+(`１．198.51.100.23` gives no address, `１．evil.example.com` gives `1.evil.example.com`), and the line
+gets a `loose-defang` warning; a full-width dot in a run of digits with at most two
 dots (a date or version, `１１３．０６．０１`, `v2．0`) or right before a URL does not give one. The
 scheme of another kind of URL (`ldap://`, `tcp://`, `wss://` …) and its user info are taken out, so
 that its host is found as a name or an address; such URLs are not values of their own. A name's
@@ -359,28 +360,32 @@ scripts off, every other request refused, and `<meta http-equiv>` refresh and
 Content-Security-Policy tags taken out). A web page is drawn without its own styles: it is served
 with a Content-Security-Policy that refuses every style sheet and style attribute of the page, so
 that nothing the page hides, clips, overlays or scrolls is left out of the images. One style sheet
-of ours, put first in the page so that nothing the page leaves open at its end takes it in, shows
+of ours, put first in the page (after its doctype) so that nothing the page leaves open at its end
+takes it in, shows
 what the browser hides by default although `HtmlText` reads it (hidden attributes, `until-found`
 included; closed `<details>` and `<dialog>`; popovers; SVG text that its own or its groups' fill,
 opacity, visibility or display attributes hide), hides what `HtmlText` drops (`<noscript>`,
-`<iframe>` and the like, which scripts being off would show; the alt text of images, which are
-refused and drawn as dashed outlines; the values and placeholders of form fields), draws black text
+`<iframe>` and the like, which scripts being off would show; the alt text of images from the network,
+which are refused and drawn as dashed outlines; the values and placeholders of form fields; inline
+`data:` images are drawn as they are), draws black text
 on white whatever colour scheme the page declares, and wraps long lines. The images
 therefore show the page's text in the browser's default layout, not the page as its readers see it;
 that is what the line rules read. A report whose pages cannot be drawn is named, and `review`
-refuses it until they are. The warnings (the review page explains each kind it shows):
+refuses it until they are. The warnings point at the lines where the rules most often go wrong, not
+at every such line; they are aids to the line-by-line check, not a substitute for it (their known
+limits are in 6.8). The kinds (the review page explains each kind it shows):
 
 | Warning | What the reviewer checks |
 | --- | --- |
 | `hex-cut` | hex digits at a line end and the next line's start that make a SHA-1 or SHA-256 together, unless both are whole MD5s under an MD5 label in effect or both lines are rows of MD5s (each holds another MD5 besides these); a run of lines of 32 hex digits with no MD5 label in effect (two of them may be the halves of a SHA-256); a piece of 16 or more hex digits of the length of no hash |
 | `hash-label` | a hash whose length differs from the hash type named in the label of its block |
-| `name-cut` | a name ending at a line end in `.` or `-` before a line that starts with a name or with `.` or `-`, or a line starting with `.` or `-` after a name |
-| `url-cut` | in PDF text, a URL that reaches the line end before a line that does not start with a value or a scheme (past a list number or a short cell: `2.`, `(2)`, `URL`, `IP`), that starts with the full-width form of a URL character (`＿ v2.exe`), or that is Chinese text when the URL ends in `/` `=` `?` `&` `-` `_` or the Chinese text goes on with a file extension or path (`年度計畫 .rar`, `年第 1 季報告 .pdf`); in a web page, which `HtmlText` does not wrap, only before a line that goes on with a path, query or extension; a URL followed by a slash after a space; a URL whose host does not end in a top-level domain (cut inside its host) |
+| `name-cut` | a name ending at a line end in `.` or `-` before a line that starts with a name or with `.` or `-`, or a line starting with `.` or `-` after a name; digits and dots at a line end and the next line's start that make an IPv4 address together, when the first line's do not end in a whole one (a narrow cell breaks full-width digits anywhere: `１９８．５１．１` / `００．２３`) |
+| `url-cut` | in PDF text, a URL that reaches the line end before a line that does not start with a value or a scheme (past a list number or a short cell: `2.`, `2、`, `(2)`, `一、`, `-`, `URL`, `IP`, `C2`, `SHA256`), that starts with the full-width form of a URL character (`＿ v2.exe`), or that is Chinese text when the URL ends in `/` `=` `?` `&` `-` `_` or the Chinese text goes on with a file extension or path (`年度計畫 .rar`, `年第 1 季報告 .pdf`); in a web page, which `HtmlText` does not wrap, only before a line that goes on with a path, query or extension; a URL followed by a slash after a space; a URL whose host does not end in a top-level domain (cut inside its host) |
 | `file-extension` | a name left out because its top-level domain is also a file extension |
 | `url-unparseable` | a URL without a host that can be a name or an address, or with another scheme after an ASCII separator (two URLs written together: `…:8080,hxxp://…`) |
 | `non-ascii` | a value read from non-ASCII writing (full-width or CJK forms, Unicode or soft hyphens, ligatures, deleted format characters), or a URL that stops before non-ASCII letters (past spaces and format characters, and past the punctuation the rules took off its end) or before the full-width form of a URL character with more of the URL or the line's end after it (`a.php？id=1`, pypdf's `a.php ？ id=1`); after a space (pypdf's space between table cells), Chinese text counts only when the URL ends in a separator or the text goes on with a file extension or path, so that a description cell is not flagged |
 | `masked` | a masked value, left out |
-| `mask-next` | a value next to a mask character (`*` `＊` `#` `○` `●`, or `x` after an address: `198.51.100.2*`, `○○abc.gov.tw`, `evil.co*`, `203.0.113.1xx`): it may be only the visible part of a masked value |
+| `mask-next` | a value next to a mask character (`*` `＊` `#` `○` `●`, or `x` after an address: `198.51.100.2*`, `○○abc.gov.tw`, `evil.co*`, `203.0.113.1xx`; also across a spaced dot or at sign, `ser*** ＠ example.org`), or with `xxx` inside a label (`mail.nxxxx.gov.tw`, but also the word `foxxxy`): it may be only the visible part of a masked value |
 | `own-address` | a value at the report's own address, often a page header printed inside the appendix |
 | `loose-defang` | numbering glued to a value by a full-width dot: one read between ASCII letters or digits that is part of no value (`１．198.51.100.23`), or one after 1 to 3 digits at the start of a name or e-mail address (`１．evil.example.com`); not in a date or version, nor before a URL |
 | `unread-defang` | a dot or at sign in a form the reading does not know, between ASCII letters or digits |
@@ -429,9 +434,9 @@ URL), and so is an address that is a URL's host and a value of its own.
    and full-width or CJK (`【.】` `〔.〕` `［.］` `[。]` `（.）` `．` `＠` `：` `／` `－`, full-width letters
    and digits, other bracket forms) — the same characters as the writing classes — each twice:
    everywhere, and only inside values the line rules find. Full-width digits, `１．` numbering and the
-   full-width colon are common in Chinese body text; the second count leaves them out, but still
-   counts values that are not indicators (version numbers, contact addresses), so neither count
-   decides. A report *uses* full-width or CJK-bracket writing when at least one of its indicators is
+   full-width colon are common in Chinese body text; the second count leaves them out where they
+   are not part of a value, but still counts numbering read into a value (`１．evil.example.com`) and
+   values that are not indicators (version numbers, contact addresses), so neither count decides. A report *uses* full-width or CJK-bracket writing when at least one of its indicators is
    written so: a reviewed ground-truth value in one of its occurrences in the appendix (read by the
    draft, unless the reviewer removed the value, or added by the reviewer with that class), or a value
    in the body (or the host of a URL there) written so that is in the ground truth or that the rater
@@ -470,9 +475,11 @@ written with full-width or CJK-bracket forms in the body that are outside the gr
 judgements decide only *uses*, 6.3.1; precision counts only what the tools extracted); the evaluator
 judges each (a, b or c, with a one-line reason) from up to three places where it occurs, each the
 value with up to 200 characters of its line on each side. A value that reaches the end of its line
-is shown with the start of the next line, and one at the start of its line with the end of the line
-before, so that a value a line break cut can be seen to be cut; a place inside a longer value (a
-name inside a URL) is shown only when there is no other, marked so. A value written in no single
+(past white space and the punctuation a tool leaves off: `?`, `.`, a hyphen) is shown with the start
+of the next line, and one at the start of its line with the end of the line before, so that a value
+a line break cut can be seen to be cut. A place inside a longer value (a name inside a URL: a letter
+or digit next to it, or a value's punctuation with a letter or digit beyond it; not sentence
+punctuation, nor a footnote number before a URL) is shown only when there is no other, marked so. A value written in no single
 line, as a tool built it, gets the lines it spans across a line break, else the places where it
 stands without the scheme a tool added, else the places of its host, each marked so. There is one
 rater, and no agreement between raters is measured. While any value is unjudged, `score`
@@ -516,6 +523,14 @@ images is, and that a line of 6,000 characters is wrapped within the page's widt
   (`hash-label`); under a header naming several types, or after a sub-heading, it is not.
 - The screenshots cannot show the options of a `<select>` other than the chosen one, or SVG text
   that is moved or scaled out of view, of font size 0, or inside `<defs>`.
+- Limits of the warnings, which the line-by-line check covers: a URL cut inside its host is flagged
+  only when the first part does not end in a top-level domain (`www.exampl` / `e.com`, not
+  `www.example.co` / `m`), and single-label hosts are not flagged; a Chinese file name with ASCII
+  letters after a cut (`年度計畫v2.rar`) does not count as the rest of a URL; in a web page, a URL that
+  a `<br>` or a `<pre>` line break cuts is flagged only when the next line starts with a path
+  character; the rest of a cut URL that is 1 to 8 letters followed by another value passes as a
+  short cell; a value TTPrism builds by deleting a hyphen at a line break gets on the judging sheet
+  only the places of its host, or none.
 - IPv4 octets above 255 are not rejected; CIDR blocks and ranges are read as plain addresses.
 - A cp950 page with an outdated `gb2312` `<meta>` decodes as GB 18030 without an error; `text`
   prints the encoding and declared charsets, and such a page needs a `charset_override`.
