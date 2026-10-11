@@ -793,6 +793,8 @@ def test_score_is_provisional_until_every_value_is_judged(
     commit(reviewed_set)
     fake_tools(monkeypatch, iocextract_fails=False)
     evaluate.command_run("t", "after")
+    # Values next to a tool's name would unblind the sheet: run prints counts only.
+    assert "http:///x" not in capsys.readouterr().out
     results = json.loads((reviewed_set["tmp"] / "results-t-after.json").read_text(encoding="utf-8"))
     assert results["reports"][0]["unparseable_urls"] == {"iocextract": ["http:///x"]}
     evaluate.command_score("t", "after")
@@ -1774,3 +1776,41 @@ def test_contexts_prefer_whole_places_and_ignore_cjk_after_punctuation() -> None
 def test_the_style_sheet_goes_after_an_xml_declaration_and_doctype() -> None:
     body, _ = evaluate.reviewable_page('<?xml version="1.0"?>\n<!DOCTYPE html><p>x</p>')
     assert body.startswith(b'<?xml version="1.0"?>\n<!DOCTYPE html><style nonce=')
+
+
+# --------------------------------------------------------------------------- release-gate review
+
+
+def test_a_spaced_hyphen_or_colon_next_to_a_value_is_flagged() -> None:
+    for line in (
+        "網域： update － check.example.com",
+        "update ‐ check.example.com",
+        "網址： http://evil.example.com ： 8080/gate.php",
+    ):
+        assert [kind for _, kind in warnings([line])] == ["non-ascii"], line
+    assert warnings(["evil.example.com － 中繼站"]) == []
+
+
+def test_onion_names_and_names_after_a_full_width_slash_are_found() -> None:
+    assert values(["abcdefghijklmnopqrstuvwxyz234567abcdefghijklmnopqrstuvw[.]onion"]) == {
+        "domain": ["abcdefghijklmnopqrstuvwxyz234567abcdefghijklmnopqrstuvw.onion"]
+    }
+    assert values(["198.51.100.23／evil.example.com"]) == {
+        "domain": ["evil.example.com"],
+        "ipv4": ["198.51.100.23"],
+    }
+
+
+def test_a_cut_url_is_not_shown_as_standing_without_its_scheme() -> None:
+    text = "下載點 hxxps://dl【.】example.net/a.exe\nC2 為 update[.]example[.]org"
+    contexts = evaluate._contexts(text, {("url", "https://dl"), ("url", "http://update.example.org")})
+    assert contexts[("url", "https://dl")][0].startswith("(inside a longer value)")
+    assert contexts[("url", "http://update.example.org")][0].startswith("(without its scheme)")
+
+
+def test_the_use_counts_are_of_distinct_indicators() -> None:
+    text = "IOCs\nc2【.】example【.】net\nc2【.】example【.】net\nhxxp://c2【.】example【.】net/a\nEND"
+    truth, entry = reviewed_truth(text)
+    truth["truth"]["domain"] = ["c2.example.net"]
+    use = evaluate._writing_use(truth, "pdf", entry, {})
+    assert use["fullwidth_cjk_indicators_in_appendix"] == 2  # the name, and the URL

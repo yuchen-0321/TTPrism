@@ -1707,6 +1707,9 @@ def line_values(reading: Reading) -> dict[str, list[dict[str, Any]]]:
     # The scheme of another kind of URL (ldap://, tcp://, wss:// ...) and its user info are taken out,
     # so that its host is found as a name or an address; such URLs are not values of their own.
     rest = _blank(text, taken + [match.span() for match in _OTHER_SCHEME.finditer(text)])
+    # A full-width slash outside a URL separates alternatives ("198.51.100.23／evil.example.com"), so a
+    # name after it is not a path.
+    rest = "".join(" " if char == "/" and reading.kinds[i] == "cjk" else char for i, char in enumerate(rest))
     taken = []
     for match in _EMAIL.finditer(rest):
         if match.group(1).lower() in tlds:
@@ -1720,7 +1723,7 @@ def line_values(reading: Reading) -> dict[str, list[dict[str, Any]]]:
     rest = _blank(rest, taken)
     for match in _DOMAIN.finditer(rest):
         tld = match.group(1).lower()
-        if tld not in tlds:
+        if tld not in tlds and tld != "onion":  # .onion is a special-use name, not on the IANA list
             continue
         if tld in _FILE_EXTENSION_TLDS and not _MASKED.search(match.group(0)):
             value = normalise("domain", match.group(0))
@@ -1815,7 +1818,8 @@ WARNING_KINDS = {
     "non-ascii": "a value read from writing with non-ASCII characters (full-width or CJK-bracket "
     "defanging, Unicode hyphens, soft hyphens, ligatures or deleted format characters), or a URL that "
     "stops before non-ASCII letters (after a space, only when it ends in a separator or the text goes on "
-    "with a file extension or path) or before the full-width form of a URL character: it may go on",
+    "with a file extension or path) or before the full-width form of a URL character, or a value next to "
+    "a spaced full-width or Unicode hyphen, or before a spaced full-width colon and digits: it may go on",
     "masked": "a masked value (an asterisk inside it, or 'xxx' standing alone), left out of the draft",
     "mask-next": "a value next to a mask character (* ＊ # ○ ●, or x after an address; also across a "
     "spaced dot or at sign, or across pypdf's space after a mask that is not a lone bullet), or with 'xxx' "
@@ -1996,6 +2000,17 @@ def draft_truth(
                 )
             if entry["type"] == "url":
                 _url_end_warnings(warnings, n, entry, reading)
+            spaced = (
+                _spaced_joiner(reading.raw, raw_start, raw_end) if entry["type"] not in _HASH_TYPES else ""
+            )
+            if spaced:
+                warnings.add(
+                    n,
+                    "non-ascii",
+                    f"{entry['type']} {entry['value']} is next to {spaced!r} with spaces around it (pypdf "
+                    "puts them at a change of font): the value may go on across it",
+                    [entry["value"]],
+                )
             mask = _mask_next_to(reading.text, entry)
             if mask:
                 warnings.add(
@@ -2094,6 +2109,30 @@ def _host_has_tld(host: str) -> bool:
 _MASKS = "*\uff0a#\u25cb\u25cf\u3007"
 # Full-width forms of characters that go on inside a URL's path or query.
 _FULL_WIDTH_URL = "\uff1f\uff1d\uff06\uff3f\uff5e\uff05\uff03\uff0b"
+
+
+_JOINERS = "\uff0d\ufe63\u2010\u2011\u2212"
+
+
+def _spaced_joiner(raw: str, start: int, end: int) -> str:
+    """A full-width or Unicode hyphen with spaces between it and the value raw[start:end] and an ASCII
+    letter or digit beyond it ("update － check.example.com"), or a full-width colon after the value
+    with spaces and digits beyond it ("evil.example.com ： 8080"), as pypdf gives them where the font
+    changes; or ""."""
+    before = raw[max(0, start - 6) : start]
+    stripped = before.rstrip(" \u3000")
+    if stripped != before and stripped[-1:] and stripped[-1:] in _JOINERS:
+        beyond = stripped[:-1].rstrip(" \u3000")[-1:]
+        if beyond.isascii() and beyond.isalnum():
+            return stripped[-1:]
+    after = raw[end : end + 6]
+    stripped = after.lstrip(" \u3000")
+    if stripped[:1] and stripped[:1] in _JOINERS + "\uff1a":
+        beyond = stripped[1:].lstrip(" \u3000")[:1]
+        wanted = beyond.isdigit() if stripped[:1] == "\uff1a" else beyond.isalnum()
+        if (stripped != after or stripped[1:2] in (" ", "\u3000")) and beyond.isascii() and wanted:
+            return stripped[:1]
+    return ""
 
 
 def _mask_next_to(text: str, entry: dict[str, Any]) -> str:
@@ -3661,16 +3700,13 @@ def command_run(name: str, label: str) -> None:
         for tool, error in errors.items():
             print(f"    {tool} FAILED on this report: {error}")
         for tool, bad in unparseable.items():
-            print(f"    {tool}: {len(bad)} URL(s) without a host in standard form: {bad[:3]}")
+            # Counts only: values next to a tool's name before the judging would unblind the sheet.
+            print(f"    {tool}: {len(bad)} URL(s) without a host in standard form (in the results file)")
         if fmt == "html" and "ttprism-raw" in runs:
             fragments = line_wrap_fragments(text)
             entry["line_wrap_fragments"] = fragments
             counted = runs["ttprism-raw"]["suppressed"].get("line_wrap_fragment", 0)
-            print(f"    line-wrap fragments dropped by TTPrism: {counted}")
-            for fragment in fragments:
-                print(
-                    f"    {fragment['type']} {fragment['fragment']!r} after {fragment['line_before_ends']!r}"
-                )
+            print(f"    line-wrap fragments dropped by TTPrism: {counted} (in the results file)")
             if len(fragments) != counted:
                 print(f"    LISTED {len(fragments)} FRAGMENTS, BUT TTPRISM COUNTED {counted}")
         entries.append(entry)
@@ -3949,7 +3985,9 @@ def command_score(name: str, label: str) -> None:
             print(f"--- {fmt} reports only")
             print_totals(results["totals_by_format"][fmt], shown)
     for report in results["reports"]:
-        for fragment in report.get("line_wrap_fragments", []):
+        # The fragments are values that TTPrism dropped; shown only once the sheet is judged, so that
+        # they do not tell the rater which tool found a value on it.
+        for fragment in report.get("line_wrap_fragments", []) if not count else []:
             print(f"{report['id']}: line-wrap fragment {fragment['type']} {fragment['fragment']!r}")
         for tool, error in report.get("errors", {}).items():
             print(f"{report['id']}: {tool} failed: {error}")
@@ -3986,30 +4024,40 @@ def _writing_use(
     is written so at least once: a reviewed ground-truth value in an occurrence in the appendix (the
     draft's, unless the reviewer removed the value, or one the reviewer added), or a value in the body
     (or the host of a URL there) that is in the ground truth or that the rater judged an indicator (a;
-    `judge` puts every such value outside the ground truth on the sheet). The defang statistic's count
-    inside any value the rules find is given beside it; it also counts values that are not indicators
-    (version numbers, numbering, contact addresses)."""
+    `judge` puts every such value outside the ground truth on the sheet). The two counts are of
+    distinct indicators. The defang statistic's count inside any value the rules find is given beside
+    them; it counts occurrences, and also values that are not indicators (version numbers, numbering,
+    contact addresses)."""
     text, parts = truth["text"], truth["conversion"]["parts"]
     lookup = Lookup(truth)
     removed = {(e["type"], e["value"]) for e in truth["review"]["remove"]}
-    in_appendix = sum(
-        1
+    # Both counts are of distinct indicators (type and value); a URL and its host count apart, each
+    # when it is written so.
+    in_appendix: set[tuple[str, str]] = set()
+    written = [
+        (item["type"], item["value"], item["class"], item["writing"])
         for line in truth["draft"]["lines"]
         for item in line["values"]
-        if item["class"] == CLASSES[2]
-        and item["value"] in lookup.truth.get(item["type"], ())
-        and (item["type"], item["value"]) not in removed
-    ) + sum(1 for e in truth["review"]["add"] if e["class"] == CLASSES[2])
-    in_body = sum(
-        1
+        if (item["type"], item["value"]) not in removed
+    ] + [(e["type"], e["value"], e["class"], e["writing"]) for e in truth["review"]["add"]]
+    for kind, value, klass, writing in written:
+        if value not in lookup.truth.get(kind, ()):
+            continue
+        if klass == CLASSES[2]:
+            in_appendix.add((kind, value))
+        host = url_host(value) if kind == "url" else ""
+        if host in lookup.truth.get("domain", ()) and host_class(writing) == CLASSES[2]:
+            in_appendix.add(("domain", host))
+    in_body = {
+        (kind, value)
         for kind, value in body_fullwidth_values(truth, fmt, report)
         if classify(kind, value, lookup, judged) in ("truth", "a")
-    )
+    }
     spans = value_spans(text, 0, len(text), parts, fmt)
     counts = _style_counts(defang_occurrences(text), spans)
     return {
-        "fullwidth_cjk_indicators_in_appendix": in_appendix,
-        "fullwidth_cjk_indicators_in_body": in_body,
+        "fullwidth_cjk_indicators_in_appendix": len(in_appendix),
+        "fullwidth_cjk_indicators_in_body": len(in_body),
         "fullwidth_cjk_in_any_value": sum(counts[style] for style in DEFANG_STYLES["fullwidth-cjk"]),
         "uses_fullwidth_cjk": bool(in_appendix or in_body),
     }
@@ -4039,6 +4087,8 @@ _VALUE_CHARS = {
     "domain": ("abcdefghijklmnopqrstuvwxyz0123456789.-_", "abcdefghijklmnopqrstuvwxyz0123456789.-_"),
     "email": ("abcdefghijklmnopqrstuvwxyz0123456789.-_+%", "abcdefghijklmnopqrstuvwxyz0123456789.-_"),
     "ipv4": ("0123456789.", "0123456789"),
+    # A URL's rest without its scheme stands on its own only when no "://" or path comes before it.
+    "bare": ("abcdefghijklmnopqrstuvwxyz0123456789/:", "abcdefghijklmnopqrstuvwxyz0123456789"),
 }
 
 
@@ -4115,6 +4165,8 @@ def _contexts(text: str, values: set[tuple[str, str]]) -> dict[tuple[str, str], 
             return False
         if kind == "url":
             return not (before[-1:].isascii() and before[-1:].isalpha())
+        if kind == "bare":
+            return not (before[-1:] in ("/", ":") or _ascii_alnum(before[-1:]))
         return not (
             before[-1:]
             and before[-1:] in before_chars
@@ -4158,7 +4210,9 @@ def _contexts(text: str, values: set[tuple[str, str]]) -> dict[tuple[str, str], 
             found = across(needle)
         if not found and kind == "url" and "://" in needle:
             bare = needle.split("://", 1)[1]
-            found = [f"(without its scheme) {c}" for c in in_lines(bare, "") if not c.startswith("(inside")]
+            found = [
+                f"(without its scheme) {c}" for c in in_lines(bare, "bare") if not c.startswith("(inside")
+            ]
             host = url_host(needle)
             if not found and host:
                 found = [

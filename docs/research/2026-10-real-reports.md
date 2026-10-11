@@ -342,8 +342,10 @@ scheme of another kind of URL (`ldap://`, `tcp://`, `wss://` …) and its user i
 that its host is found as a name or an address; such URLs are not values of their own. A name's
 last label must be a top-level domain of `iana-tlds.txt` (the IANA list of 2026-09-30, copied from
 the PyPI package `tlds` 2026093003 because data.iana.org could not be reached; not TTPrism's list),
-which leaves out file names such as `setup.msi`; a name under a top-level domain that is also a
-common file extension (`.zip`, `.sh`, `.so`, `.py`, `.app` …) is left out with a warning. A URL
+which leaves out file names such as `setup.msi` (names under `.onion`, a special-use name that is not
+on the list, are kept); a name under a top-level domain that is also a common file extension
+(`.zip`, `.sh`, `.so`, `.py`, `.app` …) is left out with a warning. A full-width slash outside a URL
+separates alternatives (`198.51.100.23／evil.example.com`), so the name after it is found. A URL
 ends at white space, non-ASCII text, quotation marks, brackets, `<`, `>` and `&&`. One function gives
 the standard form of a value for the ground truth and for every tool's output (scheme and host
 lower-cased, `hxxp` as `http`); a URL it cannot parse, or whose host cannot be a name or an address
@@ -383,7 +385,7 @@ limits are in 6.8). The kinds (the review page explains each kind it shows):
 | `url-cut` | in PDF text, a URL that reaches the line end before a line that does not start with a value or a scheme (past a list number or a type cell: `2.`, `2、`, `(2)`, `一、`, `-`, `URL`, `IP`, `IP:Port`, `Domain`, `Host`, `C2`, `C&C`, `MD5`, `SHA1`, `SHA256`, `Hash`, `Email`, `Port`), that starts with the full-width form of a URL character (`＿ v2.exe`), or that is Chinese text when the URL ends in `/` `=` `?` `&` `-` `_` or the Chinese text goes on with a file extension (`年度計畫 .rar`, `年第 1 季報告 .pdf`, `.7z`) or a path, not a date or a port (`113/05/01`, `2024-05-01`, `443/tcp`); in a web page, which `HtmlText` does not wrap, only before a line that goes on with a path, query or extension; a URL followed by a slash after a space; a URL whose host does not end in a top-level domain (cut inside its host) |
 | `file-extension` | a name left out because its top-level domain is also a file extension |
 | `url-unparseable` | a URL without a host that can be a name or an address, or with another scheme after an ASCII separator (two URLs written together: `…:8080,hxxp://…`) |
-| `non-ascii` | a value read from non-ASCII writing (full-width or CJK forms, Unicode or soft hyphens, ligatures, deleted format characters), or a URL that stops before non-ASCII letters (past spaces and format characters, and past the punctuation the rules took off its end) or before the full-width form of a URL character with more of the URL or the line's end after it (`a.php？id=1`, pypdf's `a.php ？ id=1`); after a space (pypdf's space between table cells), Chinese text counts only when the URL ends in a separator or the text goes on with a file extension or path, so that a description cell is not flagged |
+| `non-ascii` | a value read from non-ASCII writing (full-width or CJK forms, Unicode or soft hyphens, ligatures, deleted format characters), or a URL that stops before non-ASCII letters (past spaces and format characters, and past the punctuation the rules took off its end) or before the full-width form of a URL character with more of the URL or the line's end after it (`a.php？id=1`, pypdf's `a.php ？ id=1`); after a space (pypdf's space between table cells), Chinese text counts only when the URL ends in a separator or the text goes on with a file extension or path, so that a description cell is not flagged; a value next to a full-width or Unicode hyphen with spaces around it, or before a spaced full-width colon and digits (`update － check.example.com`, `evil.example.com ： 8080`), as pypdf gives them at a change of font |
 | `masked` | a masked value, left out |
 | `mask-next` | a value next to a mask character (`*` `＊` `#` `○` `●`, or `x` after an address: `198.51.100.2*`, `○○abc.gov.tw`, `evil.co*`, `203.0.113.1xx`; also across a spaced dot or at sign, `ser*** ＠ example.org`; and across pypdf's space after a full-width mask of two or more characters or one after a letter or digit, `〇〇 abc.gov.tw`, `ev ＊ l.example.com`, but not a lone bullet, `● value`), or with `xxx` inside a label (`mail.nxxxx.gov.tw`, but also the word `foxxxy`): it may be only the visible part of a masked value |
 | `own-address` | a value at the report's own address, often a page header printed inside the appendix |
@@ -442,7 +444,8 @@ URL), and so is an address that is a URL's host and a value of its own.
    in the body (or the host of a URL there) written so that is in the ground truth or that the rater
    judged an indicator (a). Every such body value outside the ground truth goes on the judging sheet
    (6.6), so this does not depend on what the tools extract. `score` records the two counts of
-   indicators for each report, and beside them the count of such writings inside any value.
+   distinct indicators written so (a URL and its host apart) for each report, and beside them the
+   count of such writings inside any value (occurrences, not indicators).
 2. **The tools.** Recall of each tool by writing class (plain, ASCII defang, full-width or
    CJK-bracket defang); overall recall (by type and by URL host) and precision (strict, lenient)
    computed as for zh-cn; totals for all reports and for PDFs and web pages separately. TTPrism raw
@@ -483,7 +486,9 @@ before Chinese text, nor a footnote number before a URL) is shown only when no o
 the fallbacks below, is found, marked so. A value written in no single
 line, as a tool built it, gets the lines it spans across a line break, else the places where it
 stands without the scheme a tool added, else the places of its host, each marked so. There is one
-rater, and no agreement between raters is measured. While any value is unjudged, `score`
+rater, and no agreement between raters is measured. Before the sheet is judged, nothing the tool
+prints pairs a value with the tool that found or dropped it: `run` prints counts only, and `score`
+lists TTPrism's dropped line-wrap fragments only once every value is judged. While any value is unjudged, `score`
 marks every total as provisional. `judgements.json`
 is checked (a wrong category, type or form is an error with its place) and its SHA-256 is recorded
 in the results.
