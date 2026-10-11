@@ -6,16 +6,17 @@
     "final_url": "the URL the file was finally served from, after any redirects",
     "saved": "how the file was saved: {\"kind\": \"server\" (the file the server sent, preferred) or \"rendered\" (the DOM saved from a browser, only when the server's file lacks the content, with the reason in \"reason\"), \"method\" (the command or steps), \"tool\" (the curl, browser or git version), optional \"reason\" and \"note\"}",
     "http_charset": "for a web page: the charset of the Content-Type header it was served with, if known; it takes precedence over a <meta> charset; a label that browsers or Python know; a PDF has none",
-    "charset_override": "for a web page, or an attachment that is a web page or text, whose bytes the decoding order would read wrongly: {\"charset\": label, \"reason\": why}; for a web page it replaces the whole order (byte-order mark, UTF-8, declared charsets, Big5), and a text attachment is decoded with it (strictly) instead of UTF-8; it is recorded with the conversion. A PDF has none",
+    "charset_override": "for a web page, or an attachment that is a web page or text, whose bytes the decoding order would read wrongly: {\"charset\": label, \"reason\": why}; for a web page it replaces the whole order (byte-order mark, UTF-8, declared charsets, Big5), and a text attachment is decoded with it (strictly) instead of UTF-8; it is recorded with the conversion. Decoding is always strict; the one lenient choice is the label \"utf-8:replace\", for damaged UTF-8, which replaces each byte that is not UTF-8 with U+FFFD and records how many it replaced (Big5 is never decoded leniently). A PDF has none",
     "attachments": "files in eval-data/<set>/attachments/ whose text follows the page text, when the indicators are only there: {\"file\": ..., \"retrieved\", \"final_url\", \"saved\" as for a report, \"http_charset\" and \"charset_override\" optional}; a PDF is read with pypdf, a web page converted like a page, anything else as UTF-8 text. Each one's SHA-256, conversion details and place in the text are recorded",
-    "appendix": "start and end markers of the IOC appendix; the start marker must occur once in the text, or 'start_occurrence' (1-based) says which occurrence begins the appendix; a start_occurrence needs a start_occurrence_reason",
-    "truth_corrections": "hand corrections of the ground truth (add, remove, ambiguous), with a reason for each in notes"
+    "appendix": "start and end of the IOC appendix: 'start' (a heading) and either 'end' (the heading after it) or 'end_of_text': true (the appendix runs to the end of the text, attachments included); the start marker must occur once in the text, or 'start_occurrence' (1-based) says which occurrence begins the appendix; a start_occurrence needs a start_occurrence_reason",
+    "truth_review": "the reviewed ground truth, written by `evaluate.py review` from the reviewer's filled-in template and committed before any tool runs: draft_sha256 (the draft it reviews), reviewed_by, reviewed_at, pages_checked (the images of the rendered pages checked), checked_every_line (true), warnings (each draft warning with its resolution, 'confirmed' or 'corrected', and a note), add / remove / ambiguous (the corrections, each with a reason and the warnings it resolves; values in standard form), values (the final values of each type, each with its writing, writing class and place) and masked",
+    "legacy_truth_corrections": "zh-cn only: the hand corrections (add, remove, ambiguous, with reasons in notes) that the zh-cn ground truth was built with by evaluate.py as of commit 7eea575, which made the committed zh-cn results; the current evaluate.py does not use them (the zh-cn set was not reviewed under the draft-and-review procedure)"
   },
   "text_conversion": {
-    "pdf": "pypdf (version in requirements.txt and in each results file): page.extract_text() for each page, joined with line breaks; page headers and footers kept",
+    "pdf": "pypdf (version in requirements.txt and in each results file): page.extract_text() for each page, joined with line breaks; page headers and footers kept; a PDF with only an owner password is decrypted with the empty user password first (cryptography pinned for AES); where each page starts is recorded",
     "html": "evaluate.py: decode_html (strict decoding: byte-order mark, valid UTF-8, charset declared in the HTTP header, then in <meta> outside comments, then Big5 as cp950; nothing decoded leniently; the GBK labels as GB 18030, as browsers do; a charset_override with its reason replaces the order) and HtmlText (Python standard library html.parser; the text of the whole <body>, hidden content included, navigation and footer too; block elements and SVG <text> on their own lines, table cells separated by TAB, text in a table outside its cells on a line of its own; source line breaks folded; soft hyphens and NUL deleted; hidden content kept and counted; dropped elements opaque; attributes not read). The rules are in their docstrings. html.parser changed in Python's 2025 security releases and older releases lose page content (3.11.4 drops everything after a comment ending in --!> up to the next -->, and raises AssertionError on <![ if ... ]>), so `text` converts canary pages first and stops on a Python that gets them wrong; 3.11.17, 3.13.16 and 3.14.6 were checked. The Python version and the SHA-256 of html/parser.py, _markupbase.py and html/entities.py are recorded with each conversion and run.",
     "choice": "When a report exists as both PDF and web page, only the one at original_url is evaluated.",
-    "ground_truth": "Each part of the appendix is read by where it came from: in text from a PDF and in a text attachment every soft hyphen (U+00AD; pypdf's drawn hyphen) is read as a hyphen; web pages have none left (HtmlText deletes them). Other format characters (Cf) are deleted, except U+2063 and the end of a bidi embedding or isolate, which separate two names and become spaces. The line rules take only printable ASCII as part of a value (a name is ASCII letters, digits and hyphens), so a value right after Chinese text is found and a URL ends at Chinese text or full-width punctuation; they read [.] and (.) as dots, [:], [://] and a full-width colon as a URL's \"://\", and [@], (@), [at], (at) (with or without spaces) and a full-width at sign as an e-mail address's \"@\", and find URLs, e-mail addresses, IPv4 addresses, domains and hashes."
+    "ground_truth": "A draft and a review (see the docstring of evaluate.py). The draft reads each line of the appendix: in text from a PDF and in a text attachment every soft hyphen (U+00AD; pypdf's drawn hyphen) is a hyphen; other format characters (Cf) are deleted, except U+2063 and the end of a bidi embedding or isolate, which become spaces; then the defang styles are read as ASCII: dot, at sign, colon and slash in ASCII, full-width or CJK brackets ([.] (.) {.} [dot] [at] [@] [:] [://] [/] 【.】 〔.〕 ［.］ [。] （.） ［＠］, with spaces inside or around), the full-width dot, at sign, colon, slash, hyphen, letters and digits, and the hyphens U+2010, U+2011, U+2212 and U+FE63. The line rules then find URLs, e-mail addresses, IPv4 addresses, names and hashes in the ASCII text; a name's top-level domain must be in iana-tlds.txt (a fixed copy of the IANA list), and one that is also a common file extension is left out with a warning. The draft lists every line with its values and warnings; a reviewer checks every line against images of the rendered pages (pdftoppm for PDFs, headless Chromium for web pages), resolves every warning, and `review` writes the result into truth_review. The tools run only on a committed, complete review of the current draft."
   },
   "selection_rule": {
     "zh-cn": "Written down after the fact, on 2026-10-10; the reports had been chosen and read before. Candidates: 19 PDFs in CyberMonitor/APT_CyberCriminal_Campagin_Collections (commit cbf136e) that the evaluator picked by hand from index.csv and the file paths as Simplified-Chinese reports likely to have an IOC appendix: by 360, Qi An Xin, Tencent and Gcow, and one repost. This was not a fixed criterion, and other Chinese PDFs in the collection were not considered. Each candidate was converted with pypdf and checked for language, an IOC appendix, defang styles and the real publisher. Kept: seven with an IOC appendix in Simplified Chinese, recommended by the evaluator and approved by the maintainer (cn01 to cn07), and Gcow's SideWinder 2020 H1 (cn08), added by the maintainer because the domains in its appendix are defanged with [.]. Left out: no IOC appendix (360 APT-C-15 2016; 360 APT-C-09 2016, two PDFs; 360 APT-C-34 2019; 360 APT-C-23 2020); English (Qi An Xin APT-C-09 2019); a function table rather than an appendix, and fragmented text (Bitter CHM 2020); a repost (Two-tailed scorpion, on SecPulse); the alternates Nortrom Lion 2020 (one C2) and 360 APT-C-47 2020 (half the domains masked); and Gcow's SideWinder report of 2020-01-01 (2020/2020.01.01.SideWinder_APT), which the screening missed: it has a [.]-defanged IOC appendix and was never offered to the maintainer. It was found when this rule was checked, after the zh-cn results, and was not added then.",
@@ -82,7 +83,7 @@
           "start": "附录 A ：样本 MD5",
           "end": "附录 C"
         },
-        "truth_corrections": {
+        "legacy_truth_corrections": {
           "remove": {
             "domain": [
               "blogs.360.cn"
@@ -160,7 +161,7 @@
           "start": "附录 1⾎茜草⾏动部分IOC",
           "end": "附录 2奇安信威胁情报中⼼"
         },
-        "truth_corrections": {
+        "legacy_truth_corrections": {
           "add": {
             "domain": [
               "qqmailservers.serveuser.com",
@@ -263,7 +264,7 @@
           "start": "IOC\n样本 md5",
           "end": "参考\n"
         },
-        "truth_corrections": {
+        "legacy_truth_corrections": {
           "remove": {
             "url": [
               "https://blogs.360.cn/post/APT-C-44.html"
@@ -295,7 +296,7 @@
           "start": "0x04.IOCs",
           "end": "0x05. 相关链接"
         },
-        "truth_corrections": {
+        "legacy_truth_corrections": {
           "remove": {
             "url": [
               "https://mp.weixin.qq.com/s/5mBqxf_v6G006EnjECoTHw"

@@ -6,16 +6,21 @@ appendix as the ground truth.
 
 **Status:** the Simplified-Chinese set (8 reports) was measured before and after fixing what it
 showed. The Traditional-Chinese set (3–4 reports chosen by the maintainer) is held out: it will be
-measured once, at the end, and has not been looked at during the fixes. TTPrism (`src/`) and the
-evaluation script are frozen at 435bb97, the commit at which the "after" results below were
-made; after it, only the Traditional-Chinese entries of the manifest (selection rule first, before
-anyone looks at the files), the documentation and the results may change.
+measured once, at the end, and has not been looked at during the fixes. TTPrism (`src/`) is frozen
+at 435bb97, the commit at which the "after" results below were made, and does not change again for
+this evaluation. The evaluation tool was changed after 435bb97, before any Traditional-Chinese file
+was added: its ground truth is now a draft that a reviewer checks line by line against the rendered
+pages before any tool runs, and the whole procedure for the held-out set, down to how its results
+will be read, is written down in section 6 in advance. The tool is frozen with that section; after
+it, only the Traditional-Chinese entries of the manifest (selection rule first, before anyone looks
+at the files), the reviewed ground truth, the judgements, the documentation and the results may
+change.
 
 Everything needed to check the numbers is in [`2026-10-real-reports/`](2026-10-real-reports/):
-the script, the manifest (original URLs, appendix markers, hand corrections of the ground truth,
-each with a reason), the judgements of every extracted value outside the ground truth, and the
-results with every tool's full output. PDFs, the extracted text and the ground-truth values are not
-committed.
+the script, the manifest (original URLs, appendix markers, the reviewed ground truth or, for zh-cn,
+the hand corrections, each with a reason), the judgements of every extracted value outside the
+ground truth, the results with every tool's full output, and the defang statistics. PDFs and the
+extracted text are not committed.
 
 ## 1. Reports
 
@@ -55,7 +60,8 @@ domains, IPv4 and MD5 only.
   versions and Python 3.11.4.
 - **TTPrism settings.** *default* (the main numbers) and *raw* (`--include-reserved
   --no-default-allowlist`). Comparisons with the other tools use raw.
-- **Ground truth.** The values in the appendix, found with plain line rules, then corrected by hand.
+- **Ground truth.** (The zh-cn procedure, kept for these results; the held-out set uses the draft and
+  review of section 6.) The values in the appendix, found with plain line rules, then corrected by hand.
   In PDF text every soft hyphen is read as a hyphen first, as TTPrism reads it, and other invisible
   format characters are deleted (those that separate two names become spaces); the rules take only
   printable ASCII as part of a value (so a name right after Chinese text is found, and a URL ends at
@@ -69,7 +75,14 @@ domains, IPv4 and MD5 only.
   cannot be part of a name) and `dynamic-` + `dns.net` kept its hyphen (cn02 lists that provider
   unwrapped). Eight cn06 entries wrap at a hyphen that may or may not belong to the name (`126-` +
   `maildownload…`); they are left out, like the masked `wiki.xxxx.com`, and a tool output equal to
-  either reading counts neither way. A URL in the appendix adds its host to the domains.
+  either reading counts neither way. A URL in the appendix adds its host to the domains. These
+  corrections are kept in the manifest as `legacy_truth_corrections`; the zh-cn results were made by
+  evaluate.py as of 7eea575 and were not made again with the draft-and-review procedure. Run on the
+  same eight appendices, the current draft rules give this ground truth exactly, except where the hand
+  corrections applied, and each of those is either done by the rules or flagged for the reviewer:
+  `0x04.IOCs` and the `serveuser.-` fragments are left out by the top-level-domain check, the
+  page-header addresses get an `own-address` warning (10 occurrences in cn03, cn06, cn07 and cn08),
+  and all 19 wrapped cn06 names get a `name-cut` warning.
 - **Matching.** Domains lower-cased, trailing dot removed; URLs refanged with scheme and host
   lower-cased, scored as whole URLs and by host; MD5 case-insensitive. Before domain recall, each
   tool's domain output gets the hosts of its URL output (iocextract has no domain extractor, so its
@@ -155,7 +168,9 @@ defanging (`．`, `【.】`, `[。]`, `［＠］`) defeats both libraries. None 
 any of those forms; the only defanging in their text is ASCII `[.]` (24 times, in cn05, cn07 and
 cn08) and one `hxxp` (cn02), which all three tools handle. In this sample the differences come from
 PDF artifacts and noise, not from CJK defanging. Whether Traditional-Chinese reports use the
-full-width forms is one thing the held-out set will show.
+full-width forms is one thing the held-out set will show. `defang` (section 6.3) counts the same:
+no full-width or CJK form, not even a full-width digit, occurs anywhere in the eight texts
+([`defang-zh-cn.json`](2026-10-real-reports/defang-zh-cn.json)).
 
 ## 4. TTPrism issues found and what changed
 
@@ -270,20 +285,176 @@ same regression.
   the selection was written down (the manifest's `selection_rule` records all 19 candidates). The PDF text depends
   on pypdf and on how each PDF was made; another converter would give other artifacts.
 
-## 6. Reproducing
+## 6. The held-out Traditional-Chinese set: the procedure, fixed in advance
 
-`text` needs a Python with the 2025 `html.parser` security fixes, also for a set of PDFs only, and
-refuses one without them (3.11.17 was used; 3.11.4 is refused). The selection rule of a set must be
-committed before `text` runs.
+This section is committed before any Traditional-Chinese file is in the working directory; the commit
+at which the first one is added is the freeze commit of the evaluation tool, and nothing below changes
+after it.
+
+### 6.1 Order of the steps
+
+1. Commit the selection rule (`selection_rule` → `zh-tw` in the manifest).
+2. Download the files and fill in their source fields (`retrieved`, `final_url`, `saved`, charsets).
+3. `text`: PDFs with pypdf (one with only an owner password is decrypted with the empty user
+   password), web pages decoded strictly and laid out by `HtmlText`.
+4. `defang`: count the writings (6.3).
+5. `truth`, the review, `review`, and a commit of the manifest. The ground truth is fixed before any
+   tool runs, by a reviewer who has not seen any tool's output: `review` refuses once the set has
+   results, and `run` refuses unless every report's review is complete, committed as it stands and
+   made against the draft that the current text and rules give.
+6. `run`.
+7. `judge`, the judging, `judge --import`.
+8. `score`.
+
+### 6.2 Ground truth: a draft, reviewed line by line
+
+`truth` reads each line of the appendix: soft hyphens in PDF text as hyphens and other format
+characters deleted (as for zh-cn), then the defang styles as the ASCII characters they stand for —
+dot, at sign, colon and slash in ASCII, full-width or CJK brackets (`[.]` `(.)` `{.}` `[dot]`
+`(dot)` `[at]` `{at}` `[@]` `[:]` `[://]` `[/]` `【.】` `〔.〕` `［.］` `[。]` `（.）` `［＠］`, with or
+without spaces inside and around), the full-width dot, at sign, colon, slash and hyphen, full-width
+letters and digits, and the hyphens U+2010, U+2011, U+2212 and U+FE63 — and finds URLs, e-mail
+addresses, IPv4 addresses, names and hashes in the ASCII text that results. A name's last label must
+be a top-level domain of `iana-tlds.txt` (the IANA list of 2026-09-30, copied from the PyPI package
+`tlds` 2026093003 because data.iana.org could not be reached; not TTPrism's list), which leaves out
+file names such as `setup.msi`; a name under a top-level domain that is also a common file extension
+(`.zip`, `.sh`, `.so`, `.py`, `.app` …) is left out with a warning. A URL ends at white space,
+non-ASCII text, quotation marks, brackets, `<`, `>` and `&&`. One function gives the standard form of
+a value for the ground truth and for every tool's output (scheme and host lower-cased, `hxxp` as
+`http`); a URL it cannot parse is kept as it is and listed, never an exception.
+
+For each report `truth` writes the draft, a review page that shows every line of the appendix with
+the values read from it and its warnings beside images of the pages (pdftoppm for each PDF page the
+appendix is on; headless Chromium screenshots of a web page, decoded as `text` decoded it, with
+scripts off and every other request refused), and a review template. The warnings:
+
+| Warning | What the reviewer checks |
+| --- | --- |
+| `hex-cut` | hex digits cut at a line end or start: a hash in a narrow cell, or two halves that look like two shorter hashes |
+| `hash-label` | a hash whose length differs from the hash type named in the label above it |
+| `name-cut` | a name ending at a line end in `.` or `-`, or a line starting with `.` or `-` after a name |
+| `url-cut` | a URL that reaches the line end before a line that does not start with a value |
+| `file-extension` | a name left out because its top-level domain is also a file extension |
+| `url-unparseable` | a URL without a host in standard form |
+| `non-ascii` | a value read from non-ASCII writing (full-width or CJK forms, Unicode or soft hyphens, deleted format characters) |
+| `masked` | a masked value, left out |
+| `own-address` | a value at the report's own address, often a page header printed inside the appendix |
+| `unread-defang` | a dot or at sign in a form the reading does not know, between ASCII letters or digits |
+
+The reviewer checks every line against the images and fills in the template: who and when, the
+images checked (every PDF page the appendix is on, and screenshots of each web page), that every line
+was checked, and a resolution for every warning — `confirmed`, or `corrected` by an `add`, `remove` or
+`ambiguous` entry that names it — each with a note. Every corrected or added value is in standard
+form and records its writing as the page shows it, its writing class and where it stands; a `remove`
+or `ambiguous` entry that matches no value of the draft is an error. `review` checks all of this and
+writes the reviewed ground truth into the manifest (`truth_review`), where every final value has the
+same four records; `run` and `score` check it again.
+
+Writing classes: *plain*; *ASCII defang* (`[.]` `(.)` `{.}` `[dot]` `hxxp` `[:]` `[://]` `[/]`
+`[@]` `[at]`); *full-width or CJK-bracket defang* (`【.】` `〔.〕` `［.］` `[。]` `（.）` `．` `＠` `／`
+`：` `－`, full-width letters and digits). Unicode hyphens and soft hyphens are plain. A value written
+several ways in the appendix gets the class of its plainest writing, since a tool can find it from
+that one; a URL's host gets the plainest class of its own entry and its URLs.
+
+### 6.3 What is measured
+
+1. **The main question, how indicators are written.** `defang` counts each writing in the whole text
+   and in the appendix of each report: ASCII (`[.]` `(.)` `[dot]` `hxxp` `[:]` `[@]` `[at]`, others)
+   and full-width or CJK (`【.】` `〔.〕` `［.］` `[。]` `（.）` `．` `＠`, full-width letters and digits,
+   others), each twice: everywhere, and only inside values the line rules find. Full-width digits
+   and `１．` numbering are common in Chinese body text, so only the second count says whether
+   indicators are written that way. A report *uses* full-width or CJK-bracket writing when at least
+   one of its reviewed ground-truth values is in that class; the counts in the body are given beside
+   it.
+2. **The tools.** Recall of each tool by writing class (plain, ASCII defang, full-width or
+   CJK-bracket defang); overall recall (by type and by URL host) and precision (strict, lenient)
+   computed as for zh-cn; totals for all reports and for PDFs and web pages separately. TTPrism raw
+   is the one compared, default is reported as well. A tool that fails on a report is recorded with
+   its error and has found nothing there.
+
+### 6.4 How the results will be read
+
+- Descriptively, without statistical tests: with 3–4 reports, each is a case.
+- If no Traditional-Chinese report uses full-width or CJK-bracket writing, the README and this
+  report will say: "None of the 11–12 real reports evaluated so far uses these writings; TTPrism's
+  handling of them is supported only by synthetic tests." (README in Chinese: 「目前評估的 11–12
+  份真實報告都沒有用到這些寫法；TTPrism 對它們的處理只有合成測試支持」.)
+- If some do: "N of M use them", with each tool's recall in that class, and nothing inferred beyond
+  these reports.
+
+### 6.5 Excluding a report
+
+Once the files are in, a report is excluded only for a technical reason: it has no IOC appendix after
+all, its indicators are only in images, its file cannot be read, it is not in Traditional Chinese, or
+it is not TLP:CLEAR. An excluded report goes to `skipped` with its reason. No report is excluded
+because of its content or its results. It is replaced only before the review of the ground truth
+starts, by the next report under the same selection rule.
+
+### 6.6 Judging
+
+All extracted values outside the ground truth, from all tools together, go on one sheet (`judge`),
+without the names of the tools that found them and in a shuffled order; the evaluator judges each
+(a, b or c, with a one-line reason). There is one rater, and no agreement between raters is
+measured. While any value is unjudged, `score` marks every total as provisional. `judgements.json`
+is checked (a wrong category, type or form is an error with its place) and its SHA-256 is recorded
+in the results.
+
+### 6.7 Checked on a synthetic set
+
+`tests/test_research_pipeline.py` runs every step on two synthetic reports made like the held-out
+ones: a PDF printed by Chromium and encrypted with only an owner password, with a SHA-256 that a
+narrow table cell breaks into two 32-digit halves, full-width and CJK-bracket defanging, and a second
+page whose WinAnsi font draws hyphens with code 0xAD (one inside a name, one at a line end); and a
+Big5 web page with an indicator table. `review` stopped on all twelve warnings until each was
+resolved (the split SHA-256 by its `hex-cut` and two `hash-label` warnings, the wrapped name by
+`name-cut`), `run` refused before the review was committed, iocextract's `ValueError` on
+`http://a：` in the web page was recorded as its error on that report while the run went on, `score`
+was provisional until the blinded sheet was judged, and the recall of every tool by writing class
+equals an independent count from the reviewed values and the outputs. These are checks of the
+procedure, not results.
+
+### 6.8 Known gaps, not fixed before the freeze
+
+- Windows: rendering needs a POSIX system, and Git's `autocrlf` and the console encoding are not
+  handled; the evaluation runs on Linux or macOS.
+- The draft has no rule for IPv6 addresses; a reviewer adds them by hand.
+- A single asterisk (`evil.*.com`) is not recognised as a mask, only `**` and `xxx`.
+- IPv4 octets above 255 are not rejected; CIDR blocks and ranges are read as plain addresses.
+- A cp950 page with an outdated `gb2312` `<meta>` decodes as GB 18030 without an error; `text`
+  prints the encoding and declared charsets, and such a page needs a `charset_override`.
+- A text attachment that is not UTF-8 stops `text` with Python's `UnicodeDecodeError`, which does not
+  name the file.
+- An ambiguous URL contributes no host, even when only its path is ambiguous; a removed URL
+  contributes none either, while the same host listed on its own stays unless it is removed too.
+- Results made by another evaluate.py stop `score` without saying what changed.
+
+## 7. Reproducing
+
+The zh-cn results were made by evaluate.py as of 7eea575, with the hand corrections now in
+`legacy_truth_corrections`; reproduce them with that commit's `docs/research/2026-10-real-reports/`.
+The current script makes the zh-cn text, defang statistics and ground-truth drafts, but `run` needs a
+review, which zh-cn does not have.
+
+The held-out set, in the order of section 6.1 (`text` needs a Python with the 2025 `html.parser`
+security fixes, 3.11.17 was used; `truth` needs pdftoppm and Chromium on a POSIX system):
 
 ```sh
 uv venv -p 3.11.17 /tmp/eval
 uv pip install -p /tmp/eval/bin/python -r docs/research/2026-10-real-reports/requirements.txt -e .
 E=docs/research/2026-10-real-reports/evaluate.py
-/tmp/eval/bin/python -I $E text zh-cn && /tmp/eval/bin/python -I $E truth zh-cn
-/tmp/eval/bin/python -I $E run zh-cn after && /tmp/eval/bin/python -I $E score zh-cn after
+# selection rule committed; files in eval-data/zh-tw/pdf/<id>.pdf or html/<id>.html, source fields filled in
+/tmp/eval/bin/python -I $E text zh-tw
+/tmp/eval/bin/python -I $E defang zh-tw
+CHROMIUM=/path/to/chromium /tmp/eval/bin/python -I $E truth zh-tw
+# review eval-data/zh-tw/truth/<id>.review.html against its images; fill in <id>.review.json
+/tmp/eval/bin/python -I $E review zh-tw
+git commit -m "Reviewed zh-TW ground truth" docs/research/2026-10-real-reports/manifest.json
+/tmp/eval/bin/python -I $E run zh-tw heldout
+/tmp/eval/bin/python -I $E judge zh-tw heldout     # judge eval-data/zh-tw/judging/heldout.json
+/tmp/eval/bin/python -I $E judge zh-tw heldout --import
+/tmp/eval/bin/python -I $E score zh-tw heldout
 ```
 
-The PDFs go in `eval-data/zh-cn/pdf/<id>.pdf` (web pages in `eval-data/<set>/html/<id>.html`); the
-manifest lists each one's path and blob SHA-1 in the collection, and the results list the SHA-256 of
-each source file and of its text.
+The source files go in `eval-data/<set>/pdf/<id>.pdf` or `eval-data/<set>/html/<id>.html`; the
+results list the SHA-256 of each source file and of its text, and each step stops if what it was made
+from changed.

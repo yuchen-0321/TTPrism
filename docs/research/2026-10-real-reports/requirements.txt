@@ -6,3 +6,5 @@ iocextract==1.16.1
 ioc-finder==9.4.1
 # iocextract imports requests without declaring it.
 requests==2.34.2
+# pypdf decrypts PDFs with only an owner password (AES) with cryptography.
+cryptography==50.0.2
