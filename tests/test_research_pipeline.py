@@ -418,10 +418,20 @@ def test_screenshots_show_what_the_text_has(tmp_path: Path) -> None:
         f"<h2>IOCs</h2><div hidden>{rows}</div>",
         f"<details><summary>IOCs</summary>{rows}</details>",
         f"<dialog>{rows}</dialog>",
+        f"<div hidden=until-found>{rows}</div>",
+        f"<div popover>{rows}</div>",
+        # A page's own Content-Security-Policy would refuse our style sheet; it is taken out.
+        f"<meta http-equiv=Content-Security-Policy content=\"default-src 'self'\"><div hidden>{rows}</div>",
     ):
         assert len(drawn(page)) >= 2, page[:60]
-    # <noscript>, which HtmlText drops, is not drawn although scripts are off.
-    assert len(drawn(f"<p>a.example.com</p><noscript>{rows}</noscript>")) == 1
+    # <noscript>, which HtmlText drops, is not drawn although scripts are off; nor is the alt text of
+    # the refused images.
+    strict = "<meta http-equiv=Content-Security-Policy content=\"default-src 'self'\">"
+    assert len(drawn(f"{strict}<p>a.example.com</p><noscript>{rows}</noscript>")) == 1
+    alts = "".join(
+        f"<img src=i{i}.png alt='row {i} r{i}.example.net, an alternative text'>" for i in range(400)
+    )
+    assert len(drawn(f"<p>a.example.com</p><p>{alts}</p>")) == 1
     # One long line is wrapped, so every screenshot stays as wide as the page.
     assert {width for width, _ in drawn("<pre style='overflow:auto'>" + "A" * 6000 + "</pre>")} == {1200}
     # A page that would leave itself, with scripts off, stays drawn; text with control bytes is shown.

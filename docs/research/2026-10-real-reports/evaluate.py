@@ -187,10 +187,11 @@ _FORMS = re.compile(
         )
         for index, (opening, closing) in enumerate(_BRACKETS)
     )
-    # A scheme's colon and slashes with a space or a full-width character among them (not "://").
-    + "|(?P<fwscheme>(?<=[A-Za-z])(?!://)"
+    # A scheme's colon and slashes with a space or a full-width character among them, or "://" with
+    # spaces after it before a host.
+    + "|(?P<fwscheme>(?<=[A-Za-z])(?:(?!://)"
     + f"{_SP}[:\\uff1a]{_SP}[/\\uff0f]{_SP}[/\\uff0f]"
-    + "(?:[ \\u3000]{1,2}(?=[A-Za-z0-9\\[]))?)"
+    + "(?:[ \\u3000]{1,2}(?=[A-Za-z0-9\\[]))?|://[ \\u3000]{1,2}(?=[A-Za-z0-9\\[])))"
     + "".join(
         f"|(?P<{name}>{_ALNUM_BEFORE}(?:[ \\u3000]{{1,2}}{char}{_SP}|{char}[ \\u3000]{{1,2}}){_ALNUM_AFTER})"
         for name, char in (("fwdot", "\\uff0e"), ("fwat", "\\uff20"))
@@ -220,8 +221,14 @@ _SINGLE = {
 _HYPHENS = {"‐": "-", "‑": "-", "−": "-", "﹣": "-"}
 _LIGATURES = {"\ufb00": "ff", "\ufb01": "fi", "\ufb02": "fl", "\ufb03": "ffi", "\ufb04": "ffl"}
 _LIGATURES |= {"\ufb05": "st", "\ufb06": "st"}
-# A URL whose scheme is written hxxp, hxxps or fxp is ASCII-defanged even when nothing else is.
-_DEFANGED_SCHEME = re.compile("\\s*(?:[Hh][Xx][Xx][Pp][Ss]?|[Ff][Xx][Pp])(?=[:\uff1a\\[(\\{【〔［（])")
+# A URL whose scheme is written hxxp, hxxps or fxp is ASCII-defanged even when nothing else is: the
+# scheme before a colon or a bracket form, with up to two spaces between (as for the defang statistic).
+_SCHEME_FOLLOWS = "(?=[ \\u3000]{0,2}[:\uff1a\\[(\\{【〔［（])"
+_DEFANGED_SCHEME = re.compile("\\s*(?:[Hh][Xx][Xx][Pp][Ss]?|[Ff][Xx][Pp])" + _SCHEME_FOLLOWS)
+# The full-width dot and at sign are read as a dot and an at sign only after an ASCII letter, digit,
+# hyphen or underscore (as read): after Chinese text or at the start of a line they are punctuation
+# ("網域．bad.example.net"), and they end a value there.
+_NAME_BEFORE = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_")
 
 
 class Reading:
@@ -259,7 +266,10 @@ def ascii_reading(raw: str) -> Reading:
 
     def single(index: int) -> None:
         char = raw[index]
-        if char in _SINGLE:
+        if char in "\uff0e\uff20" and not (chars and chars[-1] in _NAME_BEFORE):
+            chars.append(char)
+            kinds.append("")
+        elif char in _SINGLE:
             chars.append(_SINGLE[char])
             kinds.append("cjk")
         elif char in _HYPHENS:
@@ -299,8 +309,8 @@ _URL_PARTS = re.compile(r"([A-Za-z][A-Za-z0-9+.\-]*)://([^/?#\s]*)(.*)", re.DOTA
 
 def normalise_url(value: str) -> tuple[str, bool]:
     """The standard form of a URL (defang styles read, scheme and host lower-cased, hxxp read as
-    http and fxp as ftp) and whether it could be parsed (has a host); one that cannot is returned
-    as it is, never with an exception."""
+    http and fxp as ftp) and whether it could be parsed (has a host that can be a name or an
+    address); one that cannot is returned as it is, never with an exception."""
     value = ascii_reading(value.strip()).text
     value = re.sub(r"^[Ff][Xx][Pp]", "ftp", re.sub(r"^[Hh][Xx][Xx][Pp]", "http", value))
     match = _URL_PARTS.fullmatch(value)
@@ -308,7 +318,7 @@ def normalise_url(value: str) -> tuple[str, bool]:
         return value, False
     scheme, netloc, rest = match.groups()
     url = f"{scheme.lower()}://{netloc.lower()}{rest}"
-    return url, bool(url_host(url))
+    return url, is_host(url_host(url))
 
 
 def normalise(kind: str, value: str) -> str:
@@ -347,6 +357,12 @@ def host_class(writing: str) -> str:
     elif ":" in host:
         end = start + host.index(":")
     return reading.writing_class(start, end) if end > start else CLASSES[0]
+
+
+def is_host(host: str) -> bool:
+    """Whether a URL's host can be a name or an address: not empty, and no character that cannot be
+    in either (two URLs joined by a comma give the host "a.example.com,hxxp")."""
+    return bool(host) and (is_ip(host) or not re.search(r"[^\w.\-]", host))
 
 
 def is_ip(host: str) -> bool:
@@ -1462,9 +1478,11 @@ def html_to_text(page: str) -> tuple[str, dict[str, Any]]:
 # trailing punctuation. A name's last label must be a top-level domain of the IANA list next to this
 # script (iana-tlds.txt), which rules out file names such as setup.msi, invoice.iso or stage.scr;
 # a name whose top-level domain is also a common file extension (payload.zip, run.sh) is left out with
-# a warning. Masked entries ("wiki.xxxx.com", "evil.*.com", "ev*l.example.com") are left out with a
-# warning, and so are
-# tool outputs equal to them. Every rule is linear in the length of a line.
+# a warning. Masked entries (an asterisk inside a token, "evil.*.com", "ev*l.example.com",
+# "*.example.net", or "xxx" standing alone, "wiki.xxxx.com"; not a lone asterisk before a name, nor a
+# file glob such as "*.lnk") are left out with a warning, and so are tool outputs equal to them. The
+# scheme of another kind of URL (ldap://, tcp://) is taken out, so that its host is found as a name
+# or an address. Every rule is linear in the length of a line.
 _MD5 = re.compile(r"(?<![0-9A-Fa-f])[0-9A-Fa-f]{32}(?![0-9A-Fa-f])")
 _SHA1 = re.compile(r"(?<![0-9A-Fa-f])[0-9A-Fa-f]{40}(?![0-9A-Fa-f])")
 _SHA256 = re.compile(r"(?<![0-9A-Fa-f])[0-9A-Fa-f]{64}(?![0-9A-Fa-f])")
@@ -1512,6 +1530,8 @@ _HEX_HEAD = re.compile(r"\s*([0-9A-Fa-f]+)(?![0-9A-Za-z_])")
 _NAME_CUT_TAIL = re.compile(r"(?<![A-Za-z0-9.\-])[A-Za-z0-9][A-Za-z0-9.\-]*[.\-]\s*\Z")
 _NAME_CUT_HEAD = re.compile(r"\s*[.\-][A-Za-z0-9]")
 _SCHEME_START = re.compile(r"\s*(?:https?|hxxps?|ftp|fxp)://", re.IGNORECASE)
+_CJK_PATH_HEAD = re.compile(r"\s*[^\x00-\x7f\s]{1,64}\s?[./_?=&-][A-Za-z0-9]")
+_OTHER_SCHEME = re.compile(r"(?<![A-Za-z0-9+.\-])[A-Za-z][A-Za-z0-9+.\-]{0,15}://", re.ASCII)
 
 
 @cache
@@ -1612,15 +1632,17 @@ def line_values(reading: Reading) -> dict[str, list[dict[str, Any]]]:
     file_names: list[dict[str, Any]] = []
 
     def add(kind: str, start: int, end: int, match_end: int | None = None) -> None:
-        if kind in ("domain", "email") and start > 0 and text[start - 1] == "*":
-            # An asterisk masks part of a label: the masked value runs from the start of its token
-            # (at most 256 characters back, so that the search stays linear).
+        if (
+            kind in ("domain", "email")
+            and start > 1
+            and text[start - 1] == "*"
+            and _in_token(text[start - 2])
+        ):
+            # An asterisk inside a token masks part of a label: the masked value runs from the start of
+            # its token (at most 256 characters back, so that the search stays linear). A lone
+            # asterisk before a name (a footnote mark) leaves the name, with a warning.
             limit = max(0, start - 256)
-            while (
-                start > limit
-                and text[start - 1].isascii()
-                and (text[start - 1].isalnum() or text[start - 1] in "*_.%+-")
-            ):
+            while start > limit and _in_token(text[start - 1]):
                 start -= 1
         raw = text[start:end]
         if _MASKED.search(raw):
@@ -1642,7 +1664,9 @@ def line_values(reading: Reading) -> dict[str, list[dict[str, Any]]]:
         value = match.group(0).rstrip(".,;:!?")
         add("url", match.start(), match.start() + len(value), match.end())
         taken.append(match.span())
-    rest = _blank(text, taken)
+    # The scheme of another kind of URL (ldap://, tcp://, wss:// ...) is taken out, so that its host is
+    # found as a name or an address; such URLs are not values of their own.
+    rest = _blank(text, taken + [match.span() for match in _OTHER_SCHEME.finditer(text)])
     taken = []
     for match in _EMAIL.finditer(rest):
         if match.group(1).lower() in tlds:
@@ -1669,14 +1693,23 @@ def line_values(reading: Reading) -> dict[str, list[dict[str, Any]]]:
     for match in _TOKEN.finditer(text):
         token = match.group(0).rstrip(".")
         start, end = match.start(), match.start() + len(token)
+        last = token.rsplit(".", 1)[-1].lower()
+        # A lone asterisk before a name is a mark (a footnote or bullet), not a mask.
+        inner = token[1:] if token[:1] == "*" and token[1:2].isalnum() else token
         if (
-            _MASKED_HOST.search(token)
+            _MASKED_HOST.search(inner)
             and _ENDS_IN_LETTERS.search(token)
             and 1 not in covered[start:end]
-            and token.rsplit(".", 1)[-1].lower() not in _FILE_EXTENSION_TLDS
+            and last in tlds
+            and last not in _FILE_EXTENSION_TLDS
         ):
             masked.append({"type": "domain", "value": token.lower(), "start": start, "end": end})
     return {"found": found, "masked": masked, "file names": file_names}
+
+
+def _in_token(char: str) -> bool:
+    """Whether ``char`` can be part of a masked name or e-mail address."""
+    return char.isascii() and (char.isalnum() or char in "*_.%+-")
 
 
 def _ends_in_name_character(line: str) -> bool:
@@ -1714,28 +1747,33 @@ class _Warnings:
         self.by_line.setdefault(line, []).append(warning_id)
 
 
-# The kinds of warning, and what each asks the reviewer to check on the rendered page.
+# The kinds of warning, and what each asks the reviewer to check on the rendered page (shown on the
+# review page for the kinds a draft has).
 WARNING_KINDS = {
     "hex-cut": "hex digits at a line end and the next line's start that make a SHA-1 or SHA-256 together "
-    "(not two MD5s under an MD5 label), a run of lines of 32 hex digits with no MD5 label, or a piece of "
-    "hex digits of the length of no hash at a line end or start",
+    "(unless both are whole MD5s under an MD5 label in effect, or both lines are rows of MD5s); a run of "
+    "lines of 32 hex digits with no MD5 label in effect (none above, or a line of other text since it "
+    "ended its block); or a piece of 16 or more hex digits of the length of no hash: a hash may be cut",
     "hash-label": "a hash whose length differs from the hash type named in the nearest label above it",
     "name-cut": "a name that ends at the end of a line with '.' or '-' before a line that starts with a "
     "name character or with '.' or '-', or a line that starts with '.' or '-' after a line that ends in "
     "a name: the name may go on in the next line",
-    "url-cut": "a URL that reaches the end of a line, before a line that does not start with a value (or, "
-    "for a URL ending in '/', '=', '?', '&', '-' or '_', before a line of Chinese text), or that is "
-    "followed by a slash after a space: the URL may go on",
+    "url-cut": "a URL that reaches the end of a line before a line that does not start with a value, or "
+    "before a line of Chinese text when the URL ends in '/', '=', '?', '&', '-' or '_' or the Chinese "
+    "text goes on with a file extension or path ('年度計畫 .rar'); or a URL followed by a slash after a "
+    "space: the URL may go on",
     "file-extension": "a name whose top-level domain is also a common file extension, left out of the draft",
-    "url-unparseable": "a URL without a host that the standard form can read",
+    "url-unparseable": "a URL without a host that can be a name or an address",
     "non-ascii": "a value read from writing with non-ASCII characters (full-width or CJK-bracket "
-    "defanging, Unicode hyphens, soft hyphens or deleted format characters), or a URL that stops right "
-    "before non-ASCII letters (a path or query in Chinese may go on)",
-    "masked": "a masked value, left out of the draft",
+    "defanging, Unicode hyphens, soft hyphens, ligatures or deleted format characters), or a URL that "
+    "stops before non-ASCII letters or before the full-width form of a URL character: it may go on",
+    "masked": "a masked value (an asterisk inside it, or 'xxx' standing alone), left out of the draft",
+    "mask-next": "a value next to a mask character (* ＊ # ○ ●, or x after an address): it may be the "
+    "visible part of a masked value",
     "own-address": "a value at the report's own address (original_url or final_url): often a page header "
     "printed inside the appendix",
-    "loose-defang": "a full-width dot or at sign with spaces around it, read as a dot or at sign, that is "
-    "part of no value: it may be numbering, and a value next to it may be wrong or missing",
+    "loose-defang": "full-width dots or at signs read as '.' or '@' between ASCII letters or digits that "
+    "are part of no value: numbering glued to a value ('１．198.51.100.23'), which may be wrong or missing",
     "unread-defang": "a dot or at sign written in a way the reading does not know, between ASCII "
     "letters or digits; nothing was read from it",
 }
@@ -1828,27 +1866,31 @@ def draft_truth(
     occurrences: dict[tuple[str, str], list[dict[str, Any]]] = {}
     masked: dict[str, list[dict[str, Any]]] = {}
     out_lines = []
-    expected_hash: str | None = None
     own_hosts = {
         url_host(normalise_url(str(report[key]))[0])
         for key in ("original_url", "final_url")
         if report.get(key)
     }
     own_hosts.discard("")
-    # The hash type named by the label of each line's block of hashes: the nearest label above it,
-    # until a line with text but neither a label nor a hash ends the block (None after a label naming
-    # several types).
+    # The hash type named by the nearest label at or above each line (None after a label naming
+    # several types), for the hash-label warning; and the type named by the label of the line's block
+    # of hashes, which a line with text but neither a label nor a hash ends, for the exemptions of the
+    # hex-cut warning (so that a label far above does not hide a hash cut in a later table).
+    nearest: list[str | None] = []
     expected: list[str | None] = []
+    label: str | None = None
+    block: str | None = None
     for reading, result in zip(readings, results, strict=True):
         labels = {
             _LABEL_TYPES[re.sub("[^A-Z0-9]", "", m.group(1).upper())]
             for m in _HASH_LABEL.finditer(reading.text)
         }
         if labels:
-            expected_hash = labels.pop() if len(labels) == 1 else None
+            label = block = labels.pop() if len(labels) == 1 else None
         elif reading.text.strip() and not any(e["type"] in _HASH_TYPES for e in result["found"]):
-            expected_hash = None
-        expected.append(expected_hash)
+            block = None
+        nearest.append(label)
+        expected.append(block)
     for index, (line, reading, result) in enumerate(zip(lines, readings, results, strict=True)):
         n = line["n"]
         line_entries = []
@@ -1877,17 +1919,29 @@ def draft_truth(
                 )
             if entry["type"] == "url" and not entry.get("parses", True):
                 warnings.add(
-                    n, "url-unparseable", f"URL without a host: {entry['value']!r}", [entry["value"]]
+                    n,
+                    "url-unparseable",
+                    f"URL without a host that can be a name or an address: {entry['value']!r}",
+                    [entry["value"]],
                 )
-            if entry["type"] in ("md5", "sha1", "sha256") and expected[index] not in (None, entry["type"]):
+            if entry["type"] in _HASH_TYPES and nearest[index] not in (None, entry["type"]):
                 warnings.add(
                     n,
                     "hash-label",
-                    f"{entry['type']} {entry['value']} under a {expected[index]} label",
+                    f"{entry['type']} {entry['value']} under a {nearest[index]} label",
                     [entry["value"]],
                 )
             if entry["type"] == "url":
                 _url_end_warnings(warnings, n, entry, reading)
+            mask = _mask_next_to(reading.text, entry)
+            if mask:
+                warnings.add(
+                    n,
+                    "mask-next",
+                    f"{entry['type']} {entry['value']} is next to {mask!r}: it may be the visible part of a "
+                    "masked value, or the mark may be a footnote or bullet",
+                    [entry["value"]],
+                )
         for entry in result["masked"]:
             raw_start, raw_end = reading.span(entry["start"], entry["end"])
             masked.setdefault(entry["type"], []).append({"value": entry["value"], "line": n})
@@ -1952,12 +2006,37 @@ def draft_truth(
 
 
 _HASH_TYPES = ("md5", "sha1", "sha256")
+# Characters that mask part of a value ("ev*l", "○○abc.gov.tw", "198.51.100.2*"); for an address,
+# letters x too ("203.0.113.1xx").
+_MASKS = "*\uff0a#\u25cb\u25cf\u3007"
+# Full-width forms of characters that go on inside a URL's path or query.
+_FULL_WIDTH_URL = "\uff1f\uff1d\uff06\uff3f\uff5e\uff05\uff03\uff0b"
+
+
+def _mask_next_to(text: str, entry: dict[str, Any]) -> str:
+    """The mask character right before a found value, or right after it (or after a dot and up to 64
+    letters, digits and hyphens that go on from it: "victim.example.com.t*"), or ""."""
+    if entry["type"] in _HASH_TYPES:
+        return ""
+    masks = _MASKS + ("xX" if entry["type"] == "ipv4" else "")
+    before = text[entry["start"] - 1 : entry["start"]]
+    if before and before in masks:
+        return before
+    after = entry["end"]
+    if text[after : after + 1] == "." and entry["type"] != "url":
+        after += 1
+        limit = min(len(text), after + 64)
+        while after < limit and text[after].isascii() and (text[after].isalnum() or text[after] == "-"):
+            after += 1
+    following = text[after : after + 1]
+    return following if following and following in masks else ""
 
 
 def _url_end_warnings(warnings: _Warnings, n: int, entry: dict[str, Any], reading: Reading) -> None:
     """Warnings for a URL that may go on past where the rules ended it: non-ASCII letters right after
-    it (past spaces and format characters, and past punctuation the rules took off its end), or a
-    slash after a space."""
+    it (past spaces and format characters, and past punctuation the rules took off its end), the
+    full-width form of a URL character with an ASCII URL character after it ("a.php？id=1", pypdf's
+    "a.php ？ id=1"), or a slash after a space."""
     raw = reading.raw
     position = reading.span(entry["start"], entry["match_end"])[1]
     stop = min(len(raw), position + 64)
@@ -1968,7 +2047,16 @@ def _url_end_warnings(warnings: _Warnings, n: int, entry: dict[str, Any], readin
     ):
         position += 1
     following = raw[position : position + 1]
-    if following and not following.isascii() and following.isalpha():
+    beyond = raw[position + 1 : position + 4].lstrip(" \u00a0\u3000")[:1]
+    if following and following in _FULL_WIDTH_URL and beyond and re.match(_URL_CHAR, beyond):
+        warnings.add(
+            n,
+            "non-ascii",
+            f"the URL {entry['value']!r} stops before {following!r}, the full-width form of a URL "
+            "character: the path or query may go on",
+            [entry["value"]],
+        )
+    elif following and not following.isascii() and following.isalpha():
         warnings.add(
             n,
             "non-ascii",
@@ -1986,23 +2074,35 @@ def _url_end_warnings(warnings: _Warnings, n: int, entry: dict[str, Any], readin
 
 
 def _loose_defang_warnings(warnings: _Warnings, n: int, reading: Reading, result: dict[str, Any]) -> None:
-    """A warning for each full-width dot or at sign with spaces around it that was read as a dot or an
-    at sign but is part of no value: it may be numbering, and a value next to it may be wrong or
-    missing."""
-    covered = bytearray(len(reading.text) + 1)
+    """One warning for a line with full-width dots or at signs (bare or with spaces around them) that
+    were read as dots or at signs between ASCII letters or digits but are part of no value: numbering
+    glued to the value after it ("１．198.51.100.23"), so that a value may be wrong or missing."""
+    text = reading.text
+    covered = bytearray(len(text) + 1)
     for entry in result["found"] + result["masked"]:
         covered[entry["start"] : entry["end"]] = b"\x01" * (entry["end"] - entry["start"])
-    for index, char in enumerate(reading.text):
-        if char in ".@" and reading.kinds[index] == "cjk" and not covered[index]:
+    forms = []
+    for index in range(1, len(text) - 1):
+        if (
+            text[index] in ".@"
+            and reading.kinds[index] == "cjk"
+            and not covered[index]
+            and text[index - 1].isascii()
+            and text[index - 1].isalnum()
+            and text[index + 1].isascii()
+            and text[index + 1].isalnum()
+        ):
             raw_start, raw_end = reading.origins[index]
             form = reading.raw[raw_start:raw_end]
-            if form.strip(" \u3000") != form and form.strip(" \u3000") in ("\uff0e", "\uff20"):
-                warnings.add(
-                    n,
-                    "loose-defang",
-                    f"{visible(form)!r} was read as {char!r} but is part of no value; it may be numbering "
-                    "or punctuation, and a value next to it may be wrong or missing",
-                )
+            if form.strip(" \u3000") in ("\uff0e", "\uff20"):
+                forms.append(visible(reading.raw[max(0, raw_start - 2) : raw_end + 2]))
+    if forms:
+        warnings.add(
+            n,
+            "loose-defang",
+            f"full-width dots or at signs read as '.' or '@' that are part of no value ({len(forms)}, e.g. "
+            f"{forms[0]!r}): they may be numbering glued to a value, which may be wrong or missing",
+        )
 
 
 def _cut_warnings(
@@ -2024,24 +2124,26 @@ def _cut_warnings(
     def hash_values(found: list[dict[str, Any]]) -> list[str]:
         return [e["value"] for e in found if e["type"] in ("md5", "sha1", "sha256")]
 
-    # Hex digits at a line end and the next line's start that make a longer hash together (a SHA-1 or
-    # SHA-256, or a SHA-384 or SHA-512 cut into hashes of scored lengths): a hash cut in two. Not when
-    # both are whole hashes of one length under a label naming that type, when the next line goes on
-    # with another whole hash of that length (a row of a table of hashes), or when both lines are
-    # 32-digit hex strings and nothing else (flagged once per run below).
+    # Hex digits at a line end and the next line's start that make a SHA-1 or SHA-256 together: a hash
+    # cut in two. Not when both are whole MD5s under an MD5 label in effect, when both lines hold
+    # another whole MD5 besides these (rows of a table of MD5s), or when both lines are 32-digit hex
+    # strings and nothing else (flagged once per run below). A SHA-384 or SHA-512 cut into pieces of
+    # scored lengths is not looked for: two whole hashes on adjacent lines look the same.
     only_hex = text.strip() == tail
     line_end = len(text.rstrip())
     if (
         after is not None
         and len(tail) >= 4
         and len(next_head) >= 4
-        and len(tail) + len(next_head) in (40, 64, 96, 128)
+        and len(tail) + len(next_head) in (40, 64)
     ):
         lead = len(after) - len(after.lstrip())
-        whole = len(tail) == len(next_head) and len(tail) in _HASH_LENGTHS
-        confirmed = whole and expected[index] == _HASH_LENGTHS[len(tail)]
-        row = whole and any(
-            e["type"] == _HASH_LENGTHS[len(tail)] and e["start"] > lead for e in results[index + 1]["found"]
+        whole = len(tail) == len(next_head) == 32
+        confirmed = whole and expected[index] == "md5"
+        row = (
+            whole
+            and any(e["type"] == "md5" and e["end"] < line_end for e in results[index]["found"])
+            and any(e["type"] == "md5" and e["start"] > lead for e in results[index + 1]["found"])
         )
         in_run = whole and len(tail) == 32 and only_hex and after.strip() == next_head
         if not (confirmed or row or in_run):
@@ -2068,8 +2170,8 @@ def _cut_warnings(
             warnings.add(
                 n,
                 "hex-cut",
-                f"{run - index + 1} lines of 32 hex digits each, with no MD5 label above them: two of them "
-                "may be the halves of one SHA-256",
+                f"{run - index + 1} lines of 32 hex digits each, with no MD5 label in effect (none above, "
+                "or a line of other text since it ended its block): two may be the halves of a SHA-256",
                 [v for i in range(index, run + 1) for v in hash_values(results[i]["found"])],
             )
     pieces = (
@@ -2106,8 +2208,12 @@ def _cut_warnings(
     next_values = [e for e in results[index + 1]["found"] if e["start"] == lead]
     first = after.lstrip()[:1]
     goes_on = bool(re.match(r"\s*[\x21-\x7e]", after)) or (
-        # A path cut right before Chinese text that wraps to the next line.
-        bool(urls) and urls[-1]["value"][-1:] in "/=?&-_" and not first.isascii() and first.isalpha()
+        # A path cut right before Chinese text that wraps to the next line: after a separator, or
+        # before Chinese text that goes on with a file extension or path ("年度計畫 .rar").
+        bool(urls)
+        and not first.isascii()
+        and first.isalpha()
+        and (urls[-1]["value"][-1:] in "/=?&-_" or bool(_CJK_PATH_HEAD.match(after)))
     )
     if urls and urls[-1]["end"] >= trimmed and goes_on and not next_values and not _SCHEME_START.match(after):
         warnings.add(
@@ -2127,8 +2233,9 @@ def _md5_line(line: str) -> bool:
 
 # --------------------------------------------------------------------------- ground truth: rendering
 
-# The review compares each line of the draft with the page as a reader sees it: pdftoppm (poppler)
-# draws the PDF pages the appendix is on, and headless Chromium draws a web page or a text attachment,
+# The review compares each line of the draft with images of the pages: pdftoppm (poppler) draws the
+# PDF pages the appendix is on, and headless Chromium draws a web page (without its own styles, see
+# below: the text the line rules read, not the page as its readers see it) or a text attachment,
 # decoded as `text` decoded it, in screenshots of the whole page. Chromium runs with scripts off and
 # every request other than the page itself refused, so a saved page cannot run code or reach the
 # network; it runs without its sandbox only when this runs as root, where the sandbox cannot start.
@@ -2136,24 +2243,36 @@ def _md5_line(line: str) -> bool:
 _SCREENSHOT_WIDTH = 1200
 _SCREENSHOT_TILE = 1600
 _PAGE_URL = "http://report.invalid/page"
-# <meta http-equiv="refresh"> tags, taken out of a web page before it is drawn (with scripts off,
-# one in <noscript> applies too).
-_REFRESH = re.compile(r"<meta\b[^>]{0,2048}?\bhttp-equiv\s*=\s*[\"']?\s*refresh[^>]{0,2048}>", re.IGNORECASE)
+# <meta http-equiv="refresh"> and <meta http-equiv="Content-Security-Policy"> tags, taken out of a
+# web page before it is drawn: with scripts off, a refresh in <noscript> applies too, and a page's own
+# policy would refuse the style sheet below.
+_META_TAKEN_OUT = re.compile(
+    r"<meta\b[^>]{0,2048}?\bhttp-equiv\s*=\s*[\"']?\s*(?:refresh|content-security-policy)\b[^>]{0,2048}>",
+    re.IGNORECASE,
+)
 # A web page is drawn without its own styles: it is served with a Content-Security-Policy that refuses
 # every style sheet and style attribute of the page (and everything else but inline images), so that
 # nothing the page hides, clips, overlays or scrolls is left out of the screenshots. One style sheet
 # of ours, allowed by a nonce, shows what the browser's defaults hide although HtmlText reads it
-# (hidden attributes, closed <details> and <dialog>), hides what HtmlText drops (<noscript>, <iframe>
-# and the like, which scripts being off would show), and wraps long lines so that a page stays as
-# wide as the screenshots.
+# (hidden attributes, until-found included; closed <details> and <dialog>; popovers; SVG text that
+# its attributes make transparent), hides what HtmlText drops (<noscript>, <iframe> and the like,
+# which scripts being off would show; the alt text of the refused images; the values of form
+# fields), and wraps long lines so that a page stays as wide as the screenshots. What it cannot
+# show: the options of a <select> other than the chosen one, and SVG text of font-size 0.
 _REVEAL = (
-    "[hidden]:not(script,style,template,noscript){display:block!important}"
+    "[hidden]:not(script,style,template,noscript)"
+    "{display:block!important;content-visibility:visible!important}"
     "details::details-content{display:block!important;content-visibility:visible!important}"
-    "dialog{display:block!important;position:static!important}"
+    "dialog,[popover]{display:block!important;position:static!important;inset:auto!important}"
     "noscript,iframe,noembed,noframes,datalist,rp,template{display:none!important}"
     "body,body *{color:#000!important;background:transparent!important;overflow-wrap:anywhere!important}"
+    "svg text,svg tspan{fill:#000!important;opacity:1!important;visibility:visible!important}"
     "pre,xmp,listing,plaintext,textarea,code,td,th{white-space:pre-wrap!important}"
     "textarea{field-sizing:content!important;width:100%!important}"
+    "input{color:transparent!important}input::placeholder{color:transparent!important}"
+    'img:not([src^="data:" i]){content:url("data:image/gif;base64,'
+    'R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==")!important;'
+    "outline:1px dashed #999!important}"
 )
 
 
@@ -2162,7 +2281,7 @@ def reviewable_page(page_text: str) -> tuple[bytes, list[dict[str, str]]]:
     import secrets
 
     nonce = secrets.token_hex(16)
-    body = _REFRESH.sub("", page_text) + f'\n<style nonce="{nonce}">{_REVEAL}</style>'
+    body = _META_TAKEN_OUT.sub("", page_text) + f'\n<style nonce="{nonce}">{_REVEAL}</style>'
     policy = f"default-src 'none'; img-src data:; style-src 'nonce-{nonce}'"
     headers = [
         {"name": "Content-Type", "value": "text/html; charset=utf-8"},
@@ -2740,9 +2859,9 @@ def review_problems(
             problems.append("masked: not the draft's masked values; run `review` again")
     hosts = {url_host(e["value"]): e["value"] for e in review["values"].get("url", [])}
     problems += [
-        f"values: the URL {url!r} has no host; correct it or remove it"
+        f"values: the URL {url!r} has no host that can be a name or an address; correct it or remove it"
         for host, url in hosts.items()
-        if not host
+        if not is_host(host)
     ]
     names = {e["value"] for e in review["values"].get("domain", [])}
     problems += [
@@ -2750,6 +2869,14 @@ def review_problems(
         "truth and makes it an indicator again; remove or correct the URL too, or keep the name"
         for e in review["remove"]
         if e["type"] == "domain" and e["value"] in hosts and e["value"] not in names
+    ]
+    problems += [
+        f"ambiguous: reading {reading!r} is the host of the URL {hosts[reading]!r}, which stays in the truth "
+        "and makes it an indicator; resolve the reading (add it as a name), or mark the URL ambiguous too"
+        for e in review["ambiguous"]
+        if e["type"] in ("domain", "ipv4", "ipv6")
+        for reading in e["readings"]
+        if reading in hosts
     ]
     return problems
 
@@ -2821,6 +2948,7 @@ def write_review_page(
     """The review page: every line of the appendix with its values and warnings, beside the images."""
     e = html.escape
     warnings = {w["id"]: w for w in draft["warnings"]}
+    kinds = sorted({w["kind"] for w in draft["warnings"]})
     rows = []
     for line in draft["lines"]:
         values = "<br>".join(
@@ -2856,6 +2984,7 @@ img {{ max-width: 100%; border: 1px solid #999; }} figure {{ margin: 8px; }}
 <p>Draft {e(draft["sha256"])}. {len(draft["lines"])} lines, {len(draft["warnings"])} warnings.
 Check every line against the images; fill in {e(report["id"])}.review.json.</p>
 <table>{"".join(rows)}</table>
+<dl>{"".join(f"<dt>{e(k)}</dt><dd>{e(WARNING_KINDS[k])}</dd>" for k in kinds)}</dl>
 </div>
 <div id=images>{shots}</div>
 """
@@ -3539,14 +3668,16 @@ def command_score(name: str, label: str) -> None:
             report["lost_by_default_filtering"] = {k: v for k, v in dropped.items() if v}
             if report["lost_by_default_filtering"]:
                 lost[report["id"]] = report["lost_by_default_filtering"]
-        report["writing"] = _writing_use(
-            data, report.get("format", "pdf"), by_id[report["id"]], judgements.get(key, {})
-        )
+        fmt = report.get("format", "pdf")
+        report["writing"] = _writing_use(data, fmt, by_id[report["id"]], judgements.get(key, {}))
+        for kind, value in body_fullwidth_values(data, fmt, by_id[report["id"]]):
+            if classify(kind, value, lookup, judgements.get(key, {})) is None:
+                unjudged_values.add((key, kind, value))
     unjudged: dict[str, dict[str, list[str]]] = {}
     for key, kind, value in sorted(unjudged_values):
         unjudged.setdefault(key, {}).setdefault(kind, []).append(value)
     count = len(unjudged_values)
-    status = "final" if not count else f"provisional: {count} extracted values not judged yet"
+    status = "final" if not count else f"provisional: {count} values not judged yet"
     formats = sorted({report.get("format", "pdf") for report in results["reports"]})
     results["status"] = status
     results["judgements_sha256"] = judgements_hash
@@ -3579,7 +3710,24 @@ def command_score(name: str, label: str) -> None:
         f"{len(using)} of {len(results['reports'])} {using}"
     )
     if count:
-        print(f"PROVISIONAL: {count} extracted values still need a judgement (`judge {name} {label}`)")
+        print(f"PROVISIONAL: {count} values still need a judgement (`judge {name} {label}`)")
+
+
+def body_fullwidth_values(truth: dict[str, Any], fmt: str, report: dict[str, Any]) -> set[tuple[str, str]]:
+    """(type, value) of each value the line rules find in the body (outside the appendix) that is
+    written with full-width or CJK-bracket forms, and of the host of each URL found there whose host
+    is written so."""
+    text, parts = truth["text"], truth["conversion"]["parts"]
+    start, end = appendix_span(text, report)
+    found = set()
+    for first, last in ((0, start), (end, len(text))):
+        for kind, value, klass, writing in text_values(text, first, last, parts, fmt):
+            if klass == CLASSES[2]:
+                found.add((kind, value))
+            host = url_host(value) if kind == "url" else ""
+            if is_host(host) and host_class(writing) == CLASSES[2]:
+                found.add(("domain" if not is_ip(host) else "ipv6" if ":" in host else "ipv4", host))
+    return found
 
 
 def _writing_use(
@@ -3587,23 +3735,26 @@ def _writing_use(
 ) -> dict[str, Any]:
     """How a report writes its indicators. It uses full-width or CJK-bracket writing when an indicator
     is written so at least once: a reviewed ground-truth value in an occurrence in the appendix (the
-    draft's or one the reviewer added), or a value in the body that the rater judged an indicator
-    (a). The defang statistic's count inside any value the rules find is given beside it; it also
-    counts values that are not indicators (version numbers, numbering, contact addresses)."""
+    draft's, unless the reviewer removed the value, or one the reviewer added), or a value in the body
+    (or the host of a URL there) that is in the ground truth or that the rater judged an indicator (a;
+    `judge` puts every such value outside the ground truth on the sheet). The defang statistic's count
+    inside any value the rules find is given beside it; it also counts values that are not indicators
+    (version numbers, numbering, contact addresses)."""
     text, parts = truth["text"], truth["conversion"]["parts"]
     lookup = Lookup(truth)
+    removed = {(e["type"], e["value"]) for e in truth["review"]["remove"]}
     in_appendix = sum(
         1
         for line in truth["draft"]["lines"]
         for item in line["values"]
-        if item["class"] == CLASSES[2] and item["value"] in lookup.truth.get(item["type"], ())
+        if item["class"] == CLASSES[2]
+        and item["value"] in lookup.truth.get(item["type"], ())
+        and (item["type"], item["value"]) not in removed
     ) + sum(1 for e in truth["review"]["add"] if e["class"] == CLASSES[2])
-    start, end = appendix_span(text, report)
     in_body = sum(
         1
-        for first, last in ((0, start), (end, len(text)))
-        for kind, value, klass in text_values(text, first, last, parts, fmt)
-        if klass == CLASSES[2] and judged.get(kind, {}).get(value, [""])[0] == "a"
+        for kind, value in body_fullwidth_values(truth, fmt, report)
+        if classify(kind, value, lookup, judged) in ("truth", "a")
     )
     spans = value_spans(text, 0, len(text), parts, fmt)
     counts = _style_counts(defang_occurrences(text), spans)
@@ -3623,7 +3774,11 @@ def judging_path(name: str, label: str) -> Path:
 
 
 def _contexts(text: str, values: set[tuple[str, str]]) -> dict[tuple[str, str], list[str]]:
-    """Up to three lines of the text in which each value occurs (as the line rules read them)."""
+    """Up to three lines of the text in which each value occurs (as the line rules read them). A
+    value written in no single line, as a tool built it, gets the lines where it occurs across a line
+    break (a URL that a PDF wrapped), else where it occurs without its scheme (a scheme a tool added,
+    "update[.]example[.]org" as "http://update.example.org"), else where its host occurs; such
+    contexts are marked with what was searched."""
     # Defanged schemes are read as normalise_url reads them, so that a URL written hxxp:// is found.
     readings = [
         (line, re.sub("fxp(?=:)", "ftp", read_line(line, "pdf").text.lower().replace("hxxp", "http")))
@@ -3633,32 +3788,64 @@ def _contexts(text: str, values: set[tuple[str, str]]) -> dict[tuple[str, str], 
     starts = [0]
     for _, reading in readings[:-1]:
         starts.append(starts[-1] + len(reading) + 1)
-    contexts: dict[tuple[str, str], list[str]] = {key: [] for key in values}
+    # The readings joined without line breaks and the white space around them, with where each
+    # line starts in it.
+    flat_parts, flat_starts, at = [], [], 0
+    for _, reading in readings:
+        part = reading.strip()
+        flat_starts.append(at)
+        flat_parts.append(part)
+        at += len(part)
+    flat = "".join(flat_parts)
+
+    def lines_of(haystack: str, line_starts: list[int], needle: str, across: bool) -> list[str]:
+        found: list[str] = []
+        position = haystack.find(needle) if needle else -1
+        while position != -1 and len(found) < 3:
+            first = bisect.bisect_right(line_starts, position) - 1
+            last = bisect.bisect_right(line_starts, position + len(needle) - 1) - 1 if across else first
+            if not across or last > first:
+                found.append(
+                    " / ".join(visible(readings[i][0].strip())[:400] for i in range(first, last + 1))
+                )
+            next_line = line_starts[last + 1] if last + 1 < len(line_starts) else len(haystack)
+            position = haystack.find(needle, max(next_line, position + 1))
+        return found
+
+    contexts: dict[tuple[str, str], list[str]] = {}
     for key in values:
         needle = key[1].lower()
-        position = joined.find(needle)
-        while position != -1 and len(contexts[key]) < 3:
-            line = bisect.bisect_right(starts, position) - 1
-            contexts[key].append(visible(readings[line][0].strip())[:400])
-            next_line = starts[line + 1] if line + 1 < len(starts) else len(joined)
-            position = joined.find(needle, next_line)
+        found = lines_of(joined, starts, needle, False)
+        if not found:
+            found = [f"(across a line break) {c}" for c in lines_of(flat, flat_starts, needle, True)]
+        if not found and key[0] == "url" and "://" in needle:
+            bare = needle.split("://", 1)[1]
+            found = [f"(without its scheme) {c}" for c in lines_of(joined, starts, bare, False)]
+            host = url_host(needle)
+            if not found and host:
+                found = [f"(its host {host}) {c}" for c in lines_of(joined, starts, host, False)]
+        contexts[key] = found
     return contexts
 
 
 def _outside_truth(
     name: str, results: dict[str, Any], truths: dict[str, dict[str, Any]], judgements: dict[str, Any]
 ) -> set[tuple[str, str, str]]:
-    """(report, type, value) of every extracted value that needs a judgement: not in the ground
+    """(report, type, value) of every value that needs a judgement: extracted by a tool, or written
+    with full-width or CJK-bracket forms in the body (for `uses`, see _writing_use); not in the ground
     truth, not masked or ambiguous, and not judged in ``judgements``."""
+    by_id = {report["id"]: report for report in manifest(name)}
     items: set[tuple[str, str, str]] = set()
     for report in results["reports"]:
-        lookup = Lookup(truths[report["id"]])
+        truth = truths[report["id"]]
+        lookup = Lookup(truth)
         judged = judgements.get(f"{name}/{report['id']}", {})
-        for out in report["outputs"].values():
-            for kind in TYPES:
-                for value in out[kind]:
-                    if classify(kind, value, lookup, judged) is None:
-                        items.add((report["id"], kind, value))
+        body = body_fullwidth_values(truth, report.get("format", "pdf"), by_id[report["id"]])
+        for kind, value in [(k, v) for out in report["outputs"].values() for k in TYPES for v in out[k]] + [
+            *body
+        ]:
+            if classify(kind, value, lookup, judged) is None:
+                items.add((report["id"], kind, value))
     return items
 
 
@@ -3770,9 +3957,11 @@ def command_judge(name: str, label: str) -> None:
 # --------------------------------------------------------------------------- defang statistics
 
 # How often each writing occurs, in the whole text and in the appendix of each report, counted with
-# the forms ascii_reading reads ("all"), and again only where the writing is part of a value the line
-# rules find ("in values"): full-width digits, "１．" numbering and the full-width colon are common in
-# Chinese body text, so only the second count says whether indicators are written that way. The
+# the forms ascii_reading reads ("all"; the full-width dot and at sign wherever they are, although
+# they are read only after an ASCII letter or digit), and again only where the writing is part of a
+# value the line rules find ("in values"). The second count leaves out "１．" numbering, dates and
+# the full-width colon of body text, but still counts values that are not indicators (version
+# numbers, contact addresses); whether a report writes indicators so is decided by _writing_use. The
 # styles cover exactly what ascii_reading reads, and a form is full-width or CJK when it has a
 # non-ASCII character other than the spaces around it, as for the writing classes.
 DEFANG_STYLES = {
@@ -3795,7 +3984,7 @@ DEFANG_STYLES = {
 _OTHER_ASCII = DEFANG_STYLES["ascii"][-1]
 _OTHER_CJK = DEFANG_STYLES["fullwidth-cjk"][-1]
 _STYLE_SINGLES = re.compile(
-    "(?P<hxxp>(?<![A-Za-z])(?:[Hh][Xx][Xx][Pp][Ss]?|[Ff][Xx][Pp])(?=[:\uff1a\\[]))"
+    "(?P<hxxp>(?<![A-Za-z])(?:[Hh][Xx][Xx][Pp][Ss]?|[Ff][Xx][Pp])" + _SCHEME_FOLLOWS + ")"
     "|(?P<colon>\uff1a)|(?P<slash>\uff0f)|(?P<hyphen>\uff0d)|(?P<dot>\uff0e)|(?P<at>\uff20)"
     "|(?P<alnum>[\uff10-\uff19\uff21-\uff3a\uff41-\uff5a]+)"
 )
@@ -3825,7 +4014,7 @@ def _form_style(name: str, opening: str, form: str) -> str:
     if name == "at":
         return ("[at]" if "t" in form.lower() else "[@]") if ascii_form else "\uff20"
     if name == "fwscheme":
-        return _OTHER_ASCII if ascii_form else "\uff1a"
+        return _OTHER_ASCII if ascii_form else "\uff1a" if "\uff1a" in form else "\uff0f"
     if name in ("scheme", "colon"):
         return "[:]" if ascii_form else "\uff1a"
     return _OTHER_ASCII if ascii_form else "\uff0f"  # slash, slashes
@@ -3869,14 +4058,16 @@ def _style_counts(
 
 def text_values(
     text: str, start: int, end: int, parts: list[dict[str, Any]], fmt: str
-) -> list[tuple[str, str, str]]:
-    """(type, value, writing class) of each value the line rules find between ``start`` and ``end``."""
+) -> list[tuple[str, str, str, str]]:
+    """(type, value, writing class, writing) of each value the line rules find between ``start`` and
+    ``end``."""
     found = []
     for line in text_lines(text, start, end, parts, fmt) if end > start else []:
         reading = read_line(line["raw"], line["format"])
         for entry in line_values(reading)["found"]:
             klass = reading.writing_class(entry["start"], entry["end"], url=entry["type"] == "url")
-            found.append((entry["type"], entry["value"], klass))
+            raw_start, raw_end = reading.span(entry["start"], entry["end"])
+            found.append((entry["type"], entry["value"], klass, reading.raw[raw_start:raw_end]))
     return found
 
 
