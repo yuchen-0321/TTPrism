@@ -1266,9 +1266,10 @@ def test_a_sha256_in_a_narrow_cell_before_an_md5_cell_is_flagged() -> None:
     sha256, md5 = hashlib.sha256(b"loader").hexdigest(), hashlib.md5(b"loader").hexdigest()  # noqa: S324
     found = warnings(["SHA256 MD5", sha256[:32], f"{sha256[32:]} {md5}"])
     assert ("hex-cut") in {kind for _, kind in found}
-    # A SHA-256 label above a header line still names the type for the hash-label warning.
-    found = warnings(["SHA-256", "Windows 版本", "雜湊值 檔案名稱", f"{sha256[:32]} loader.dll", sha256[32:]])
+    # A half followed by other text on its line is flagged by a SHA-256 label in its block only (6.8).
+    found = warnings(["SHA-256", f"{sha256[:32]} loader.dll", sha256[32:]])
     assert [kind for _, kind in found].count("hash-label") == 2
+    assert warnings(["SHA-256", "Windows 版本", f"{sha256[:32]} loader.dll", sha256[32:]]) == []
 
 
 def test_urls_cut_before_chinese_text_are_flagged() -> None:
@@ -1357,7 +1358,7 @@ def test_the_line_end_rules_cost_linear_time(unit: str, end: str, after: str) ->
     def cost(size: int) -> float:
         readings = [evaluate.ascii_reading(unit * (size // len(unit)) + end), evaluate.ascii_reading(after)]
         results = [evaluate.line_values(reading) for reading in readings]
-        lines = [{"n": 2}, {"n": 3}]
+        lines = [{"n": 2, "format": "pdf"}, {"n": 3, "format": "pdf"}]
 
         def run() -> None:
             evaluate._cut_warnings(evaluate._Warnings(), 0, lines, readings, results, [None, None])
@@ -1375,7 +1376,10 @@ def test_a_url_stopping_at_a_full_width_url_character_is_flagged() -> None:
         result = draft([line])
         assert result["values"]["url"][0]["value"] == "http://evil.example.com/a.php"
         assert [w["kind"] for w in result["warnings"]] == ["non-ascii"], line
-    assert warnings(["http://evil.example.com/a.php？", "http://evil.example.com/b？是"]) == []
+    # At the end of a line (Chromium breaks a narrow cell there) it is flagged too; before Chinese text
+    # it is punctuation.
+    assert warnings(["http://evil.example.com/a.php？"]) == [(0, "non-ascii")]
+    assert warnings(["http://evil.example.com/b？是"]) == []
 
 
 def test_numbering_glued_to_a_value_is_flagged() -> None:
@@ -1387,7 +1391,9 @@ def test_numbering_glued_to_a_value_is_flagged() -> None:
     assert values(["網域．bad.example.net", "聯絡＠example.org"]) == {
         "domain": ["bad.example.net", "example.org"]
     }
-    assert warnings(["１．攻擊手法", "２．evil．example．com"]) == [(1, "non-ascii")]
+    assert warnings(["１．攻擊手法"]) == []
+    # Glued to a name, the number is read into it.
+    assert sorted(warnings(["２．evil．example．com"])) == [(0, "loose-defang"), (0, "non-ascii")]
 
 
 def test_the_defang_statistic_counts_hxxp_before_spaced_and_bracketed_colons() -> None:
@@ -1542,3 +1548,108 @@ def test_contexts_of_values_a_tool_built() -> None:
         "(across a line break)"
     )
     assert contexts[("url", "http://only-host.example.net/x")] == []
+
+
+# --------------------------------------------------------------------------- review round 9
+
+
+def test_a_mask_before_a_full_width_at_sign_or_dot_is_read_like_its_ascii_form() -> None:
+    result = draft(["ser***＠example.org", "*．example．net", "evil．*．com"])
+    assert result["values"] == {}
+    assert sorted(e["value"] for entries in result["masked"].values() for e in entries) == [
+        "*.example.net",
+        "evil.*.com",
+    ]
+    # pypdf's spaces: the name after the at sign is read, and flagged.
+    result = draft(["寄件者 ser*** ＠ example.org"])
+    assert result["values"]["domain"][0]["value"] == "example.org"
+    assert [w["kind"] for w in result["warnings"]] == ["mask-next"]
+
+
+def test_the_host_after_another_scheme_with_user_info_is_a_name() -> None:
+    assert values(["ssh://root@c2.example.net", "socks5://user:pass@proxy.example.com:1080"]) == {
+        "domain": ["c2.example.net", "proxy.example.com"]
+    }
+
+
+def test_url_rows_are_not_flagged_but_cuts_are() -> None:
+    # A description cell after a URL, a numbered list, a 序號 or type column: no cut.
+    assert warnings(["hxxps://cdn0[.]example[.]com/static/js/app0.js 植入惡意 JavaScript 的網頁"]) == []
+    assert warnings(["1. hxxp://a[.]example[.]com/x", "2. hxxp://b[.]example[.]com/y"]) == []
+    assert warnings(["(1) hxxp://a[.]example[.]com/x", "(2) hxxp://b[.]example[.]com/y"]) == []
+    assert warnings(["URL\thxxp://a[.]example[.]com/x", "IP\t198[.]51[.]100[.]1"]) == []
+    assert warnings(["http://a.example.com/x", "next text"], "html") == []
+    # A Chinese file name with digits, a full-width URL character where Chromium broke the line.
+    for lines in (
+        ["hxxp://evil[.]example[.]com/files/112", "年第 1 季報告 .pdf"],
+        ["http://evil.example.com/login.php ？", "id=1234"],
+        ["http://evil.example.com/update", "＿ v2.exe"],
+    ):
+        assert warnings(lines)[:1] in ([(0, "url-cut")], [(0, "non-ascii")]), lines
+
+
+def test_a_url_cut_inside_its_host_is_flagged() -> None:
+    result = draft(["hxxp://update-check[.]ex", "ample[.]com/a.exe"])
+    assert (0, "url-cut") in [(w["line"] - 2, w["kind"]) for w in result["warnings"]]
+    assert warnings(["http://198.51.100.7/a", "hxxp://abc.onion/x"]) == []
+
+
+def test_urls_joined_after_a_port_or_a_path_are_flagged() -> None:
+    for line in (
+        "C2：hxxp://198[.]51[.]100[.]7:8080,hxxp://198[.]51[.]100[.]8:8080",
+        "hxxp://a[.]example[.]com/a.php;hxxps://b[.]example[.]com/b",
+    ):
+        assert [kind for _, kind in warnings([line])] == ["url-unparseable"], line
+    assert warnings(["http://a.example.com/r?u=http://b.example.com/"]) == []
+
+
+def test_an_ambiguous_address_that_a_kept_url_has_as_its_host_is_allowed() -> None:
+    result = draft(["198.51.100.23", "http://198.51.100.23/a"])
+    review = complete_review(
+        result,
+        ambiguous=[
+            {
+                "type": "ipv4",
+                "readings": ["198.51.100.23", "198.51.100.28"],
+                "from_draft": True,
+                "writing": "198.51.100.23",
+                "location": "pdf/t01.pdf page 1 line 2",
+                "reason": "the last digit is unclear on the page",
+            }
+        ],
+    )
+    assert not [p for p in evaluate.review_problems(result, review) if "host of the URL" in p]
+
+
+def test_xxx_inside_a_label_is_not_a_mask() -> None:
+    result = draft(["foxxxy.example.com", "mail.nxxxx.gov.tw"])
+    assert (sorted(e["value"] for e in result["values"]["domain"]), result["masked"]) == (
+        ["foxxxy.example.com", "mail.nxxxx.gov.tw"],
+        {},
+    )
+
+
+def test_dates_versions_and_numbered_urls_are_not_loose_defang() -> None:
+    lines = ["c2[.]example[.]net\t１１３．０６．０１", "v2．0 惡意程式", "No．1 evil[.]example[.]com"]
+    lines += ["１．hxxp://evil[.]example[.]com/a", "表４．２ 中繼站"]
+    assert [kind for _, kind in warnings(lines, "html")] == []
+
+
+def test_contexts_show_the_value_in_a_window_and_the_next_line_at_a_wrap() -> None:
+    long_line = "說明" * 300 + " 中繼站 evil.example.net 用於回報。" + "結尾" * 300
+    text = f"{long_line}\n參考 https://blog.example.com/2026/\nreport.html 一文\nfoo.example.com.cn"
+    contexts = evaluate._contexts(
+        text,
+        {
+            ("domain", "evil.example.net"),
+            ("url", "https://blog.example.com/2026/"),
+            ("domain", "example.com"),
+        },
+    )
+    (window,) = contexts[("domain", "evil.example.net")]
+    assert "evil.example.net" in window
+    assert len(window) < 500
+    assert window.startswith("…")
+    assert window.endswith("…")
+    assert "(next line) report.html" in contexts[("url", "https://blog.example.com/2026/")][0]
+    assert contexts[("domain", "example.com")][0].startswith("(inside a longer value)")

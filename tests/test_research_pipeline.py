@@ -19,6 +19,7 @@ import os
 import shutil
 import subprocess
 import sys
+import zlib
 from pathlib import Path
 from typing import Any
 
@@ -388,6 +389,18 @@ def test_the_synthetic_zh_tw_set_runs_end_to_end(
     assert left_out == {"tw01": {"domain": 2}, "tw02": {}}
 
 
+def first_pixel(png: bytes) -> tuple[int, ...]:
+    """The colour of the top left pixel of an 8-bit RGB or RGBA PNG (its first row's filters leave the
+    first pixel as it is)."""
+    position, data = 8, b""
+    while position < len(png):
+        length = int.from_bytes(png[position : position + 4], "big")
+        if png[position + 4 : position + 8] == b"IDAT":
+            data += png[position + 8 : position + 8 + length]
+        position += 12 + length
+    return tuple(zlib.decompress(data)[1:4])
+
+
 def test_screenshots_show_what_the_text_has(tmp_path: Path) -> None:
     def drawn(page: str, html: bool = True) -> list[tuple[int, int]]:
         if html:
@@ -404,6 +417,7 @@ def test_screenshots_show_what_the_text_has(tmp_path: Path) -> None:
         return sizes
 
     rows = "".join(f"<p>row {i} r{i}.example.net</p>" for i in range(150))
+    hosts = "'self' " + " ".join(f"https://h{i}.example.com" for i in range(150))
     # The page's own styles are refused, so nothing it hides, clips or scrolls is left out; what the
     # browser's defaults hide (hidden attributes, closed <details>, <dialog>) is shown too.
     hiding = (
@@ -420,8 +434,12 @@ def test_screenshots_show_what_the_text_has(tmp_path: Path) -> None:
         f"<dialog>{rows}</dialog>",
         f"<div hidden=until-found>{rows}</div>",
         f"<div popover>{rows}</div>",
-        # A page's own Content-Security-Policy would refuse our style sheet; it is taken out.
+        # A page's own Content-Security-Policy would refuse our style sheet; it is taken out, however
+        # long it is.
         f"<meta http-equiv=Content-Security-Policy content=\"default-src 'self'\"><div hidden>{rows}</div>",
+        f'<meta http-equiv=Content-Security-Policy content="default-src {hosts}"><div hidden>{rows}</div>',
+        # Our style sheet comes first, so a comment that the page leaves open does not take it in.
+        f"<!doctype html><div hidden>{rows}</div><!-- footer",
     ):
         assert len(drawn(page)) >= 2, page[:60]
     # <noscript>, which HtmlText drops, is not drawn although scripts are off; nor is the alt text of
@@ -432,6 +450,16 @@ def test_screenshots_show_what_the_text_has(tmp_path: Path) -> None:
         f"<img src=i{i}.png alt='row {i} r{i}.example.net, an alternative text'>" for i in range(400)
     )
     assert len(drawn(f"<p>a.example.com</p><p>{alts}</p>")) == 1
+    pictures = "".join(
+        f"<picture><source srcset=http://x.example/i{i}.png><img src='data:,' alt='row {i} r{i}.example.net'>"
+        "</picture>"
+        for i in range(400)
+    )
+    assert len(drawn(f"<p>a.example.com</p><p>{pictures}</p>")) == 1
+    # A page that asks for a dark colour scheme is drawn black on white all the same.
+    body, headers = evaluate.reviewable_page("<meta name=color-scheme content=dark><p>a.example.com</p>")
+    (shot,) = evaluate.screenshots(CHROMIUM, body, headers, tmp_path / "dark")
+    assert first_pixel(shot.read_bytes()) == (255, 255, 255)
     # One long line is wrapped, so every screenshot stays as wide as the page.
     assert {width for width, _ in drawn("<pre style='overflow:auto'>" + "A" * 6000 + "</pre>")} == {1200}
     # A page that would leave itself, with scripts off, stays drawn; text with control bytes is shown.

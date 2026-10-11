@@ -327,16 +327,18 @@ dot, at sign, colon and slash in ASCII, full-width or CJK brackets (`[.]` `(.)` 
 `【/】` …, with up to two spaces inside and around: pypdf puts a space next to CJK brackets and
 full-width punctuation, and two where the source had one), a URL's colon and slashes with spaces
 among them or after them (`hxxps ： //`, `https ：／／`, `https:// evil…`), the full-width dot and
-at sign after an ASCII letter, digit, hyphen or underscore (bare, or with up to two spaces around
-them between ASCII letters or digits; after Chinese text, as in `網域．bad.example.net`, they are
-punctuation), the full-width colon, slash and hyphen, full-width letters and digits, the hyphens
+at sign after an ASCII letter, digit, hyphen, underscore or mask character (bare, or with up to two
+spaces around them between ASCII letters or digits; after Chinese text, as in
+`網域．bad.example.net`, they are punctuation), the full-width colon, slash and hyphen, full-width letters and digits, the hyphens
 U+2010, U+2011, U+2212 and U+FE63, and the ligatures U+FB00 to U+FB06 (which pypdf gives for some
 fonts in Chromium-printed PDFs) as their letters — and finds URLs, e-mail addresses, IPv4 addresses,
-names and hashes in the ASCII text that results. Numbering with a space after its dot stays apart
-from the value after it (`１． 198.51.100.23`); numbering glued to the value (`１．198.51.100.23`)
-is read with it, and the line gets a `loose-defang` warning. The scheme of another kind of URL
-(`ldap://`, `tcp://`, `wss://` …) is taken out, so that its host is found as a name or an address;
-such URLs are not values of their own. A name's
+names and hashes in the ASCII text that results. Numbering with a space after its full-width dot
+stays apart from the value after it (`１． 198.51.100.23`). Numbering glued to the value is read
+with it (`１．198.51.100.23` gives no address, `１．evil.example.com` gives `1.evil.example.com`),
+and the line gets a `loose-defang` warning; a full-width dot in a run of digits with at most two
+dots (a date or version, `１１３．０６．０１`, `v2．0`) or right before a URL does not give one. The
+scheme of another kind of URL (`ldap://`, `tcp://`, `wss://` …) and its user info are taken out, so
+that its host is found as a name or an address; such URLs are not values of their own. A name's
 last label must be a top-level domain of `iana-tlds.txt` (the IANA list of 2026-09-30, copied from
 the PyPI package `tlds` 2026093003 because data.iana.org could not be reached; not TTPrism's list),
 which leaves out file names such as `setup.msi`; a name under a top-level domain that is also a
@@ -357,11 +359,13 @@ scripts off, every other request refused, and `<meta http-equiv>` refresh and
 Content-Security-Policy tags taken out). A web page is drawn without its own styles: it is served
 with a Content-Security-Policy that refuses every style sheet and style attribute of the page, so
 that nothing the page hides, clips, overlays or scrolls is left out of the images. One style sheet
-of ours shows what the browser hides by default although `HtmlText` reads it (hidden attributes,
-`until-found` included; closed `<details>` and `<dialog>`; popovers; SVG text that its attributes
-make white, transparent or hidden), hides what `HtmlText` drops (`<noscript>`, `<iframe>` and the
-like, which scripts being off would show; the alt text of the refused images, which are drawn as
-dashed outlines; the values of form fields), draws all text black and wraps long lines. The images
+of ours, put first in the page so that nothing the page leaves open at its end takes it in, shows
+what the browser hides by default although `HtmlText` reads it (hidden attributes, `until-found`
+included; closed `<details>` and `<dialog>`; popovers; SVG text that its own or its groups' fill,
+opacity, visibility or display attributes hide), hides what `HtmlText` drops (`<noscript>`,
+`<iframe>` and the like, which scripts being off would show; the alt text of images, which are
+refused and drawn as dashed outlines; the values and placeholders of form fields), draws black text
+on white whatever colour scheme the page declares, and wraps long lines. The images
 therefore show the page's text in the browser's default layout, not the page as its readers see it;
 that is what the line rules read. A report whose pages cannot be drawn is named, and `review`
 refuses it until they are. The warnings (the review page explains each kind it shows):
@@ -369,24 +373,24 @@ refuses it until they are. The warnings (the review page explains each kind it s
 | Warning | What the reviewer checks |
 | --- | --- |
 | `hex-cut` | hex digits at a line end and the next line's start that make a SHA-1 or SHA-256 together, unless both are whole MD5s under an MD5 label in effect or both lines are rows of MD5s (each holds another MD5 besides these); a run of lines of 32 hex digits with no MD5 label in effect (two of them may be the halves of a SHA-256); a piece of 16 or more hex digits of the length of no hash |
-| `hash-label` | a hash whose length differs from the hash type named in the nearest label above it |
+| `hash-label` | a hash whose length differs from the hash type named in the label of its block |
 | `name-cut` | a name ending at a line end in `.` or `-` before a line that starts with a name or with `.` or `-`, or a line starting with `.` or `-` after a name |
-| `url-cut` | a URL that reaches the line end before a line that does not start with a value, or before a line of Chinese text when the URL ends in `/` `=` `?` `&` `-` `_` or the Chinese text goes on with a file extension or path (`年度計畫 .rar`); a URL followed by a slash after a space |
+| `url-cut` | in PDF text, a URL that reaches the line end before a line that does not start with a value or a scheme (past a list number or a short cell: `2.`, `(2)`, `URL`, `IP`), that starts with the full-width form of a URL character (`＿ v2.exe`), or that is Chinese text when the URL ends in `/` `=` `?` `&` `-` `_` or the Chinese text goes on with a file extension or path (`年度計畫 .rar`, `年第 1 季報告 .pdf`); in a web page, which `HtmlText` does not wrap, only before a line that goes on with a path, query or extension; a URL followed by a slash after a space; a URL whose host does not end in a top-level domain (cut inside its host) |
 | `file-extension` | a name left out because its top-level domain is also a file extension |
-| `url-unparseable` | a URL without a host that can be a name or an address |
-| `non-ascii` | a value read from non-ASCII writing (full-width or CJK forms, Unicode or soft hyphens, ligatures, deleted format characters), or a URL that stops before non-ASCII letters (past spaces and format characters, and past the punctuation the rules took off its end) or before the full-width form of a URL character with more of the URL after it (`a.php？id=1`, pypdf's `a.php ？ id=1`) |
+| `url-unparseable` | a URL without a host that can be a name or an address, or with another scheme after an ASCII separator (two URLs written together: `…:8080,hxxp://…`) |
+| `non-ascii` | a value read from non-ASCII writing (full-width or CJK forms, Unicode or soft hyphens, ligatures, deleted format characters), or a URL that stops before non-ASCII letters (past spaces and format characters, and past the punctuation the rules took off its end) or before the full-width form of a URL character with more of the URL or the line's end after it (`a.php？id=1`, pypdf's `a.php ？ id=1`); after a space (pypdf's space between table cells), Chinese text counts only when the URL ends in a separator or the text goes on with a file extension or path, so that a description cell is not flagged |
 | `masked` | a masked value, left out |
 | `mask-next` | a value next to a mask character (`*` `＊` `#` `○` `●`, or `x` after an address: `198.51.100.2*`, `○○abc.gov.tw`, `evil.co*`, `203.0.113.1xx`): it may be only the visible part of a masked value |
 | `own-address` | a value at the report's own address, often a page header printed inside the appendix |
-| `loose-defang` | full-width dots or at signs read as dots or at signs between ASCII letters or digits that are part of no value: numbering glued to a value (`１．198.51.100.23`), which may be wrong or missing |
+| `loose-defang` | numbering glued to a value by a full-width dot: one read between ASCII letters or digits that is part of no value (`１．198.51.100.23`), or one after 1 to 3 digits at the start of a name or e-mail address (`１．evil.example.com`); not in a date or version, nor before a URL |
 | `unread-defang` | a dot or at sign in a form the reading does not know, between ASCII letters or digits |
 
 Line ends and starts are found past any white space, the no-break spaces pypdf gives included. A
-hash label (`MD5`, `SHA1`, `SHA-256`, `SHA2-256`, with a space, hyphen or dash inside) names the
-type for the `hash-label` warning on every line below it, up to the next label. For the exemptions
-of `hex-cut` it holds only for its block: its own line and the lines below it until a line with text
-but neither a label nor a hash, so that a label far above does not hide a hash cut in a later table.
-A page header inside a long list of MD5s therefore ends the block, and the rest of the list gets one
+hash label (`MD5`, `SHA1`, `SHA-256`, `SHA2-256`, with a space, hyphen or dash inside) holds for its
+block: its own line and the lines below it until a line with text but neither a label nor a hash,
+so that a label far above neither hides a hash cut in a later table nor flags the hashes of a later
+section. A line that names several types (a table header `SHA256 MD5 檔名`) names none. A page
+header inside a long list of MD5s therefore ends the block, and the rest of the list gets one
 `hex-cut` warning for its run.
 
 The reviewer checks every line against the images and fills in the template: who and when, the
@@ -464,10 +468,14 @@ All extracted values outside the ground truth, from all tools together, go on on
 without the names of the tools that found them and in a shuffled order, together with the values
 written with full-width or CJK-bracket forms in the body that are outside the ground truth (their
 judgements decide only *uses*, 6.3.1; precision counts only what the tools extracted); the evaluator
-judges each (a, b or c, with a one-line reason) from up to three lines of context. A value written
-in no single line, as a tool built it, gets the lines it spans across a line break, else the lines
-where it stands without the scheme a tool added, else the lines of its host, each marked so. There
-is one rater, and no agreement between raters is measured. While any value is unjudged, `score`
+judges each (a, b or c, with a one-line reason) from up to three places where it occurs, each the
+value with up to 200 characters of its line on each side. A value that reaches the end of its line
+is shown with the start of the next line, and one at the start of its line with the end of the line
+before, so that a value a line break cut can be seen to be cut; a place inside a longer value (a
+name inside a URL) is shown only when there is no other, marked so. A value written in no single
+line, as a tool built it, gets the lines it spans across a line break, else the places where it
+stands without the scheme a tool added, else the places of its host, each marked so. There is one
+rater, and no agreement between raters is measured. While any value is unjudged, `score`
 marks every total as provisional. `judgements.json`
 is checked (a wrong category, type or form is an error with its place) and its SHA-256 is recorded
 in the results.
@@ -504,9 +512,10 @@ images is, and that a line of 6,000 characters is wrapped within the page's widt
 - A SHA-384 or SHA-512 cut into two pieces of scored lengths (64 + 64, 32 + 64) is not flagged: two
   whole hashes on adjacent lines look the same, and flagging them would warn on every pair of a
   SHA-256 list. A SHA-256 cut into two halves whose first half has other text after it on its line
-  (`<half> loader.dll` / `<half>`) is flagged only by a SHA-256 label above it (`hash-label`).
-- The screenshots cannot show the options of a `<select>` other than the chosen one, or SVG text of
-  font size 0.
+  (`<half> loader.dll` / `<half>`) is flagged only by a label naming SHA-256 alone in its block
+  (`hash-label`); under a header naming several types, or after a sub-heading, it is not.
+- The screenshots cannot show the options of a `<select>` other than the chosen one, or SVG text
+  that is moved or scaled out of view, of font size 0, or inside `<defs>`.
 - IPv4 octets above 255 are not rejected; CIDR blocks and ranges are read as plain addresses.
 - A cp950 page with an outdated `gb2312` `<meta>` decodes as GB 18030 without an error; `text`
   prints the encoding and declared charsets, and such a page needs a `charset_override`.
