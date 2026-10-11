@@ -1534,14 +1534,40 @@ _NAME_CUT_TAIL = re.compile(r"(?<![A-Za-z0-9.\-])[A-Za-z0-9][A-Za-z0-9.\-]*[.\-]
 _NAME_CUT_HEAD = re.compile(r"\s*[.\-][A-Za-z0-9]")
 _SCHEME_START = re.compile(r"\s*(?:https?|hxxps?|ftp|fxp)://", re.IGNORECASE)
 # Chinese text that goes on with a file extension or path ("年度計畫 .rar", pypdf's "年第 1 季報告 .pdf").
+# The extension may start with a digit (".7z", ".001"); a "/" or "-" after a digit is a date or a port
+# ("113/05/01", "2024-05-01", "443/tcp"), not a path.
 _CJK_PATH_HEAD = re.compile(
-    r"\s*[^\x00-\x7f\s](?:[^\x00-\x7f]|[0-9() ]){0,63}?(?:\.[A-Za-z]|[/_?=&-][A-Za-z0-9])"
+    r"\s*[^\x00-\x7f\s](?:[^\x00-\x7f]|[0-9() ]){0,63}?"
+    r"(?:\.(?:[A-Za-z]|[0-9][A-Za-z0-9]{0,4}[A-Za-z]|[0-9]{3}(?![0-9.]))|(?<![0-9])[/_?=&-][A-Za-z0-9])"
 )
 # A list number or a short cell before the next row's value: "2.", "2、", pypdf's "2 、", "(2)", "一、",
-# "-", or a type cell ("URL", "IP", "C2", "SHA256", "SHA-1").
+# "-", or a type cell from this list.
+_TYPE_CELLS = (
+    "urls?",
+    "uris?",
+    "ips?",
+    "ipv4",
+    "ipv6",
+    "ip:port",
+    "url/ip",
+    "domains?",
+    "hosts?",
+    "hostnames?",
+    "fqdn",
+    "c2",
+    "c&c",
+    "cnc",
+    "md5",
+    "sha-?1",
+    "sha-?256",
+    "hash(?:es)?",
+    "e-?mails?",
+    "ports?",
+)
 _ROW_HEAD = re.compile(
     r"\s*(?:(?:\(?[0-9]{1,3}\s?[.)\u3001]|[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341]{1,3}"
-    r"\s?[\u3001.])[\t ]*|(?:[0-9]{1,3}|[A-Za-z][A-Za-z0-9\-]{0,7}:?|[-*\u2022\u2027])[\t ]+)"
+    r"\s?[\u3001.])[\t ]*|(?:[0-9]{1,3}|(?:" + "|".join(_TYPE_CELLS) + r"):?|[-*\u2022\u2027])[\t ]+)",
+    re.IGNORECASE,
 )
 _OTHER_SCHEME = re.compile(
     r"(?<![A-Za-z0-9+.\-])[A-Za-z][A-Za-z0-9+.\-]{0,15}://(?:[^\s/@]{0,64}@)?", re.ASCII
@@ -1774,12 +1800,13 @@ WARNING_KINDS = {
     "naming several types names none)",
     "name-cut": "a name that ends at the end of a line with '.' or '-' before a line that starts with a "
     "name character or with '.' or '-', or a line that starts with '.' or '-' after a line that ends in "
-    "a name: the name may go on in the next line; or digits and dots at a line end and the next line's "
-    "start that make an IPv4 address together: the address may be cut",
+    "a name: the name may go on in the next line; or digits and dots at a line end and the start of the "
+    "next lines that make an IPv4 address together: the address may be cut",
     "url-cut": "in PDF text, a URL that reaches the end of a line before a line that does not start with "
-    "a value or a scheme (past a list number or a short cell), that starts with the full-width form of a "
+    "a value or a scheme (past a list number or a type cell), that starts with the full-width form of a "
     "URL character, or that is Chinese text when the URL ends in '/', '=', '?', '&', '-' or '_' or the "
-    "Chinese text goes on with a file extension or path ('年度計畫 .rar'); in a web page, only before a "
+    "Chinese text goes on with a file extension or path ('年度計畫 .rar', not a date or a port); in a web "
+    "page, only before a "
     "line that goes on with a path, query or extension; a URL followed by a slash after a space; or a URL "
     "whose host does not end in a top-level domain: the URL may go on, or be cut inside its host",
     "file-extension": "a name whose top-level domain is also a common file extension, left out of the draft",
@@ -1791,12 +1818,13 @@ WARNING_KINDS = {
     "with a file extension or path) or before the full-width form of a URL character: it may go on",
     "masked": "a masked value (an asterisk inside it, or 'xxx' standing alone), left out of the draft",
     "mask-next": "a value next to a mask character (* ＊ # ○ ●, or x after an address; also across a "
-    "spaced dot or at sign), or with 'xxx' inside a label: it may be the visible part of a masked value",
+    "spaced dot or at sign, or across pypdf's space after a mask that is not a lone bullet), or with 'xxx' "
+    "inside a label: it may be the visible part of a masked value",
     "own-address": "a value at the report's own address (original_url or final_url): often a page header "
     "printed inside the appendix",
-    "loose-defang": "numbering glued to a value by a full-width dot, read as part of no value "
-    "('１．198.51.100.23' gives no address) or into a name or e-mail address ('１．evil.example.com'): "
-    "the value may be wrong or missing",
+    "loose-defang": "a full-width dot or at sign read between ASCII letters or digits outside any value "
+    "('１．198.51.100.23' gives no address), or numbering read into a name or e-mail address "
+    "('１．evil.example.com'): numbering may be glued to a value, which may be wrong or missing",
     "unread-defang": "a dot or at sign written in a way the reading does not know, between ASCII "
     "letters or digits; nothing was read from it",
 }
@@ -1974,9 +2002,12 @@ def draft_truth(
                     n,
                     "mask-next",
                     f"{entry['type']} {entry['value']} "
-                    + ("contains 'xxx'" if mask == "xxx" else f"is next to {mask!r}")
-                    + ": it may be the visible part of a "
-                    "masked value, or the mark may be a footnote or bullet",
+                    + (
+                        "contains 'xxx': it may be the visible part of a masked value, or a word"
+                        if mask == "xxx"
+                        else f"is next to {mask!r}: it may be the visible part of a masked value, or the "
+                        "mark may be a footnote or bullet"
+                    ),
                     [entry["value"]],
                 )
         for entry in result["masked"]:
@@ -2066,20 +2097,28 @@ _FULL_WIDTH_URL = "\uff1f\uff1d\uff06\uff3f\uff5e\uff05\uff03\uff0b"
 
 
 def _mask_next_to(text: str, entry: dict[str, Any]) -> str:
-    """The mask character right before a found value (or before a dot or at sign there, with spaces:
-    pypdf's "ser*** ＠ example.org"), or right after it (or after a dot and up to 64 letters, digits
-    and hyphens that go on from it: "victim.example.com.t*"), or ""."""
+    """The mask character right before a found value; or before it past the spaces pypdf puts at a font
+    change, when a dot or at sign stands between ("ser*** ＠ example.org"), when the mask is two or more
+    characters ("〇〇 abc.gov.tw"), or when a letter or digit stands before the mask ("ev ＊ l.example.com"),
+    but not a lone bullet ("● value"); or right after the value (or after a dot and up to 64 letters,
+    digits and hyphens that go on from it: "victim.example.com.t*"); or "xxx" inside it; or ""."""
     if entry["type"] in _HASH_TYPES:
         return ""
     masks = _MASKS + ("xX" if entry["type"] == "ipv4" else "")
-    before = text[max(0, entry["start"] - 6) : entry["start"]]
+    before = text[max(0, entry["start"] - 12) : entry["start"]]
     if before[-1:] and before[-1:] in masks:
         return before[-1:]
     spaced = before.rstrip(" \u3000")
-    if spaced[-1:] in (".", "@", "\uff0e", "\uff20"):
-        spaced = spaced[:-1].rstrip(" \u3000")
-        if spaced[-1:] and spaced[-1:] in masks:
-            return spaced[-1:]
+    if spaced != before:
+        if spaced[-1:] in (".", "@", "\uff0e", "\uff20"):
+            spaced = spaced[:-1].rstrip(" \u3000")
+            if spaced[-1:] and spaced[-1:] in masks:
+                return spaced[-1:]
+        elif spaced[-1:] and spaced[-1:] in _MASKS:
+            run = len(spaced) - len(spaced.rstrip(_MASKS))
+            ahead = spaced[: len(spaced) - run].rstrip(" \u3000")[-1:]
+            if run >= 2 or (ahead.isascii() and ahead.isalnum()):
+                return spaced[-1:]
     after = entry["end"]
     if text[after : after + 1] == "." and entry["type"] != "url":
         after += 1
@@ -2186,8 +2225,9 @@ def _loose_defang_warnings(warnings: _Warnings, n: int, reading: Reading, result
         warnings.add(
             n,
             "loose-defang",
-            f"numbering glued to a value by a full-width dot ({len(forms)}, e.g. {forms[0]!r}): the dot is "
-            "part of no value or is read into one, and the value may be wrong or missing",
+            f"full-width dots or at signs read as '.' or '@' between ASCII letters or digits outside any "
+            f"value, or numbering read into a value ({len(forms)}, e.g. {forms[0]!r}): numbering may be "
+            "glued to a value, which may be wrong or missing",
         )
 
 
@@ -2195,9 +2235,10 @@ def _loose_defang_warnings(warnings: _Warnings, n: int, reading: Reading, result
 _ADDRESS_HEAD = re.compile("\\s*([.\uff0e]?[0-9][0-9.]{0,14})")
 
 
-def _trailing_address_run(text: str) -> str:
-    """The run of digits and dots (at most 15) at the end of a line, past white space, or "" when it
-    goes on from a letter or digit before it."""
+def _trailing_address_run(text: str) -> tuple[int, str]:
+    """Where the run of digits and dots (at most 15) at the end of a line starts, past white space, and
+    the run; "" when it goes on from a letter or digit, or follows "/", ":" or "-" (a date, a port, a
+    range)."""
     end = len(text)
     while end > 0 and end > len(text) - 64 and text[end - 1].isspace():
         end -= 1
@@ -2205,10 +2246,43 @@ def _trailing_address_run(text: str) -> str:
     while start > max(0, end - 15) and text[start - 1] in "0123456789.":
         start -= 1
     if start == end or not any(char.isdigit() for char in text[start:end]):
+        return start, ""
+    before = text[start - 1 : start]
+    if before and ((before.isascii() and before.isalnum()) or before in "/:-"):
+        return start, ""
+    return start, text[start:end]
+
+
+def _cut_address(index: int, readings: list[Reading]) -> str:
+    """A message when the digits and dots at the end of line ``index`` and the start of the next lines
+    (up to three; a line of digits and dots only lets the run go on) make an IPv4 address, of octets up
+    to 255, that the first line does not end in whole, as a narrow cell breaks full-width digits
+    anywhere ("１９８．５" / "１．１０" / "０．２３"); else "". Not when the line ends in a dot (name-cut
+    flags that), nor when only a number without dots, written in ASCII, comes before a line that starts
+    with a whole address (the last cell of a row before an address)."""
+    reading = readings[index]
+    start, tail = _trailing_address_run(reading.text)
+    if not tail or tail.endswith(".") or tail.count(".") >= 3:
         return ""
-    if start > 0 and text[start - 1].isascii() and text[start - 1].isalnum():
-        return ""
-    return text[start:end]
+    pieces = [tail]
+    for following in readings[index + 1 : index + 4]:
+        head = _ADDRESS_HEAD.match(following.text)
+        if not head:
+            break
+        pieces.append(head.group(1).replace("\uff0e", "."))
+        joined = "".join(pieces)
+        address = _IPV4.search(joined)
+        if address and address.start() < len(tail) < address.end():
+            octets = address.group(0).split(".")
+            whole_after = "." not in tail and bool(_IPV4.match(pieces[1]))
+            written_full_width = "cjk" in reading.kinds[start : start + len(tail)]
+            if all(int(octet) <= 255 for octet in octets) and (written_full_width or not whole_after):
+                shown = " / ".join(pieces)
+                return f"the lines end and start with {shown!r}: the address {address.group(0)} may be cut"
+            return ""
+        if following.text.strip() != head.group(1):
+            break
+    return ""
 
 
 _GLUED_NUMBER = re.compile(r"[0-9]{1,3}\.(?=[A-Za-z0-9])")
@@ -2309,21 +2383,9 @@ def _cut_warnings(
         return
     lead = len(after) - len(after.lstrip())
     starting = [e["value"] for e in results[index + 1]["found"] if e["start"] <= lead]
-    # An IPv4 address cut by a line break, as a narrow cell breaks full-width digits anywhere: digits
-    # and dots at the end of this line and the start of the next that make an address together,
-    # when this line's do not end in a whole one ("１９８．５１．１" / "００．２３").
-    tail_run = _trailing_address_run(text)
-    head_run = _ADDRESS_HEAD.match(after)
-    if tail_run and head_run and (tail_run.count(".") < 3 or tail_run.endswith(".")):
-        joined_run = tail_run + head_run.group(1).replace("\uff0e", ".")
-        address = _IPV4.search(joined_run)
-        if address and address.start() < len(tail_run) < address.end():
-            warnings.add(
-                n,
-                "name-cut",
-                f"the line ends in {tail_run!r} and the next starts with {head_run.group(1)!r}: the address "
-                f"{address.group(0)} may be cut",
-            )
+    address = _cut_address(index, readings)
+    if address:
+        warnings.add(n, "name-cut", address)
     cut = _NAME_CUT_TAIL.search(text)
     if cut and (_starts_with_name_character(after) or _NAME_CUT_HEAD.match(after)):
         first = after.split()[0] if after.strip() else ""
@@ -2406,19 +2468,22 @@ _DOCTYPE = re.compile(r"<!doctype\b[^>]{0,1024}>", re.IGNORECASE)
 
 
 def _after_doctype(page: str) -> int:
-    """Where our style sheet goes: first in the page, after its doctype (past white space and comments
-    before it) so that the page keeps its mode; so that no unterminated comment or element at the end
-    of the page takes it in. Linear: each comment is skipped with one search."""
+    """Where our style sheet goes: first in the page, after its doctype (past white space, comments and
+    an XML declaration before it) so that the page keeps its mode; so that no unterminated comment or
+    element at the end of the page takes it in. Linear: each comment is skipped with one search."""
     position = 0
     while True:
         while position < len(page) and page[position].isspace():
             position += 1
-        if not page.startswith("<!--", position):
+        if page.startswith("<!--", position):
+            end, length = page.find("-->", position + 4), 3
+        elif page.startswith("<?", position):
+            end, length = page.find(">", position + 2), 1  # the HTML parser's bogus comment
+        else:
             break
-        end = page.find("-->", position + 4)
         if end == -1:
             return 0
-        position = end + 3
+        position = end + length
     doctype = _DOCTYPE.match(page, position)
     return doctype.end() if doctype else 0
 
@@ -2443,7 +2508,8 @@ _REVEAL = (
     ":root{color-scheme:only light!important;background:#fff!important}"
     "body,body *{color:#000!important;background:transparent!important;overflow-wrap:anywhere!important}"
     "body img{color:transparent!important}"
-    "svg g,svg text,svg tspan,svg textPath{opacity:1!important}svg g{display:inline!important}"
+    "svg g:has(text),svg text,svg tspan,svg textPath{opacity:1!important}"
+    "svg g:has(text){display:inline!important}"
     "svg text,svg tspan,svg textPath{fill:#000!important;fill-opacity:1!important;stroke:none!important;"
     "visibility:visible!important;"
     "display:inline!important}"
@@ -3957,6 +4023,12 @@ def judging_path(name: str, label: str) -> Path:
 
 
 _CONTEXT_WINDOW = 200
+
+
+def _ascii_alnum(char: str) -> bool:
+    return char.isascii() and char.isalnum()
+
+
 _LINE_EDGE = " \t\u00a0\u3000.?,:;!-#"
 # Characters that would make a hit part of a longer value of the type, before and after it.
 _VALUE_CHARS = {
@@ -4039,12 +4111,14 @@ def _contexts(text: str, values: set[tuple[str, str]]) -> dict[tuple[str, str], 
         before_chars, after_chars = _VALUE_CHARS.get(kind, ("abcdefghijklmnopqrstuvwxyz0123456789",) * 2)
         before = joined[max(0, position - 2) : position]
         after = joined[position + length : position + length + 2]
-        if after[:1] and after[:1] in after_chars and (after[:1].isalnum() or after[1:2].isalnum()):
+        if after[:1] and after[:1] in after_chars and (_ascii_alnum(after[:1]) or _ascii_alnum(after[1:2])):
             return False
         if kind == "url":
             return not (before[-1:].isascii() and before[-1:].isalpha())
         return not (
-            before[-1:] and before[-1:] in before_chars and (before[-1:].isalnum() or before[:1].isalnum())
+            before[-1:]
+            and before[-1:] in before_chars
+            and (_ascii_alnum(before[-1:]) or _ascii_alnum(before[:1]))
         )
 
     def in_lines(needle: str, kind: str) -> list[str]:
@@ -4079,15 +4153,18 @@ def _contexts(text: str, values: set[tuple[str, str]]) -> dict[tuple[str, str], 
     for kind, value in values:
         needle = value.lower()
         found = in_lines(needle, kind)
-        if not found or found[0].startswith("(inside"):
-            found = across(needle) or found
+        inside = found if found and found[0].startswith("(inside") else []
+        if not found or inside:
+            found = across(needle)
         if not found and kind == "url" and "://" in needle:
             bare = needle.split("://", 1)[1]
-            found = [f"(without its scheme) {c}" for c in in_lines(bare, "")]
+            found = [f"(without its scheme) {c}" for c in in_lines(bare, "") if not c.startswith("(inside")]
             host = url_host(needle)
             if not found and host:
-                found = [f"(its host {host}) {c}" for c in in_lines(host, "domain")]
-        contexts[(kind, value)] = found
+                found = [
+                    f"(its host {host}) {c}" for c in in_lines(host, "domain") if not c.startswith("(inside")
+                ]
+        contexts[(kind, value)] = found or inside
     return contexts
 
 

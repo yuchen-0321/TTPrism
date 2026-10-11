@@ -1719,3 +1719,58 @@ def test_contexts_of_values_before_punctuation() -> None:
     )
     assert not contexts[("url", "http://198.51.100.24/do/index.php?id=ssss")][0].startswith("(inside")
     assert "(next line) sid=1" in contexts[("url", "https://a.example.com/auth.php")][0]
+
+
+# --------------------------------------------------------------------------- review round 11
+
+
+def test_an_address_cut_into_three_pieces_is_flagged() -> None:
+    assert warnings(["１９８．５", "１．１０", "０．２３"]) == [(0, "name-cut")]
+    assert warnings(["C2 位址 １９８．５", "１．１０", "０．２３", "中繼站"]) == [(0, "name-cut")]
+
+
+def test_a_number_ending_a_row_before_an_address_is_not_a_cut() -> None:
+    for lines in (
+        ["evil[.]example[.]com 2023/9/5", "91.92.109.18 中繼站"],
+        ["evil[.]example[.]com 7", "91.92.109.18"],
+        ["c2 1", "98.51.100.23"],
+        ["port 80", "203.0.113.5"],
+    ):
+        assert [kind for _, kind in warnings(lines)] == [], lines
+
+
+def test_type_cells_are_a_list_and_cut_url_rests_are_not_cells() -> None:
+    assert warnings(["C&C hxxp://a[.]example[.]com/x", "C&C hxxp://b[.]example[.]com/y"]) == []
+    assert warnings(["hxxp://a[.]example[.]com/l", "ogin2 198[.]51[.]100[.]7"]) == [(0, "url-cut")]
+
+
+def test_dates_and_ports_after_a_description_are_not_paths_but_digit_extensions_are() -> None:
+    for line in (
+        "hxxps://cdn0[.]example[.]com/app.js 釣魚網頁 113/05/01",
+        "hxxps://cdn0[.]example[.]com/app.js 釣魚網頁 2024-05-01",
+        "hxxps://cdn0[.]example[.]com/app.js 連線埠 443/tcp",
+    ):
+        assert warnings([line]) == [], line
+    assert warnings(["hxxp://evil[.]example[.]com/files/113 年度計畫 .7z 釣魚文件"]) == [(0, "non-ascii")]
+    assert warnings(["hxxp://evil[.]example[.]com/files/113", "年度計畫 .7z 釣魚文件"]) == [(0, "url-cut")]
+
+
+def test_full_width_masks_across_pypdf_spaces_are_flagged() -> None:
+    for line in ("〇〇 abc.gov.tw", "ev ＊ l.example.com", "1 ＊ 8.51.100.23"):
+        assert [kind for _, kind in warnings([line])] == ["mask-next"], line
+    assert warnings(["● update[.]example[.]com"]) == []
+
+
+def test_contexts_prefer_whole_places_and_ignore_cjk_after_punctuation() -> None:
+    text = "下載網址為 http://198.51.100.7/view/index.php?id=8600：該網址會回傳設定檔。\n"
+    text += "C2 網域 evil[.]example[.]com 已停用\n下載位址 hxxp://evil[.]example[.]com/a.exe"
+    contexts = evaluate._contexts(
+        text, {("url", "http://198.51.100.7/view/index.php?id=8600"), ("url", "http://evil.example.com")}
+    )
+    assert not contexts[("url", "http://198.51.100.7/view/index.php?id=8600")][0].startswith("(inside")
+    assert contexts[("url", "http://evil.example.com")][0].startswith("(without its scheme) C2")
+
+
+def test_the_style_sheet_goes_after_an_xml_declaration_and_doctype() -> None:
+    body, _ = evaluate.reviewable_page('<?xml version="1.0"?>\n<!DOCTYPE html><p>x</p>')
+    assert body.startswith(b'<?xml version="1.0"?>\n<!DOCTYPE html><style nonce=')

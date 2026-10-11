@@ -379,15 +379,15 @@ limits are in 6.8). The kinds (the review page explains each kind it shows):
 | --- | --- |
 | `hex-cut` | hex digits at a line end and the next line's start that make a SHA-1 or SHA-256 together, unless both are whole MD5s under an MD5 label in effect or both lines are rows of MD5s (each holds another MD5 besides these); a run of lines of 32 hex digits with no MD5 label in effect (two of them may be the halves of a SHA-256); a piece of 16 or more hex digits of the length of no hash |
 | `hash-label` | a hash whose length differs from the hash type named in the label of its block |
-| `name-cut` | a name ending at a line end in `.` or `-` before a line that starts with a name or with `.` or `-`, or a line starting with `.` or `-` after a name; digits and dots at a line end and the next line's start that make an IPv4 address together, when the first line's do not end in a whole one (a narrow cell breaks full-width digits anywhere: `１９８．５１．１` / `００．２３`) |
-| `url-cut` | in PDF text, a URL that reaches the line end before a line that does not start with a value or a scheme (past a list number or a short cell: `2.`, `2、`, `(2)`, `一、`, `-`, `URL`, `IP`, `C2`, `SHA256`), that starts with the full-width form of a URL character (`＿ v2.exe`), or that is Chinese text when the URL ends in `/` `=` `?` `&` `-` `_` or the Chinese text goes on with a file extension or path (`年度計畫 .rar`, `年第 1 季報告 .pdf`); in a web page, which `HtmlText` does not wrap, only before a line that goes on with a path, query or extension; a URL followed by a slash after a space; a URL whose host does not end in a top-level domain (cut inside its host) |
+| `name-cut` | a name ending at a line end in `.` or `-` before a line that starts with a name or with `.` or `-`, or a line starting with `.` or `-` after a name; digits and dots at a line end and the start of the next lines (up to three, while a line holds only digits and dots) that make an IPv4 address of octets up to 255 together, when the first line's do not end in a whole one (a narrow cell breaks full-width digits anywhere: `１９８．５` / `１．１０` / `０．２３`); not a number after `/`, `:` or `-` (a date, a port), nor an ASCII number without dots before a line that starts with a whole address (the last cell of a row) |
+| `url-cut` | in PDF text, a URL that reaches the line end before a line that does not start with a value or a scheme (past a list number or a type cell: `2.`, `2、`, `(2)`, `一、`, `-`, `URL`, `IP`, `IP:Port`, `Domain`, `Host`, `C2`, `C&C`, `MD5`, `SHA1`, `SHA256`, `Hash`, `Email`, `Port`), that starts with the full-width form of a URL character (`＿ v2.exe`), or that is Chinese text when the URL ends in `/` `=` `?` `&` `-` `_` or the Chinese text goes on with a file extension (`年度計畫 .rar`, `年第 1 季報告 .pdf`, `.7z`) or a path, not a date or a port (`113/05/01`, `2024-05-01`, `443/tcp`); in a web page, which `HtmlText` does not wrap, only before a line that goes on with a path, query or extension; a URL followed by a slash after a space; a URL whose host does not end in a top-level domain (cut inside its host) |
 | `file-extension` | a name left out because its top-level domain is also a file extension |
 | `url-unparseable` | a URL without a host that can be a name or an address, or with another scheme after an ASCII separator (two URLs written together: `…:8080,hxxp://…`) |
 | `non-ascii` | a value read from non-ASCII writing (full-width or CJK forms, Unicode or soft hyphens, ligatures, deleted format characters), or a URL that stops before non-ASCII letters (past spaces and format characters, and past the punctuation the rules took off its end) or before the full-width form of a URL character with more of the URL or the line's end after it (`a.php？id=1`, pypdf's `a.php ？ id=1`); after a space (pypdf's space between table cells), Chinese text counts only when the URL ends in a separator or the text goes on with a file extension or path, so that a description cell is not flagged |
 | `masked` | a masked value, left out |
-| `mask-next` | a value next to a mask character (`*` `＊` `#` `○` `●`, or `x` after an address: `198.51.100.2*`, `○○abc.gov.tw`, `evil.co*`, `203.0.113.1xx`; also across a spaced dot or at sign, `ser*** ＠ example.org`), or with `xxx` inside a label (`mail.nxxxx.gov.tw`, but also the word `foxxxy`): it may be only the visible part of a masked value |
+| `mask-next` | a value next to a mask character (`*` `＊` `#` `○` `●`, or `x` after an address: `198.51.100.2*`, `○○abc.gov.tw`, `evil.co*`, `203.0.113.1xx`; also across a spaced dot or at sign, `ser*** ＠ example.org`; and across pypdf's space after a full-width mask of two or more characters or one after a letter or digit, `〇〇 abc.gov.tw`, `ev ＊ l.example.com`, but not a lone bullet, `● value`), or with `xxx` inside a label (`mail.nxxxx.gov.tw`, but also the word `foxxxy`): it may be only the visible part of a masked value |
 | `own-address` | a value at the report's own address, often a page header printed inside the appendix |
-| `loose-defang` | numbering glued to a value by a full-width dot: one read between ASCII letters or digits that is part of no value (`１．198.51.100.23`), or one after 1 to 3 digits at the start of a name or e-mail address (`１．evil.example.com`); not in a date or version, nor before a URL |
+| `loose-defang` | a full-width dot or at sign read between ASCII letters or digits outside any value (`１．198.51.100.23`), or one after 1 to 3 digits at the start of a name or e-mail address (`１．evil.example.com`): numbering may be glued to a value; not in a date or version, nor before a URL |
 | `unread-defang` | a dot or at sign in a form the reading does not know, between ASCII letters or digits |
 
 Line ends and starts are found past any white space, the no-break spaces pypdf gives included. A
@@ -477,9 +477,10 @@ judges each (a, b or c, with a one-line reason) from up to three places where it
 value with up to 200 characters of its line on each side. A value that reaches the end of its line
 (past white space and the punctuation a tool leaves off: `?`, `.`, a hyphen) is shown with the start
 of the next line, and one at the start of its line with the end of the line before, so that a value
-a line break cut can be seen to be cut. A place inside a longer value (a name inside a URL: a letter
-or digit next to it, or a value's punctuation with a letter or digit beyond it; not sentence
-punctuation, nor a footnote number before a URL) is shown only when there is no other, marked so. A value written in no single
+a line break cut can be seen to be cut. A place inside a longer value (a name inside a URL: an ASCII
+letter or digit next to it, or a value's punctuation with one beyond it; not sentence punctuation
+before Chinese text, nor a footnote number before a URL) is shown only when no other place, nor any of
+the fallbacks below, is found, marked so. A value written in no single
 line, as a tool built it, gets the lines it spans across a line break, else the places where it
 stands without the scheme a tool added, else the places of its host, each marked so. There is one
 rater, and no agreement between raters is measured. While any value is unjudged, `score`
@@ -525,12 +526,13 @@ images is, and that a line of 6,000 characters is wrapped within the page's widt
   that is moved or scaled out of view, of font size 0, or inside `<defs>`.
 - Limits of the warnings, which the line-by-line check covers: a URL cut inside its host is flagged
   only when the first part does not end in a top-level domain (`www.exampl` / `e.com`, not
-  `www.example.co` / `m`), and single-label hosts are not flagged; a Chinese file name with ASCII
-  letters after a cut (`年度計畫v2.rar`) does not count as the rest of a URL; in a web page, a URL that
-  a `<br>` or a `<pre>` line break cuts is flagged only when the next line starts with a path
-  character; the rest of a cut URL that is 1 to 8 letters followed by another value passes as a
-  short cell; a value TTPrism builds by deleting a hyphen at a line break gets on the judging sheet
-  only the places of its host, or none.
+  `www.example.co` / `m`; a single-label host is flagged unless its label is a top-level domain); a
+  Chinese file name with ASCII letters after a cut (`年度計畫v2.rar`) does not count as the rest of a
+  URL; in a web page, a URL that a `<br>` or a `<pre>` line break cuts is flagged only when the next
+  line starts with a path character; the rest of a cut URL that is a type cell of 6.2's list or 1 to
+  3 digits, followed by another value, passes as a list number or a cell.
+- On the judging sheet, a value TTPrism builds by deleting a hyphen at a line break gets only the
+  places of its host, or none; the rater finds the rest in the report.
 - IPv4 octets above 255 are not rejected; CIDR blocks and ranges are read as plain addresses.
 - A cp950 page with an outdated `gb2312` `<meta>` decodes as GB 18030 without an error; `text`
   prints the encoding and declared charsets, and such a page needs a `charset_override`.
