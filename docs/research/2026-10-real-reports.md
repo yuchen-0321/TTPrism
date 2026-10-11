@@ -82,7 +82,11 @@ domains, IPv4 and MD5 only.
   corrections applied, and each of those is either done by the rules or flagged for the reviewer:
   `0x04.IOCs` and the `serveuser.-` fragments are left out by the top-level-domain check, the
   page-header addresses get an `own-address` warning (10 occurrences in cn03, cn06, cn07 and cn08),
-  and all 18 wrapped cn06 names (20 line breaks) get a `name-cut` warning.
+  and all 18 wrapped cn06 names (20 line breaks) get a `name-cut` warning. The drafts' other warnings
+  are at values the hand corrections left as they were: 11 `hex-cut` warnings, one for each run of
+  MD5s with no MD5 label in effect (cn05 has none; in cn02, cn04, cn07 and cn08 a page header, a page
+  number or a sub-heading such as `Android` ends the label's block), the masked `wiki.xxxx.com`
+  (cn04), and a `url-cut` in cn07 before a line that starts with `PDB`.
 - **Matching.** Domains lower-cased, trailing dot removed; URLs refanged with scheme and host
   lower-cased, scored as whole URLs and by host; MD5 case-insensitive. Before domain recall, each
   tool's domain output gets the hosts of its URL output (iocextract has no domain extractor, so its
@@ -296,9 +300,11 @@ after it.
 
 1. Commit the selection rule (`selection_rule` → `zh-tw` in the manifest).
 2. Download the files, and write each report's manifest entry: its bibliographic fields (`title`,
-   `publisher`, `published`, `original_url`, `url_source`), its source fields (`retrieved`,
-   `final_url`, `saved`, charsets) and its appendix markers (`start`, and `end` or `end_of_text`),
-   which every command checks.
+   `publisher`, `published`, `original_url`, `url_source`), its file (`format`: `"html"` for a web
+   page, `"pdf"` the default; `source` when the file is not named `<id>.<format>`; `attachments` when
+   the indicators are in an attached file), its source fields (`retrieved`, `final_url`, `saved`,
+   charsets) and its appendix markers (`start`, and `end` or `end_of_text`), which every command
+   checks. The manifest's `fields` describes each.
 3. `text`: PDFs with pypdf (one with only an owner password is decrypted with the empty user
    password), web pages decoded strictly and laid out by `HtmlText`. `text` prints where each
    appendix starts and ends; the markers are corrected until they are right, and are then fixed
@@ -317,15 +323,19 @@ after it.
 `truth` reads each line of the appendix: soft hyphens in PDF text as hyphens and other format
 characters deleted (as for zh-cn), then the defang styles as the ASCII characters they stand for —
 dot, at sign, colon and slash in ASCII, full-width or CJK brackets (`[.]` `(.)` `{.}` `[dot]`
-`(dot)` `[at]` `{at}` `[@]` `[:]` `[://]` `[/]` `【.】` `〔.〕` `［.］` `[。]` `（.）` `［＠］`, with or
-without spaces inside and around), the full-width dot and at sign (with or without spaces around),
-the full-width colon, slash and hyphen, full-width letters and digits, and the hyphens U+2010,
-U+2011, U+2212 and U+FE63 — and finds URLs, e-mail
-addresses, IPv4 addresses, names and hashes in the ASCII text that results. A name's last label must
-be a top-level domain of `iana-tlds.txt` (the IANA list of 2026-09-30, copied from the PyPI package
-`tlds` 2026093003 because data.iana.org could not be reached; not TTPrism's list), which leaves out
-file names such as `setup.msi`; a name under a top-level domain that is also a common file extension
-(`.zip`, `.sh`, `.so`, `.py`, `.app` …) is left out with a warning. A URL ends at white space,
+`(dot)` `[at]` `{at}` `[@]` `[:]` `[://]` `[/]` `【.】` `〔.〕` `［.］` `[。]` `（.）` `［＠］` `【:】`
+`【/】` …, with up to two spaces inside and around: pypdf puts a space next to CJK brackets and
+full-width punctuation, and two where the source had one), a URL's colon and slashes with spaces
+around them after a scheme (`hxxps ： //`, `https ：／／`), the full-width dot and at sign (bare, or
+with up to two spaces around them between ASCII letters or digits, so that `１． 198.51.100.23`
+numbering stays apart from the address after it), the full-width colon, slash and hyphen, full-width
+letters and digits, the hyphens U+2010, U+2011, U+2212 and U+FE63, and the ligatures U+FB00 to
+U+FB06 (which pypdf gives for some fonts in Chromium-printed PDFs) as their letters — and finds
+URLs, e-mail addresses, IPv4 addresses, names and hashes in the ASCII text that results. A name's
+last label must be a top-level domain of `iana-tlds.txt` (the IANA list of 2026-09-30, copied from
+the PyPI package `tlds` 2026093003 because data.iana.org could not be reached; not TTPrism's list),
+which leaves out file names such as `setup.msi`; a name under a top-level domain that is also a
+common file extension (`.zip`, `.sh`, `.so`, `.py`, `.app` …) is left out with a warning. A URL ends at white space,
 non-ASCII text, quotation marks, brackets, `<`, `>` and `&&`. One function gives the standard form of
 a value for the ground truth and for every tool's output (scheme and host lower-cased, `hxxp` as
 `http`); a URL it cannot parse is kept as it is and listed, never an exception.
@@ -333,25 +343,35 @@ a value for the ground truth and for every tool's output (scheme and host lower-
 For each report `truth` writes the draft, a review page that shows every line of the appendix with
 the values read from it and its warnings beside images of the pages (pdftoppm for each PDF page the
 appendix is on; headless Chromium screenshots of a web page, decoded as `text` decoded it, with
-scripts off, every other request refused and `<meta http-equiv="refresh">` taken out). Since
-`HtmlText` reads hidden content, the screenshots show it too: hidden elements, closed `<details>`
-and boxes that scroll are laid out in the page. A report whose pages cannot be drawn is named, and
-`review` refuses it until they are. The warnings:
+scripts off, every other request refused and `<meta http-equiv="refresh">` taken out). A web page
+is drawn without its own styles: it is served with a Content-Security-Policy that refuses every
+style sheet and style attribute of the page, so that nothing the page hides, clips, overlays or
+scrolls is left out of the images. One style sheet of ours shows what the browser hides by default
+although `HtmlText` reads it (hidden attributes, closed `<details>` and `<dialog>`), hides what
+`HtmlText` drops (`<noscript>`, `<iframe>` and the like, which scripts being off would show), draws
+all text black and wraps long lines. The images therefore show the page's text in the browser's
+default layout, not the page as its readers see it; that is what the line rules read. A report
+whose pages cannot be drawn is named, and `review` refuses it until they are. The warnings:
 
 | Warning | What the reviewer checks |
 | --- | --- |
-| `hex-cut` | hex digits at a line end and the next line's start that make a SHA-1 or SHA-256 together (not two MD5s under an MD5 label); a run of lines of 32 hex digits with no MD5 label (two of them may be the halves of a SHA-256); a piece of the length of no hash |
-| `hash-label` | a hash whose length differs from the hash type named in the label above it |
+| `hex-cut` | hex digits at a line end and the next line's start that make a longer hash together (SHA-1, SHA-256, or a SHA-384 or SHA-512 cut into pieces of scored lengths), unless both are whole hashes of one length under a label naming that type or the next line goes on with another whole hash of that length (a table row); a run of lines of 32 hex digits with no MD5 label in effect (two of them may be the halves of a SHA-256); a piece of 16 or more hex digits of the length of no hash |
+| `hash-label` | a hash whose length differs from the hash type named in the label of its block |
 | `name-cut` | a name ending at a line end in `.` or `-` before a line that starts with a name or with `.` or `-`, or a line starting with `.` or `-` after a name |
-| `url-cut` | a URL that reaches the line end before a line that does not start with a value |
+| `url-cut` | a URL that reaches the line end before a line that does not start with a value (or, for a URL ending in `/` `=` `?` `&` `-` `_`, before a line of Chinese text), or that is followed by a slash after a space |
 | `file-extension` | a name left out because its top-level domain is also a file extension |
 | `url-unparseable` | a URL without a host in standard form |
-| `non-ascii` | a value read from non-ASCII writing (full-width or CJK forms, Unicode or soft hyphens, deleted format characters), or a URL that stops right before non-ASCII letters |
-| `masked` | a masked value, left out |
+| `non-ascii` | a value read from non-ASCII writing (full-width or CJK forms, Unicode or soft hyphens, ligatures, deleted format characters), or a URL that stops before non-ASCII letters (past spaces and format characters, and past the punctuation the rules took off its end) |
+| `masked` | a masked value (an asterisk, or `xxx` standing alone, in it), left out |
 | `own-address` | a value at the report's own address, often a page header printed inside the appendix |
+| `loose-defang` | a full-width dot or at sign with spaces around it, read as a dot or at sign, that is part of no value (numbering or punctuation; a value next to it may be wrong or missing) |
 | `unread-defang` | a dot or at sign in a form the reading does not know, between ASCII letters or digits |
 
-Line ends and starts are found past any white space, the no-break spaces pypdf gives included.
+Line ends and starts are found past any white space, the no-break spaces pypdf gives included. A
+hash label (`MD5`, `SHA1`, `SHA-256`, `SHA2-256`, with a space, hyphen or dash inside) holds for its
+block: its own line and the lines below it until a line with text but neither a label nor a hash. A
+page header inside a long list of MD5s therefore ends the block, and the rest of the list gets
+one `hex-cut` warning for its run.
 
 The reviewer checks every line against the images and fills in the template: who and when, the
 images checked (every PDF page the appendix is on, and screenshots of each web page), that every line
@@ -373,10 +393,11 @@ results of the set were made with another review.
 Writing classes: *plain*; *ASCII defang* (`[.]` `(.)` `{.}` `[dot]` a URL scheme written `hxxp`
 or `fxp`, `[:]` `[://]` `[/]` `[@]` `[at]`); *full-width or CJK-bracket defang* (`【.】` `〔.〕` `［.］`
 `[。]` `（.）` `．` `＠` `／` `：` `－`, full-width letters and digits). The spaces around a form do not
-decide its class. Unicode hyphens and soft hyphens are plain. A value written several ways in the
-appendix gets the class of its plainest writing, since a tool can find it from that one; a URL's
-host is classed by how the host itself is written, as the plainest of its own entry and its writing
-in each URL, and so is an address that is a URL's host and a value of its own.
+decide its class. Unicode hyphens, soft hyphens and ligatures are plain. A value written several
+ways in the appendix gets the class of its plainest writing, since a tool can find it from that one;
+a URL's host is classed by how the host itself is written, as the plainest of its own entry and its
+writing in every occurrence of each of its URLs (in the draft's lines, or as the reviewer added the
+URL), and so is an address that is a URL's host and a value of its own.
 
 ### 6.3 What is measured
 
@@ -386,10 +407,12 @@ in each URL, and so is an address that is a URL's host and a value of its own.
    and digits, other bracket forms) — the same characters as the writing classes — each twice:
    everywhere, and only inside values the line rules find. Full-width digits, `１．` numbering and the
    full-width colon are common in Chinese body text, so only the second count says whether indicators
-   are written that way. A report *uses* full-width or CJK-bracket writing when that count finds at
-   least one such writing inside a value anywhere in its text, or when one of its reviewed
-   ground-truth values is written only so (a form the rules do not read, added by the reviewer);
-   `score` records both counts for each report.
+   are written that way. A report *uses* full-width or CJK-bracket writing when at least one of its
+   indicators is written so: a reviewed ground-truth value in one of its occurrences in the appendix
+   (read by the draft, or added by the reviewer), or a value in the body that a tool extracted and
+   the rater judged an indicator (a). `score` records these two counts for each report, and beside them the count of such
+   writings inside any value the line rules find, which also counts values that are not indicators
+   (version numbers, numbering, contact addresses) and does not decide.
 2. **The tools.** Recall of each tool by writing class (plain, ASCII defang, full-width or
    CJK-bracket defang); overall recall (by type and by URL host) and precision (strict, lenient)
    computed as for zh-cn; totals for all reports and for PDFs and web pages separately. TTPrism raw
@@ -434,18 +457,23 @@ resolved (the split SHA-256 by its `hex-cut` and two `hash-label` warnings, the 
 `name-cut`), `run` refused before the review was committed, iocextract's `ValueError` on
 `http://a：` in the web page was recorded as its error on that report while the run went on, `score`
 was provisional until the blinded sheet was judged, and the recall of every tool by writing class
-equals an independent count from the reviewed values and the outputs. A second test draws pages with
-hidden content, a closed `<details>`, a box that scrolls, a `<meta http-equiv="refresh">` in
-`<noscript>`, and a text attachment with control characters, and checks that all of it is drawn.
-These are checks of the procedure, not results.
+equals an independent count from the reviewed values and the outputs. A second test draws pages
+whose own styles hide content (`display:none !important` in a class and in a style attribute,
+`opacity:0`, a box that scrolls, a fixed body that scrolls), hidden content, a closed `<details>`, a
+`<dialog>`, a `<meta http-equiv="refresh">` in `<noscript>`, and a text attachment with control
+characters, and checks that all of it is drawn, that `<noscript>` content is not, and that a line of
+6,000 characters is wrapped within the page's width. These are checks of the procedure, not results.
 
 ### 6.8 Known gaps, not fixed before the freeze
 
 - Windows: rendering needs a POSIX system, and Git's `autocrlf` and the console encoding are not
   handled; the evaluation runs on Linux or macOS.
 - The draft has no rule for IPv6 addresses; a reviewer adds them by hand.
-- A name with a single asterisk (`evil.*.com`) is not found by the draft at all, as a value or as a
-  masked one; URLs and tool outputs with one are treated as masked.
+- Masks: an asterisk in a name or a URL (`evil.*.com`, `ev*l.example.com`) and `xxx` standing alone
+  are recognised, and the value is left out with a `masked` warning, as are tool outputs with them.
+  Other forms (`[REDACTED].example.com`, `###`, an asterisk in an IPv4 address, in an e-mail's local
+  part or in a top-level domain) are not: the draft reads nothing from them and gives no warning, and
+  what a tool reads from the visible part is judged like any other value outside the truth.
 - IPv4 octets above 255 are not rejected; CIDR blocks and ranges are read as plain addresses.
 - A cp950 page with an outdated `gb2312` `<meta>` decodes as GB 18030 without an error; `text`
   prints the encoding and declared charsets, and such a page needs a `charset_override`.
@@ -471,7 +499,8 @@ uv venv -p 3.11.17 /tmp/eval
 uv pip install -p /tmp/eval/bin/python -r docs/research/2026-10-real-reports/requirements.txt -e .
 E=docs/research/2026-10-real-reports/evaluate.py
 # selection rule committed; files in eval-data/zh-tw/pdf/<id>.pdf or html/<id>.html;
-# each report's manifest entry written (bibliographic and source fields, appendix markers)
+# each report's manifest entry written (bibliographic fields; format "html" for a web page,
+# source and attachments when needed; source fields; appendix markers)
 /tmp/eval/bin/python -I $E text zh-tw
 /tmp/eval/bin/python -I $E defang zh-tw
 CHROMIUM=/path/to/chromium /tmp/eval/bin/python -I $E truth zh-tw

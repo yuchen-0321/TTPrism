@@ -807,7 +807,7 @@ def test_score_is_provisional_until_every_value_is_judged(
     }
     assert results["totals"]["ioc-finder"]["recall_by_class"]["fullwidth-cjk-defang"] == [0, 1, 0.0]
     assert results["reports_using_fullwidth_cjk"] == ["t01"]
-    assert results["reports"][0]["writing"]["fullwidth_cjk_in_values"] == 1
+    assert results["reports"][0]["writing"]["fullwidth_cjk_indicators_in_appendix"] == 1
     # The blinded sheet: every value outside the truth once, without the tools that found it.
     monkeypatch.setattr(sys, "argv", ["evaluate.py", "judge", "t", "after"])
     evaluate.command_judge("t", "after")
@@ -1180,3 +1180,150 @@ def test_the_writing_classes_and_the_defang_styles_cover_the_same_characters() -
         reading = evaluate.ascii_reading(raw)
         assert reading.writing_class(0, len(reading.text)) == "fullwidth-cjk-defang"
         assert style in [s for _, _, s in evaluate.defang_occurrences(raw)]
+
+
+# --------------------------------------------------------------------------- review round 7
+
+
+def test_numbering_with_a_full_width_dot_stays_apart_from_the_value() -> None:
+    # pypdf gives a space after "．" where the page has none.
+    assert values(["１． 198.51.100.23", "３． evil.example.com", "網域． bad.example.net"]) == {
+        "domain": ["bad.example.net", "evil.example.com"],
+        "ipv4": ["198.51.100.23"],
+    }
+    # ASCII numbering before a spaced full-width dot is read with it, and flagged.
+    assert "loose-defang" in {kind for _, kind in warnings(["2 ． 203.0.113.5"])}
+
+
+def test_two_spaces_around_a_form_are_read() -> None:
+    assert values(["evil 【 . 】  example.com", "198  【.】  51 【.】 100 【.】 25"]) == {
+        "domain": ["evil.example.com"],
+        "ipv4": ["198.51.100.25"],
+    }
+
+
+def test_spaced_colon_and_slash_forms_are_read_or_flagged() -> None:
+    assert values(["https ：／／ evil ． example ． com"])["url"] == ["https://evil.example.com"]
+    assert values(["hxxps 【 : 】 //evil.example.com/a.exe"])["url"] == ["https://evil.example.com/a.exe"]
+    assert values(["https://evil.example.com 【 / 】 b.php"])["url"] == ["https://evil.example.com/b.php"]
+    result = draft(["hxxps ： //update-check ． example ． com ／ a.exe"])
+    assert result["values"]["url"][0]["value"] == "https://update-check.example.com"
+    assert "url-cut" in {w["kind"] for w in result["warnings"]}
+
+
+def test_ligatures_are_read_as_their_letters() -> None:
+    result = draft(["conﬁg-update.example.com", "ﬂash@example.org"])
+    assert {k: [e["value"] for e in v] for k, v in result["values"].items()} == {
+        "domain": ["config-update.example.com"],
+        "email": ["flash@example.org"],
+    }
+    assert [w["kind"] for w in result["warnings"]] == ["non-ascii", "non-ascii"]
+
+
+def test_an_asterisk_inside_a_label_masks_the_value() -> None:
+    result = draft(["ev*l.example.com", "a*b@example.org", "evil.*.com", "*.example.net"])
+    assert result["values"] == {}
+    assert sorted(e["value"] for entries in result["masked"].values() for e in entries) == [
+        "*.example.net",
+        "a*b@example.org",
+        "ev*l.example.com",
+        "evil.*.com",
+    ]
+
+
+def test_a_hash_label_covers_only_its_own_block() -> None:
+    md5 = "d41d8cd98f00b204e9800998ecf8427e"
+    lines = ["MD5：", md5, "Hash:", "loader.dll " + SPLIT[:32], SPLIT[32:]]
+    assert ("hex-cut") in {kind for _, kind in warnings(lines)}
+    assert warnings(["SHA\u00a0256", md5]) == [(1, "hash-label")]
+    assert warnings(["SHA–256", md5]) == [(1, "hash-label")]
+
+
+def test_a_sha512_split_into_two_hash_lengths_is_flagged() -> None:
+    sha512 = SPLIT + SPLIT[::-1]
+    assert ("hex-cut") in {kind for _, kind in warnings(["loader.dll " + sha512[:64], sha512[64:]])}
+    assert warnings([f"{SPLIT} {SPLIT}", f"{SPLIT} {SPLIT}"]) == []
+
+
+def test_urls_cut_before_chinese_text_are_flagged() -> None:
+    for lines in (
+        ["hxxp://evil[.]example[.]com/files/ 公文通知 .rar"],
+        ["http://evil.example.com/search?公文通知"],
+        ["http://evil.example.com/files/\u200b公文通知.rar"],
+        ["http://evil.example.com/files/", "公文通知.rar"],
+    ):
+        assert warnings(lines), lines
+    assert warnings(["http://a.example.com/x", "下載器"]) == []
+    assert warnings(["網址\thttp://203.0.113.9/x.php\t回報"]) == []
+
+
+def test_a_url_without_a_host_can_be_removed() -> None:
+    result = draft(["hxxp://..."])
+    assert result["values"]["url"][0]["value"] == "http://"
+    remove = [{"type": "url", "value": "http://", "reason": "nothing after the scheme", "warnings": ["W1"]}]
+    review = complete_review(result, remove=remove)
+    review["warnings"]["W1"]["resolution"] = "corrected"
+    review["values"] = evaluate.final_values(result, review)
+    assert evaluate.review_problems(result, review) == []
+
+
+def test_a_name_can_be_corrected_while_a_url_has_it_as_its_host() -> None:
+    result = draft(["c2[.]example[.]org", "http://c2.example.org/gate.php"])
+    review = complete_review(
+        result,
+        remove=[{"type": "domain", "value": "c2.example.org", "reason": "wrong place"}],
+        add=[
+            {
+                "type": "domain",
+                "value": "c2.example.org",
+                "writing": "c2[.]example[.]org",
+                "class": "ascii-defang",
+                "location": "pdf/t01.pdf page 2 line 3",
+                "reason": "its place",
+            }
+        ],
+    )
+    assert evaluate.review_problems(result, review) == []
+
+
+def test_a_url_host_is_classed_by_its_plainest_writing_in_any_occurrence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    text = "IOCs\nhttp://evil[.]example.net/a.exe\nhxxp://evil.example.net/a.exe\nEND"
+    entry = {**report(), "id": "t01"}
+    parts = [{"format": "pdf", "start": 0, "end": len(text)}]
+    result = evaluate.draft_truth(text, entry, parts)
+    entry["truth_review"] = complete_review(result)
+    monkeypatch.setattr(evaluate, "committed_manifest", lambda: {"sets": {"t": [entry]}})
+    truth = evaluate.load_reviewed_truth("t", entry, text, {"parts": parts})
+    assert truth["classes"]["domain"]["evil.example.net"] == "plain"
+
+
+def test_a_report_uses_full_width_writing_only_for_indicators() -> None:
+    text = "版本７．０．０．１ 與 ｗｗｗ．example．org\nIOCs\nc2.example.net\nEND"
+    entry = report()
+    parts = [{"format": "pdf", "start": 0, "end": len(text)}]
+    result = evaluate.draft_truth(text, entry, parts)
+    review = complete_review(result)
+    truth = {
+        "text": text,
+        "conversion": {"parts": parts},
+        "draft": result,
+        "review": review,
+        "truth": {"domain": ["c2.example.net"]},
+        "ambiguous": {},
+    }
+    use = evaluate._writing_use(truth, "pdf", entry, {})
+    assert (use["uses_fullwidth_cjk"], use["fullwidth_cjk_in_any_value"]) == (False, 10)
+    judged = {"ipv4": {"7.0.0.1": ["a", "an indicator"]}}
+    assert evaluate._writing_use(truth, "pdf", entry, judged)["uses_fullwidth_cjk"] is True
+
+
+@pytest.mark.parametrize("unit", ["." * 50 + "a", "198.51.100.7 "])
+def test_a_long_line_before_another_costs_linear_time(unit: str) -> None:
+    def cost(size: int) -> float:
+        body = unit * (size // len(unit))
+        tail = "0" * 20
+        return seconds_per_mb(lambda: draft([body + tail + " ", tail, "next"]), size / 1_000_000, repeat=2)
+
+    assert cost(400_000) < 2.5 * cost(100_000), unit

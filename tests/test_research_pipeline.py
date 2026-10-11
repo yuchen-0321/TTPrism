@@ -389,17 +389,42 @@ def test_the_synthetic_zh_tw_set_runs_end_to_end(
 
 
 def test_screenshots_show_what_the_text_has(tmp_path: Path) -> None:
-    def shots(page: str, content_type: str = "text/html; charset=utf-8") -> int:
-        body = (evaluate._REFRESH.sub("", page) + evaluate._REVEAL) if "html" in content_type else page
-        return len(evaluate.screenshots(CHROMIUM, body.encode("utf-8"), content_type, tmp_path / "page"))
+    def drawn(page: str, html: bool = True) -> list[tuple[int, int]]:
+        if html:
+            body, headers = evaluate.reviewable_page(page)
+        else:
+            body, headers = (
+                page.encode("utf-8"),
+                [{"name": "Content-Type", "value": "text/plain; charset=utf-8"}],
+            )
+        sizes = []
+        for shot in evaluate.screenshots(CHROMIUM, body, headers, tmp_path / "page"):
+            data = shot.read_bytes()
+            sizes.append((int.from_bytes(data[16:20], "big"), int.from_bytes(data[20:24], "big")))
+        return sizes
 
     rows = "".join(f"<p>row {i} r{i}.example.net</p>" for i in range(150))
-    # Hidden content, which HtmlText reads, is drawn; so is content that scrolls inside a box.
-    assert shots(f"<h2>IOCs</h2><div hidden>{rows}</div>") >= 2
-    assert shots(f"<details><summary>IOCs</summary>{rows}</details>") >= 2
-    scrolling = "<style>html,body{height:100%;overflow:hidden;margin:0}#m{height:100%;overflow:auto}</style>"
-    assert shots(f"{scrolling}<div id=m>{rows}</div>") >= 2
+    # The page's own styles are refused, so nothing it hides, clips or scrolls is left out; what the
+    # browser's defaults hide (hidden attributes, closed <details>, <dialog>) is shown too.
+    hiding = (
+        "<style>.d-none{display:none!important}.fade{opacity:0}#m{height:120px;overflow:auto}"
+        "body{position:fixed;top:0;bottom:0;overflow-y:auto}</style>"
+    )
+    for page in (
+        f"{hiding}<div class=d-none>{rows}</div>",
+        f"{hiding}<div style='display:none !important'>{rows}</div>",
+        f"{hiding}<div class=fade>{rows}</div>",
+        f"{hiding}<div id=m>{rows}</div>",
+        f"<h2>IOCs</h2><div hidden>{rows}</div>",
+        f"<details><summary>IOCs</summary>{rows}</details>",
+        f"<dialog>{rows}</dialog>",
+    ):
+        assert len(drawn(page)) >= 2, page[:60]
+    # <noscript>, which HtmlText drops, is not drawn although scripts are off.
+    assert len(drawn(f"<p>a.example.com</p><noscript>{rows}</noscript>")) == 1
+    # One long line is wrapped, so every screenshot stays as wide as the page.
+    assert {width for width, _ in drawn("<pre style='overflow:auto'>" + "A" * 6000 + "</pre>")} == {1200}
     # A page that would leave itself, with scripts off, stays drawn; text with control bytes is shown.
     refresh = "<noscript><meta http-equiv=refresh content='0;url=http://other.example.com/'></noscript>"
-    assert shots(f"<html><head>{refresh}</head><body>{rows}</body></html>") >= 2
-    assert shots("IOCs\x0b\nevil.example.com\x1a\n", "text/plain; charset=utf-8") == 1
+    assert len(drawn(f"<html><head>{refresh}</head><body>{rows}</body></html>")) >= 2
+    assert len(drawn("IOCs\x0b\nevil.example.com\x1a\n", html=False)) == 1
