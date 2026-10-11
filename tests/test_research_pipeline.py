@@ -383,6 +383,23 @@ def test_the_synthetic_zh_tw_set_runs_end_to_end(
         assert precision["a"] == precision["b"] == 0
         assert precision["truth"] + precision["c"] == precision["judged_total"]
     assert results["totals_by_format"].keys() == {"pdf", "html"}
-    assert results["reports_with_fullwidth_cjk_values"] == ["tw01", "tw02"]
+    assert results["reports_using_fullwidth_cjk"] == ["tw01", "tw02"]
     left_out = {entry["id"]: entry["left_out"]["ambiguous"] for entry in results["reports"]}
     assert left_out == {"tw01": {"domain": 2}, "tw02": {}}
+
+
+def test_screenshots_show_what_the_text_has(tmp_path: Path) -> None:
+    def shots(page: str, content_type: str = "text/html; charset=utf-8") -> int:
+        body = (evaluate._REFRESH.sub("", page) + evaluate._REVEAL) if "html" in content_type else page
+        return len(evaluate.screenshots(CHROMIUM, body.encode("utf-8"), content_type, tmp_path / "page"))
+
+    rows = "".join(f"<p>row {i} r{i}.example.net</p>" for i in range(150))
+    # Hidden content, which HtmlText reads, is drawn; so is content that scrolls inside a box.
+    assert shots(f"<h2>IOCs</h2><div hidden>{rows}</div>") >= 2
+    assert shots(f"<details><summary>IOCs</summary>{rows}</details>") >= 2
+    scrolling = "<style>html,body{height:100%;overflow:hidden;margin:0}#m{height:100%;overflow:auto}</style>"
+    assert shots(f"{scrolling}<div id=m>{rows}</div>") >= 2
+    # A page that would leave itself, with scripts off, stays drawn; text with control bytes is shown.
+    refresh = "<noscript><meta http-equiv=refresh content='0;url=http://other.example.com/'></noscript>"
+    assert shots(f"<html><head>{refresh}</head><body>{rows}</body></html>") >= 2
+    assert shots("IOCs\x0b\nevil.example.com\x1a\n", "text/plain; charset=utf-8") == 1

@@ -42,7 +42,7 @@ its original writing, its writing class (plain, ASCII defang, full-width or CJK-
 where it stands. `review` checks the filled-in templates against the drafts and writes them into the
 manifest; `run` stops unless every report's review is complete, committed and made against the
 current draft, so the truth is fixed before any tool has run. `review` stops once the set has
-results.
+results, and `run` stops if earlier results of the set were made with another review.
 
 Bindings: each step records the SHA-256 of what it was made from, and the next one stops if that
 changed: `truth`, `defang` and `run` if the text, its source, an attachment, the manifest's format,
@@ -147,9 +147,11 @@ def visible(text: str) -> str:
 # remembers where each character came from. Dot, at sign, colon and slash in ASCII, full-width or
 # CJK brackets ("[.]", "(dot)", "{.}", "[at]", "[:]", "[/]", "【.】", "〔.〕", "［.］", "[。]",
 # "（.）", "［＠］"), with or without a space inside or around the brackets (pypdf puts spaces around
-# CJK brackets); the full-width dot, at sign, colon, slash and hyphen, and full-width letters and
-# digits; and the hyphens U+2010, U+2011, U+2212 and U+FE63. A bare ideographic full stop is not a
-# dot, and other full-width punctuation (，；（）) stays as it is, so that it ends a value.
+# CJK brackets and full-width punctuation); the full-width dot and at sign, with or without a space
+# around them; the full-width colon, slash and hyphen, and full-width letters and digits; and the
+# hyphens U+2010, U+2011, U+2212 and U+FE63. A bare ideographic full stop is not a dot, and other
+# full-width punctuation (，；（）) stays as it is, so that it ends a value. Whether a form is ASCII
+# or full-width and CJK is decided without the spaces around it.
 _SP = "[ \\u3000]?"
 _BRACKETS = (
     ("\\[", "\\]"),
@@ -183,8 +185,18 @@ _FORMS = re.compile(
         )
         for index, (opening, closing) in enumerate(_BRACKETS)
     )
+    + f"|(?P<fwdot>{_SP}\uff0e{_SP})|(?P<fwat>{_SP}\uff20{_SP})"
 )
-_FORM_VALUES = {"scheme": "://", "slashes": "//", "dot": ".", "at": "@", "colon": ":", "slash": "/"}
+_FORM_VALUES = {
+    "scheme": "://",
+    "slashes": "//",
+    "dot": ".",
+    "at": "@",
+    "colon": ":",
+    "slash": "/",
+    "fwdot": ".",
+    "fwat": "@",
+}
 _SINGLE = {
     "．": ".",
     "＠": "@",
@@ -196,7 +208,8 @@ _SINGLE = {
     **{chr(code): chr(code - 0xFEE0) for code in range(0xFF41, 0xFF5B)},  # full-width small letters
 }
 _HYPHENS = {"‐": "-", "‑": "-", "−": "-", "﹣": "-"}
-_ASCII_DEFANG_HINT = re.compile(r"hxx|fxp", re.IGNORECASE)
+# A URL whose scheme is written hxxp, hxxps or fxp is ASCII-defanged even when nothing else is.
+_DEFANGED_SCHEME = re.compile("\\s*(?:[Hh][Xx][Xx][Pp][Ss]?|[Ff][Xx][Pp])(?=[:\uff1a\\[(\\{【〔［（])")
 
 
 class Reading:
@@ -213,12 +226,15 @@ class Reading:
         """The span of the original that the characters start..end of the text came from."""
         return self.origins[start][0], self.origins[end - 1][1]
 
-    def writing_class(self, start: int, end: int) -> str:
+    def writing_class(self, start: int, end: int, url: bool = False) -> str:
+        """The writing class of the characters start..end: full-width or CJK if any of them was read
+        from such a form, else ASCII defang if any was read from one (or, for a URL, its scheme is
+        written hxxp or fxp), else plain."""
         kinds = set(self.kinds[start:end])
         if "cjk" in kinds:
             return "fullwidth-cjk-defang"
         raw_start, raw_end = self.span(start, end)
-        if "ascii" in kinds or _ASCII_DEFANG_HINT.search(self.raw[raw_start:raw_end]):
+        if "ascii" in kinds or (url and _DEFANGED_SCHEME.match(self.raw, raw_start, raw_end)):
             return "ascii-defang"
         return "plain"
 
@@ -248,7 +264,7 @@ def ascii_reading(raw: str) -> Reading:
         name = match.lastgroup or ""
         replacement = _FORM_VALUES[name.rstrip("0123456789")]
         form = match.group(0)
-        kind = "ascii" if form.isascii() else "cjk"
+        kind = "ascii" if form.replace(" ", "").replace("\u3000", "").isascii() else "cjk"
         for char in replacement:
             chars.append(char)
             origins.append((match.start(), match.end()))
@@ -300,6 +316,22 @@ def url_host(url: str) -> str:
     return host.lower().rstrip(".")
 
 
+def host_class(writing: str) -> str:
+    """The writing class of the host in a URL written so (as the review records the writing)."""
+    reading = ascii_reading(writing)
+    match = re.match(r"\s*[A-Za-z][A-Za-z0-9+.\-]*://([^/?#\s]*)", reading.text)
+    if match is None or not match.group(1):
+        return reading.writing_class(0, len(reading.text), url=True) if reading.text else CLASSES[0]
+    start, end = match.span(1)
+    start += match.group(1).rfind("@") + 1
+    host = reading.text[start:end]
+    if host.startswith("["):
+        end = start + host.find("]") + 1 if "]" in host else end
+    elif ":" in host:
+        end = start + host.index(":")
+    return reading.writing_class(start, end) if end > start else CLASSES[0]
+
+
 def is_ip(host: str) -> bool:
     """Whether a URL's host is an address (digits and dots, or hex digits and colons), not a name."""
     return bool(re.fullmatch(r"[0-9.]+|[0-9a-f:]+", host)) and any(c in host for c in ".:")
@@ -349,9 +381,9 @@ _REVIEW_FIELDS = (
     set[str](),
 )
 _UTC_TIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?Z")
-# The one lenient decoding there is, for a page or text whose UTF-8 is damaged: the bytes that are
-# not UTF-8 become U+FFFD, and their number is recorded. Nothing else (Big5 least of all) is decoded
-# leniently.
+# The one lenient decoding there is, for a page or text whose UTF-8 is damaged: what is not UTF-8
+# becomes U+FFFD (one for each invalid sequence), and the number of U+FFFD inserted is recorded.
+# Nothing else (Big5 least of all) is decoded leniently.
 UTF8_REPLACE = "utf-8:replace"
 
 
@@ -639,7 +671,9 @@ def charset_override(entry: dict[str, Any]) -> str | None:
 
 
 def decode_leniently(data: bytes) -> tuple[str, int]:
-    """Damaged UTF-8 decoded with U+FFFD for each byte that is not UTF-8, and how many were replaced."""
+    """Damaged UTF-8 decoded with U+FFFD for each piece that is not UTF-8 (Python's "replace": one
+    U+FFFD for each maximal invalid sequence, so a cut multi-byte character gives one), and how many
+    U+FFFD that inserted."""
     if data.startswith(b"\xef\xbb\xbf"):
         data = data[3:]
     text = data.decode("utf-8", "replace")
@@ -663,7 +697,7 @@ def convert(
         info["method"] = HTML_METHOD
         info.update(counts)
     elif override is not None and override.lower() == UTF8_REPLACE:
-        text, info["replaced_bytes"] = decode_leniently(path.read_bytes())
+        text, info["replacement_characters_inserted"] = decode_leniently(path.read_bytes())
         info["method"] = "text decoded as UTF-8, damaged bytes replaced (charset override in the manifest)"
     elif override is not None:
         codec = _codec(override)
@@ -732,8 +766,9 @@ def command_text(name: str) -> None:
             )
             if attachment["format"] == "html":
                 print_html_conversion("        ", attachment)
-            if "replaced_bytes" in attachment:
-                print(f"        DAMAGED UTF-8: {attachment['replaced_bytes']} byte(s) replaced by U+FFFD")
+            if "replacement_characters_inserted" in attachment:
+                inserted = attachment["replacement_characters_inserted"]
+                print(f"        DAMAGED UTF-8: {inserted} U+FFFD inserted for bytes that are not UTF-8")
         describe_appendix(text, report)
 
 
@@ -751,8 +786,9 @@ def print_html_conversion(indent: str, info: dict[str, Any]) -> None:
     print(f"{indent}declared {decoding['declared']}")
     if decoding["mismatch"]:
         print(f"{indent}DECLARED CHARSET DISAGREES: {'; '.join(decoding['mismatch'])}")
-    if decoding.get("replaced_bytes"):
-        print(f"{indent}DAMAGED UTF-8: {decoding['replaced_bytes']} byte(s) replaced by U+FFFD")
+    if decoding.get("replacement_characters_inserted"):
+        inserted = decoding["replacement_characters_inserted"]
+        print(f"{indent}DAMAGED UTF-8: {inserted} U+FFFD inserted for bytes that are not UTF-8")
     print(
         f"{indent}U+FFFD: {info['replacement_characters']}, hidden characters kept: "
         f"{info['hidden_characters_kept']}, soft hyphens deleted: {info['soft_hyphens_deleted']}"
@@ -872,7 +908,7 @@ def check_html_parser() -> dict[str, Any]:
 # leniently: a page that fits none of them stops the run. A charset override in the manifest (with
 # its reason) replaces all of them, for a page that this order would decode wrongly; the override
 # "utf-8:replace", for a page whose UTF-8 is damaged, is the one lenient decoding, and the number of
-# bytes it replaced with U+FFFD is recorded.
+# U+FFFD it inserted is recorded.
 _BOMS = ((b"\xef\xbb\xbf", "utf-8"), (b"\xff\xfe", "utf-16-le"), (b"\xfe\xff", "utf-16-be"))
 _META_CHARSET = re.compile(
     rb"<meta\s[^>]{0,2048}?charset\s*=\s*[\"']?\s*([A-Za-z0-9._:-]{1,40})", re.IGNORECASE
@@ -934,7 +970,7 @@ def decode_html(
         text = text.replace("\r\n", "\n").replace("\r", "\n")
         how = "charset override in the manifest: damaged UTF-8, bytes that are not UTF-8 replaced"
         info = {"encoding": "utf-8", "chosen_by": how, "declared": declared, "mismatch": mismatch}
-        return text, {**info, "replaced_bytes": replaced}
+        return text, {**info, "replacement_characters_inserted": replaced}
     if override is not None:
         codec = _codec(override)
         if codec is None:
@@ -1409,7 +1445,8 @@ def html_to_text(page: str) -> tuple[str, dict[str, Any]]:
 # trailing punctuation. A name's last label must be a top-level domain of the IANA list next to this
 # script (iana-tlds.txt), which rules out file names such as setup.msi, invoice.iso or stage.scr;
 # a name whose top-level domain is also a common file extension (payload.zip, run.sh) is left out with
-# a warning. Masked entries ("wiki.xxxx.com", "evil.*.com") are left out with a warning, and so are
+# a warning. Masked entries ("wiki.xxxx.com", "evil.**.com"; a name with a single asterisk is not
+# found at all) are left out with a warning, and so are
 # tool outputs equal to them. Every rule is linear in the length of a line.
 _MD5 = re.compile(r"(?<![0-9A-Fa-f])[0-9A-Fa-f]{32}(?![0-9A-Fa-f])")
 _SHA1 = re.compile(r"(?<![0-9A-Fa-f])[0-9A-Fa-f]{40}(?![0-9A-Fa-f])")
@@ -1441,18 +1478,22 @@ _MASKED_HOST = re.compile(r"\*\*|xxx", re.IGNORECASE)
 _ENDS_IN_LETTERS = re.compile(r"\.[A-Za-z]{2,24}\Z")
 # What the warnings look for: hash labels, a dot or at sign that the reading did not read (an
 # ideographic full stop or a middle dot between ASCII letters, or a dot in brackets it does not know).
-_HASH_LABEL = re.compile(r"(?<![A-Za-z0-9])(MD5|SHA-?1|SHA-?256)(?![A-Za-z0-9])", re.ASCII | re.IGNORECASE)
+_HASH_LABEL = re.compile(
+    r"(?<![A-Za-z0-9])(MD5|SHA[- ]?1|SHA2?[- ]?256)(?![A-Za-z0-9])", re.ASCII | re.IGNORECASE
+)
+_LABEL_TYPES = {"MD5": "md5", "SHA1": "sha1", "SHA256": "sha256", "SHA2256": "sha256"}
 _HASH_LENGTHS = {32: "md5", 40: "sha1", 64: "sha256"}
 _ODD_BRACKET = "[^\\x00-\\x3b=?-\\x7f]"  # not ASCII, or "<" or ">"
 _UNREAD = re.compile(
     "[A-Za-z0-9][ \u3000]?(?:[。｡・‧･·•∙⋅﹒﹫]"
     f"|{_ODD_BRACKET}[ \u3000]?[.@。][ \u3000]?{_ODD_BRACKET})[ \u3000]?(?=[A-Za-z0-9])"
 )
-_HEX_TAIL = re.compile(r"(?<![0-9A-Za-z_])[0-9A-Fa-f]+[ \t]*\Z")
-_HEX_HEAD = re.compile(r"[ \t]*([0-9A-Fa-f]+)(?![0-9A-Za-z_])")
-_NAME_CUT_TAIL = re.compile(r"(?<![A-Za-z0-9.\-])[A-Za-z0-9][A-Za-z0-9.\-]*[.\-][ \t]*\Z")
-_NAME_CUT_HEAD = re.compile(r"[ \t]*[.\-][A-Za-z0-9]")
-_SCHEME_START = re.compile(r"[ \t]*(?:https?|hxxps?|ftp|fxp)://", re.IGNORECASE)
+# Line ends and starts are found past any white space, the no-break spaces that pypdf gives included.
+_HEX_TAIL = re.compile(r"(?<![0-9A-Za-z_])[0-9A-Fa-f]+\s*\Z")
+_HEX_HEAD = re.compile(r"\s*([0-9A-Fa-f]+)(?![0-9A-Za-z_])")
+_NAME_CUT_TAIL = re.compile(r"(?<![A-Za-z0-9.\-])[A-Za-z0-9][A-Za-z0-9.\-]*[.\-]\s*\Z")
+_NAME_CUT_HEAD = re.compile(r"\s*[.\-][A-Za-z0-9]")
+_SCHEME_START = re.compile(r"\s*(?:https?|hxxps?|ftp|fxp)://", re.IGNORECASE)
 
 
 @cache
@@ -1593,14 +1634,16 @@ def line_values(reading: Reading) -> dict[str, list[dict[str, Any]]]:
             file_names.append({"type": "domain", "value": value, "start": match.start(), "end": match.end()})
             continue
         add("domain", *match.span())
-    covered = [(m["start"], m["end"]) for m in masked]
+    covered = bytearray(len(text) + 1)  # where a masked value was already found
+    for entry in masked:
+        covered[entry["start"] : entry["end"]] = b"\x01" * (entry["end"] - entry["start"])
     for match in _TOKEN.finditer(text):
         token = match.group(0).rstrip(".")
         start, end = match.start(), match.start() + len(token)
         if (
             _MASKED_HOST.search(token)
             and _ENDS_IN_LETTERS.search(token)
-            and not any(s < end and start < e for s, e in covered)
+            and 1 not in covered[start:end]
             and token.rsplit(".", 1)[-1].lower() not in _FILE_EXTENSION_TLDS
         ):
             masked.append({"type": "domain", "value": token.lower(), "start": start, "end": end})
@@ -1608,18 +1651,18 @@ def line_values(reading: Reading) -> dict[str, list[dict[str, Any]]]:
 
 
 def _ends_in_name_character(line: str) -> bool:
-    last = line.rstrip(" \t")[-1:]
+    last = line.rstrip()[-1:]
     return last.isascii() and last.isalnum()
 
 
 def _starts_with_name_character(line: str) -> bool:
-    first = line.lstrip(" \t")[:1]
+    first = line.lstrip()[:1]
     return first.isascii() and first.isalnum()
 
 
 def _hex_tail(line: str) -> str:
     match = _HEX_TAIL.search(line)
-    return match.group(0).rstrip(" \t") if match else ""
+    return match.group(0).rstrip() if match else ""
 
 
 def _hex_head(line: str) -> str:
@@ -1644,17 +1687,20 @@ class _Warnings:
 
 # The kinds of warning, and what each asks the reviewer to check on the rendered page.
 WARNING_KINDS = {
-    "hex-cut": "a hex string cut at the start or end of a line (a hash in a narrow cell, or two halves "
-    "that look like two shorter hashes)",
+    "hex-cut": "hex digits at a line end and the next line's start that make a SHA-1 or SHA-256 together "
+    "(not two MD5s under an MD5 label), a run of lines of 32 hex digits with no MD5 label, or a piece of "
+    "hex digits of the length of no hash at a line end or start",
     "hash-label": "a hash whose length differs from the hash type named in the nearest label above it",
-    "name-cut": "a name that ends at the end of a line with '.' or '-', or a line that starts with '.' or "
-    "'-' after a line that ends in a name: the name may go on in the next line",
+    "name-cut": "a name that ends at the end of a line with '.' or '-' before a line that starts with a "
+    "name character or with '.' or '-', or a line that starts with '.' or '-' after a line that ends in "
+    "a name: the name may go on in the next line",
     "url-cut": "a URL that reaches the end of a line, before a line that does not start with a value: "
     "the URL may go on in the next line",
     "file-extension": "a name whose top-level domain is also a common file extension, left out of the draft",
     "url-unparseable": "a URL without a host that the standard form can read",
     "non-ascii": "a value read from writing with non-ASCII characters (full-width or CJK-bracket "
-    "defanging, Unicode hyphens, soft hyphens or deleted format characters)",
+    "defanging, Unicode hyphens, soft hyphens or deleted format characters), or a URL that stops right "
+    "before non-ASCII letters (a path or query in Chinese may go on)",
     "masked": "a masked value, left out of the draft",
     "own-address": "a value at the report's own address (original_url or final_url): often a page header "
     "printed inside the appendix",
@@ -1687,6 +1733,8 @@ def text_lines(
     its part (``fmt`` between parts), and where it stands in its source (file, PDF page, line on the
     page or in the file)."""
     parts = sorted(parts, key=lambda p: int(p["start"]))
+    part_starts = [int(p["start"]) for p in parts]
+    page_starts = [[int(s) for s in p.get("page_starts", [])] for p in parts]
     lines: list[dict[str, Any]] = []
     position = start
     key: tuple[int, int | None] | None = None
@@ -1694,12 +1742,14 @@ def text_lines(
     while position < end or not lines:
         newline = text.find("\n", position, end)
         stop = end if newline == -1 else newline
-        part_index = next((i for i, p in enumerate(parts) if int(p["start"]) <= position < int(p["end"])), -1)
+        part_index = bisect.bisect_right(part_starts, position) - 1
+        if part_index >= 0 and position >= int(parts[part_index]["end"]):
+            part_index = -1  # between parts
         part = parts[part_index] if part_index >= 0 else {"format": fmt}
         page = None
         base = int(part.get("start", 0))
         if "page_starts" in part:
-            starts = [int(s) for s in part["page_starts"]]
+            starts = page_starts[part_index]
             page = max(bisect.bisect_right(starts, position), 1)
             base = starts[page - 1]
         if key != (part_index, page):
@@ -1753,17 +1803,23 @@ def draft_truth(
         if report.get(key)
     }
     own_hosts.discard("")
+    # The hash type named by the nearest label above each line (None after a label naming several).
+    expected: list[str | None] = []
+    for reading in readings:
+        labels = {
+            _LABEL_TYPES[m.group(1).upper().replace("-", "").replace(" ", "")]
+            for m in _HASH_LABEL.finditer(reading.text)
+        }
+        if labels:
+            expected_hash = labels.pop() if len(labels) == 1 else None
+        expected.append(expected_hash)
     for index, (line, reading, result) in enumerate(zip(lines, readings, results, strict=True)):
         n = line["n"]
         line_entries = []
-        labels = {m.group(1).upper().replace("-", "") for m in _HASH_LABEL.finditer(reading.text)}
-        if labels:
-            types = {"MD5": "md5", "SHA1": "sha1", "SHA256": "sha256"}
-            expected_hash = types[labels.pop()] if len(labels) == 1 else None
         for entry in sorted(result["found"], key=lambda e: int(e["start"])):
             raw_start, raw_end = reading.span(entry["start"], entry["end"])
             writing = visible(reading.raw[raw_start:raw_end])
-            klass = reading.writing_class(entry["start"], entry["end"])
+            klass = reading.writing_class(entry["start"], entry["end"], url=entry["type"] == "url")
             item = {"type": entry["type"], "value": entry["value"], "writing": writing, "class": klass}
             line_entries.append(item)
             occurrences.setdefault((entry["type"], entry["value"]), []).append(
@@ -1787,11 +1843,20 @@ def draft_truth(
                 warnings.add(
                     n, "url-unparseable", f"URL without a host: {entry['value']!r}", [entry["value"]]
                 )
-            if entry["type"] in ("md5", "sha1", "sha256") and expected_hash not in (None, entry["type"]):
+            if entry["type"] in ("md5", "sha1", "sha256") and expected[index] not in (None, entry["type"]):
                 warnings.add(
                     n,
                     "hash-label",
-                    f"{entry['type']} {entry['value']} under a {expected_hash} label",
+                    f"{entry['type']} {entry['value']} under a {expected[index]} label",
+                    [entry["value"]],
+                )
+            following = reading.raw[raw_end : raw_end + 1]
+            if entry["type"] == "url" and following and not following.isascii() and following.isalpha():
+                warnings.add(
+                    n,
+                    "non-ascii",
+                    f"the URL {entry['value']!r} stops at {following!r}: a path or query in non-ASCII "
+                    "letters may go on",
                     [entry["value"]],
                 )
         for entry in result["masked"]:
@@ -1810,7 +1875,7 @@ def draft_truth(
         for match in _UNREAD.finditer(reading.text):
             raw_start, raw_end = reading.span(match.start(), match.end() + 1)
             warnings.add(n, "unread-defang", f"not read: {visible(reading.raw[raw_start:raw_end])!r}")
-        _cut_warnings(warnings, index, lines, readings, results)
+        _cut_warnings(warnings, index, lines, readings, results, expected)
         out_lines.append(
             {
                 "n": n,
@@ -1839,8 +1904,8 @@ def draft_truth(
             continue
         if not pages or pages[-1]["file"] != line["file"]:
             pages.append({"file": line["file"], "format": line["format"], "pages": []})
-        if line["page"] is not None and line["page"] not in pages[-1]["pages"]:
-            pages[-1]["pages"].append(line["page"])
+        if line["page"] is not None and line["page"] not in pages[-1]["pages"][-1:]:
+            pages[-1]["pages"].append(line["page"])  # lines come in page order
     draft: dict[str, Any] = {
         "id": report["id"],
         "text_sha256": text_sha256(text),
@@ -1862,87 +1927,118 @@ def _cut_warnings(
     lines: list[dict[str, Any]],
     readings: list[Reading],
     results: list[dict[str, list[dict[str, Any]]]],
+    expected: list[str | None],
 ) -> None:
-    """Warnings for values that a line break may have cut: hex strings, names and URLs."""
+    """Warnings for values that a line break may have cut: hex strings, names and URLs. Line ends and
+    starts are found past any white space."""
     n = lines[index]["n"]
     text = readings[index].text
     after = readings[index + 1].text if index + 1 < len(lines) else None
-    hashes = [e for e in results[index]["found"] if e["type"] in ("md5", "sha1", "sha256")]
     tail, head = _hex_tail(text), _hex_head(text)
     next_head = _hex_head(after) if after is not None else ""
-    # Not a cut: a list of whole hashes (one per line, of one length), a row of two or more hashes
-    # (a table of hashes), or a next line that goes on after its hex digits (a row of its own).
-    whole_list = (
-        text.strip() == tail
-        and after is not None
-        and after.strip() == next_head
-        and len(tail) == len(next_head)
-        and len(tail) in _HASH_LENGTHS
-    )
-    row_of_hashes = len(hashes) > 1
-    goes_on = after is not None and after.strip() != next_head
-    if len(tail) >= 8 and len(next_head) >= 4 and not (whole_list or row_of_hashes or goes_on):
-        warnings.add(
-            n,
-            "hex-cut",
-            f"the line ends in {len(tail)} hex digits and the next starts with {len(next_head)}: "
-            f"{tail[-12:]} | {next_head[:12]}",
-            [e["value"] for e in hashes if e["end"] >= len(text.rstrip(" \t"))]
-            + [
-                e["value"]
-                for e in results[index + 1]["found"]
-                if e["type"] in ("md5", "sha1", "sha256")
-                and e["start"] <= len(after) - len(after.lstrip(" \t"))
-            ],
-        )
+
+    def hash_values(found: list[dict[str, Any]]) -> list[str]:
+        return [e["value"] for e in found if e["type"] in ("md5", "sha1", "sha256")]
+
+    # Hex digits at a line end and the next line's start that make a SHA-1 or SHA-256 together: a hash
+    # cut in two, unless both pieces are whole MD5s under an MD5 label (a table of MD5s). Lines of
+    # MD5s and nothing else are flagged once per run below.
+    only_hex = text.strip() == tail
+    if (
+        after is not None
+        and len(tail) >= 4
+        and len(next_head) >= 4
+        and len(tail) + len(next_head) in (40, 64)
+    ):
+        whole_md5s = len(tail) == len(next_head) == 32
+        confirmed = whole_md5s and expected[index] == "md5"
+        in_run = whole_md5s and only_hex and after.strip() == next_head
+        if not confirmed and not in_run:
+            lead = len(after) - len(after.lstrip())
+            warnings.add(
+                n,
+                "hex-cut",
+                f"the line ends in {len(tail)} hex digits and the next starts with {len(next_head)}, "
+                f"{len(tail) + len(next_head)} together: {tail[-12:]} | {next_head[:12]}",
+                [
+                    v
+                    for e in results[index]["found"]
+                    if e["end"] >= len(text.rstrip())
+                    for v in hash_values([e])
+                ]
+                + [v for e in results[index + 1]["found"] if e["start"] <= lead for v in hash_values([e])],
+            )
+    # A run of lines that are each one 32-digit hex string, with no MD5 label in effect: two of them
+    # may be the halves of one SHA-256.
+    if (
+        only_hex
+        and len(tail) == 32
+        and expected[index] != "md5"
+        and (index == 0 or not _md5_line(readings[index - 1].text))
+    ):
+        run = index
+        while run + 1 < len(lines) and _md5_line(readings[run + 1].text):
+            run += 1
+        if run > index:
+            warnings.add(
+                n,
+                "hex-cut",
+                f"{run - index + 1} lines of 32 hex digits each, with no MD5 label above them: two of them "
+                "may be the halves of one SHA-256",
+                [v for i in range(index, run + 1) for v in hash_values(results[i]["found"])],
+            )
     pieces = (
-        [(tail, "the line is")]
-        if text.strip() == tail
-        else [(tail, "the line ends in"), (head, "the line starts with")]
+        [(tail, "the line is")] if only_hex else [(tail, "the line ends in"), (head, "the line starts with")]
     )
     for piece, where in pieces:
         if len(piece) >= 16 and len(piece) not in _HASH_LENGTHS:
             warnings.add(
                 n, "hex-cut", f"{where} {len(piece)} hex digits, the length of no hash: {piece[:12]}..."
             )
-    if after is not None:
-        cut = _NAME_CUT_TAIL.search(text)
-        if cut and _starts_with_name_character(after):
-            first = after.strip().split()[0] if after.strip() else ""
-            starting = [
-                e["value"]
-                for e in results[index + 1]["found"]
-                if e["start"] <= len(after) - len(after.lstrip(" \t"))
-            ]
-            warnings.add(
-                n,
-                "name-cut",
-                f"the line ends in {cut.group(0).strip()!r} and the next starts with {first!r}",
-                starting,
-            )
-        if _NAME_CUT_HEAD.match(after) and _ends_in_name_character(text):
-            warnings.add(
-                n,
-                "name-cut",
-                f"the next line starts with {after.strip()[:20]!r} after a line that ends in a name",
-            )
-        urls = [e for e in results[index]["found"] if e["type"] == "url"]
-        lead = len(after) - len(after.lstrip(" \t"))
-        next_values = [e for e in results[index + 1]["found"] if e["start"] == lead]
-        if (
-            urls
-            and urls[-1]["end"] >= len(text.rstrip(" \t.,;:!?"))
-            and re.match(r"[ \t]*[\x21-\x7e]", after)
-            and not next_values
-            and not _SCHEME_START.match(after)
-        ):
-            warnings.add(
-                n,
-                "url-cut",
-                f"the URL {urls[-1]['value']!r} reaches the end of the line; the next starts with "
-                f"{after.strip()[:20]!r}",
-                [urls[-1]["value"]],
-            )
+    if after is None:
+        return
+    lead = len(after) - len(after.lstrip())
+    starting = [e["value"] for e in results[index + 1]["found"] if e["start"] <= lead]
+    cut = _NAME_CUT_TAIL.search(text)
+    if cut and (_starts_with_name_character(after) or _NAME_CUT_HEAD.match(after)):
+        first = after.split()[0] if after.strip() else ""
+        warnings.add(
+            n,
+            "name-cut",
+            f"the line ends in {cut.group(0).strip()!r} and the next starts with {first!r}",
+            starting,
+        )
+    elif _NAME_CUT_HEAD.match(after) and _ends_in_name_character(text):
+        warnings.add(
+            n,
+            "name-cut",
+            f"the next line starts with {after.strip()[:20]!r} after a line that ends in a name",
+        )
+    urls = [e for e in results[index]["found"] if e["type"] == "url"]
+    trimmed = text.rstrip()
+    while trimmed and trimmed[-1] in ".,;:!?":
+        trimmed = trimmed[:-1].rstrip()
+    next_values = [e for e in results[index + 1]["found"] if e["start"] == lead]
+    if (
+        urls
+        and urls[-1]["end"] >= len(trimmed)
+        and re.match(r"\s*[\x21-\x7e]", after)
+        and not next_values
+        and not _SCHEME_START.match(after)
+    ):
+        warnings.add(
+            n,
+            "url-cut",
+            f"the URL {urls[-1]['value']!r} reaches the end of the line; the next starts with "
+            f"{after.strip()[:20]!r}",
+            [urls[-1]["value"]],
+        )
+
+
+def _md5_line(line: str) -> bool:
+    """Whether a line is one 32-digit hex string and nothing else."""
+    stripped = line.strip()
+    return len(stripped) == 32 and _hex_tail(stripped) == stripped
 
 
 # --------------------------------------------------------------------------- ground truth: rendering
@@ -1956,6 +2052,19 @@ def _cut_warnings(
 _SCREENSHOT_WIDTH = 1200
 _SCREENSHOT_TILE = 1600
 _PAGE_URL = "http://report.invalid/page"
+# <meta http-equiv="refresh"> tags, taken out of a web page before it is drawn (with scripts off,
+# one in <noscript> applies too).
+_REFRESH = re.compile(r"<meta\b[^>]{0,2048}?\bhttp-equiv\s*=\s*[\"']?\s*refresh[^>]{0,2048}>", re.IGNORECASE)
+# Appended to a web page before it is drawn, so that the screenshots show what HtmlText reads: hidden
+# content (hidden attributes, display:none, closed <details>) and content that scrolls inside a box,
+# laid out in the page. Elements HtmlText drops (script, style, template, head) stay hidden.
+_REVEAL = (
+    "\n<style>html,body{height:auto!important;max-height:none!important;overflow:visible!important}"
+    "body *{display:revert!important;visibility:visible!important;content-visibility:visible!important;"
+    "position:static!important;max-height:none!important;overflow:visible!important}"
+    "body [hidden]:not(script,style,template){display:block!important}"
+    "details::details-content{display:block!important;content-visibility:visible!important}</style>"
+)
 _WHATWG_LABELS = {"cp950": "big5", "gb18030": "gb18030", "cp1252": "windows-1252"}
 
 
@@ -2073,6 +2182,7 @@ class _Browser:
             self.process.wait(10)
         except (OSError, subprocess.TimeoutExpired):
             self.process.kill()
+            self.process.wait()
         finally:
             os.close(self._out)
             os.close(self._in)
@@ -2099,7 +2209,10 @@ def screenshots(browser_path: str, body: bytes, content_type: str, prefix: Path)
                         {
                             "requestId": params["requestId"],
                             "responseCode": 200,
-                            "responseHeaders": [{"name": "Content-Type", "value": content_type}],
+                            "responseHeaders": [
+                                {"name": "Content-Type", "value": content_type},
+                                {"name": "X-Content-Type-Options", "value": "nosniff"},
+                            ],
                             "body": base64.b64encode(body).decode("ascii"),
                         },
                         session,
@@ -2107,7 +2220,7 @@ def screenshots(browser_path: str, body: bytes, content_type: str, prefix: Path)
                 else:
                     browser.post(
                         "Fetch.failRequest",
-                        {"requestId": params["requestId"], "errorReason": "BlockedByClient"},
+                        {"requestId": params["requestId"], "errorReason": "Aborted"},
                         session,
                     )
 
@@ -2122,6 +2235,7 @@ def screenshots(browser_path: str, body: bytes, content_type: str, prefix: Path)
             browser.send("Page.enable", {}, session)
             browser.post("Page.navigate", {"url": _PAGE_URL}, session)
             browser.wait(lambda m: m.get("method") == "Page.loadEventFired" and m.get("sessionId") == session)
+            on_page(browser, session)
             size = browser.send("Page.getLayoutMetrics", {}, session)["cssContentSize"]
             width, height = max(int(size["width"]), 1), max(int(size["height"]), 1)
             paths = []
@@ -2141,9 +2255,17 @@ def screenshots(browser_path: str, body: bytes, content_type: str, prefix: Path)
                 path = prefix.with_name(f"{prefix.name}-screenshot-{len(paths) + 1:03d}.png")
                 path.write_bytes(base64.b64decode(shot["data"]))
                 paths.append(path)
+            on_page(browser, session)
             return paths
         finally:
             browser.close()
+
+
+def on_page(browser: _Browser, session: str) -> None:
+    """Stop unless the browser still shows the page (a meta refresh may try to leave it)."""
+    frame = browser.send("Page.getFrameTree", {}, session)["frameTree"]["frame"]
+    if frame.get("url") != _PAGE_URL or frame.get("unreachableUrl"):
+        raise SystemExit(f"the page was replaced by {frame.get('unreachableUrl') or frame.get('url')!r}")
 
 
 def _source_entry(name: str, report: dict[str, Any], file: str) -> tuple[Path, dict[str, Any]]:
@@ -2186,13 +2308,18 @@ def render_images(
             continue
         if part["format"] == "html":
             page_text = decode_html(path.read_bytes(), entry.get("http_charset"), charset_override(entry))[0]
-            body, content_type = page_text.encode("utf-8"), "text/html; charset=utf-8"
+            page_text = _REFRESH.sub("", page_text)  # a page that would leave itself stays drawn
+            body, content_type = (page_text + _REVEAL).encode("utf-8"), "text/html; charset=utf-8"
         else:
             body, content_type = (
                 convert(path, "text", None, charset_override(entry))[0].encode("utf-8"),
                 ("text/plain; charset=utf-8"),
             )
-        for shot in screenshots(tools["chromium_path"], body, content_type, folder / str(number)):
+        try:
+            shots = screenshots(tools["chromium_path"], body, content_type, folder / str(number))
+        except SystemExit as exc:
+            raise SystemExit(f"{part['file']}: {exc}") from None
+        for shot in shots:
             index = int(shot.stem.rsplit("-", 1)[1])
             images.append({"label": f"{part['file']} screenshot {index}", "file": shot.name})
     return images
@@ -2204,8 +2331,9 @@ def render_images(
 # appendix is on, and for each web page or text attachment the screenshots that show the appendix),
 # whether every line was checked, a resolution for every warning ("confirmed": the draft is right
 # there; "corrected": an entry below fixes it and names the warning), and the corrections. Values are
-# in standard form (normalise). An added value or an ambiguous entry records its writing as the page
-# shows it, its writing class and where it stands.
+# in standard form (normalise) and of the shape of their type. An added value records its writing as
+# the page shows it, its writing class and where it stands; an ambiguous entry its writing and where
+# it stands. A draft value whose writing, class or place is wrong is removed and added again.
 _TEMPLATE_INFO = {"id", "images", "help"}
 _WARNING_FIELDS = ({"kind", "line", "message", "resolution", "note"}, set[str]())
 _ADD_FIELDS = ({"type", "value", "writing", "class", "location", "reason"}, {"warnings"})
@@ -2220,7 +2348,8 @@ REVIEW_HELP = (
     "fixes it and lists the warning in its 'warnings'), with a note. Corrections: add {type, value, "
     "writing, class, location, reason}; remove {type, value, reason}; ambiguous {type, readings (two or "
     "more), writing, location, reason, from_draft (whether a reading is a draft value)}. Values in "
-    "standard form; class is plain, ascii-defang or fullwidth-cjk-defang. Then run `review`."
+    "standard form; class is plain, ascii-defang or fullwidth-cjk-defang. To correct a draft value's "
+    "writing, class or place, remove it and add it again. Then run `review`."
 )
 
 
@@ -2240,8 +2369,32 @@ def draft_masked(draft: dict[str, Any]) -> dict[str, list[str]]:
     return {kind: sorted({e["value"] for e in entries}) for kind, entries in sorted(draft["masked"].items())}
 
 
+# The shape of a value of each type, in standard form.
+_TYPE_SHAPES = {
+    "md5": re.compile("[0-9a-f]{32}"),
+    "sha1": re.compile("[0-9a-f]{40}"),
+    "sha256": re.compile("[0-9a-f]{64}"),
+    "ipv4": re.compile(r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}"),
+    "ipv6": re.compile("[0-9a-f.]*:[0-9a-f:.]*"),
+    "domain": re.compile(r"[a-z0-9_\-]+(?:\.[a-z0-9_\-]+)*\.(?:[a-z]{2,63}|xn--[a-z0-9\-]{1,59})"),
+    "email": re.compile(r"[^@\s]+@[a-z0-9\-]+(?:\.[a-z0-9\-]+)*\.[a-z0-9\-]{2,63}"),
+    "url": re.compile(r"[a-z][a-z0-9+.\-]*://\S+"),
+}
+
+
 def _is_normalised(kind: str, value: Any) -> bool:
     return isinstance(value, str) and kind in TYPES and normalise(kind, value) == value
+
+
+def _value_problem(kind: str, value: Any) -> str | None:
+    """Why ``value`` is not a value of type ``kind`` in standard form, or None."""
+    if not isinstance(value, str):
+        return "not a string"
+    if normalise(kind, value) != value:
+        return f"{value!r} is not in standard form; write {normalise(kind, value)!r}"
+    if not _TYPE_SHAPES[kind].fullmatch(value):
+        return f"{value!r} is not a {kind}"
+    return None
 
 
 def _change_problems(where: str, changes: Any, fields: tuple[set[str], set[str]]) -> list[str]:
@@ -2264,20 +2417,15 @@ def _change_problems(where: str, changes: Any, fields: tuple[set[str], set[str]]
             problems.append(f"{at}: class must be one of {', '.join(CLASSES)}")
         if "warnings" in change and not _strings(change["warnings"]):
             problems.append(f"{at}.warnings: not a list of warning ids")
-        if "value" in fields[0] and not _is_normalised(kind, change.get("value")):
-            problems.append(
-                f"{at}: {change.get('value')!r} is not in standard form; write "
-                f"{normalise(kind, str(change.get('value')))!r}"
-            )
+        if "value" in fields[0] and (problem := _value_problem(kind, change.get("value"))):
+            problems.append(f"{at}: {problem}")
         if "readings" in fields[0]:
             readings = change.get("readings")
             if not (_strings(readings) and len(set(readings)) == len(readings) > 1):
                 problems.append(f"{at}.readings: not a list of two or more different readings")
             else:
                 problems += [
-                    f"{at}: reading {r!r} is not in standard form; write {normalise(kind, r)!r}"
-                    for r in readings
-                    if not _is_normalised(kind, r)
+                    f"{at}: reading {problem}" for r in readings if (problem := _value_problem(kind, r))
                 ]
             if not isinstance(change.get("from_draft"), bool):
                 problems.append(f"{at}.from_draft: true or false")
@@ -2337,8 +2485,8 @@ def _review_shape_problems(where: str, review: Any) -> list[str]:
             at = f"{where}.values.{kind}[{index}]"
             problems += _fields(at, entry, _VALUE_FIELDS)
             if isinstance(entry, dict):
-                if not _is_normalised(kind, entry.get("value")):
-                    problems.append(f"{at}: not in standard form")
+                if problem := _value_problem(kind, entry.get("value")):
+                    problems.append(f"{at}: not in standard form or not a {kind}: {problem}")
                 if entry.get("class") not in CLASSES:
                     problems.append(f"{at}: class must be one of {', '.join(CLASSES)}")
     masked = review.get("masked")
@@ -2397,10 +2545,20 @@ def review_problems(
             f"markers, the list of top-level domains or the rules now give draft {draft['sha256'][:12]}; run "
             "`truth` and review the new draft"
         ]
-    warning_ids = [w["id"] for w in draft["warnings"]]
-    problems += [f"warning {w} has no resolution" for w in warning_ids if w not in review["warnings"]]
+    drafted_warnings = {w["id"]: w for w in draft["warnings"]}
+    for warning_id, warning in drafted_warnings.items():
+        resolved = review["warnings"].get(warning_id)
+        if resolved is None:
+            problems.append(f"warning {warning_id} has no resolution")
+        elif [resolved[k] for k in ("kind", "line", "message")] != [
+            warning[k] for k in ("kind", "line", "message")
+        ]:
+            problems.append(
+                f"warning {warning_id}: the resolution is for another warning ({resolved['kind']}, line "
+                f"{resolved['line']}) than the draft's ({warning['kind']}, line {warning['line']})"
+            )
     problems += [
-        f"warning {w} is not a warning of the draft" for w in review["warnings"] if w not in warning_ids
+        f"warning {w} is not a warning of the draft" for w in review["warnings"] if w not in drafted_warnings
     ]
     in_draft = {kind: {e["value"] for e in entries} for kind, entries in draft["values"].items()}
     removed: set[tuple[str, str]] = set()
@@ -2462,29 +2620,60 @@ def review_problems(
             problems.append("values: not the draft's values with the corrections; run `review` again")
         if review["masked"] != draft_masked(draft):
             problems.append("masked: not the draft's masked values; run `review` again")
+    hosts = {url_host(e["value"]): e["value"] for e in review["values"].get("url", [])}
+    problems += [
+        f"values: the URL {url!r} has no host; correct it or remove it"
+        for host, url in hosts.items()
+        if not host
+    ]
+    problems += [
+        f"remove: domain {e['value']!r} is the host of the URL {hosts[e['value']]!r}, which stays in the "
+        "truth and makes it an indicator again; remove or correct the URL too, or keep the name"
+        for e in review["remove"]
+        if e["type"] == "domain" and e["value"] in hosts
+    ]
     return problems
 
 
 def write_template(
     name: str, report: dict[str, Any], draft: dict[str, Any], images: list[dict[str, str]]
 ) -> str:
-    """Write the review template unless one for this draft exists; an older one is kept under another
-    name. Returns what was done."""
+    """Write the review template unless one for this draft exists. A template of another draft is
+    kept under a name of its own (never over another file), and one kept earlier for this draft is
+    moved back. Returns what was done."""
     path = template_path(name, report)
+    labels = [image["label"] for image in images]
+    note = ""
     if path.exists():
         old = json.loads(path.read_text(encoding="utf-8"))
         if old.get("draft_sha256") == draft["sha256"]:
+            if labels and old.get("images") != labels:
+                old["images"] = labels
+                path.write_text(dump_json(old), "utf-8")
+                return f"kept {path.name} (made for this draft), with the list of images drawn now"
             return f"kept {path.name} (made for this draft)"
-        kept = path.with_name(f"{report['id']}.review.{str(old.get('draft_sha256', 'unknown'))[:12]}.json")
+        stem = f"{report['id']}.review.{str(old.get('draft_sha256', 'unknown'))[:12]}"
+        kept = path.with_name(f"{stem}.json")
+        number = 1
+        while kept.exists():
+            number += 1
+            kept = path.with_name(f"{stem}-{number}.json")
         path.replace(kept)
-        note = f"moved the template of an older draft to {kept.name}; "
-    else:
-        note = ""
+        note = f"moved the template of another draft to {kept.name}; "
+    earlier = sorted(path.parent.glob(f"{report['id']}.review.{draft['sha256'][:12]}*.json"))
+    for candidate in earlier:
+        kept_template = json.loads(candidate.read_text(encoding="utf-8"))
+        if kept_template.get("draft_sha256") == draft["sha256"]:
+            if labels:
+                kept_template["images"] = labels
+            path.write_text(dump_json(kept_template), "utf-8")
+            candidate.unlink()
+            return f"{note}moved {candidate.name}, kept earlier for this draft, back to {path.name}"
     template = {
         "id": report["id"],
         "help": REVIEW_HELP,
         "draft_sha256": draft["sha256"],
-        "images": [image["label"] for image in images],
+        "images": labels,
         "reviewed_by": "",
         "reviewed_at": "",
         "pages_checked": [],
@@ -2557,17 +2746,27 @@ Check every line against the images; fill in {e(report["id"])}.review.json.</p>
 def command_truth(name: str) -> None:
     render = "--no-render" not in sys.argv
     tools = render_tools() if render else None
+    failed = []
     for report in manifest(name):
         text, conversion = load_text(name, report)
         draft = draft_truth(text, report, conversion["parts"])
         folder = truth_folder(name, report)
         folder.mkdir(parents=True, exist_ok=True)
         draft_path(name, report).write_text(dump_json(draft), "utf-8")
+        # The record of the images is written only once they are all drawn, so that a review is never
+        # checked against images that a failed or skipped drawing left out.
+        (folder / "images.json").unlink(missing_ok=True)
         images: list[dict[str, str]] = []
         if tools is not None:
-            images = render_images(name, report, draft, folder, tools)
-            record = {"draft_sha256": draft["sha256"], "tools": tools, "images": images}
-            (folder / "images.json").write_text(dump_json(record), "utf-8")
+            try:
+                images = render_images(name, report, draft, folder, tools)
+            except (SystemExit, subprocess.SubprocessError, OSError) as exc:
+                failed.append(f"{report['id']}: {exc}")
+                print(f"{report['id']}: DRAWING THE PAGES FAILED: {exc}")
+                images = []
+            else:
+                record = {"draft_sha256": draft["sha256"], "tools": tools, "images": images}
+                (folder / "images.json").write_text(dump_json(record), "utf-8")
         write_review_page(folder.with_name(f"{report['id']}.review.html"), report, draft, images)
         done = write_template(name, report, draft, images)
         counts = {kind: len(entries) for kind, entries in draft["values"].items()}
@@ -2577,14 +2776,20 @@ def command_truth(name: str) -> None:
         print(f"{report['id']}: draft {draft['sha256'][:12]}, {len(draft['lines'])} lines, values {counts}")
         print(f"    warnings: {kinds or 'none'}")
         print(f"    {len(images)} images; {done}")
+    if failed:
+        raise SystemExit("the pages of these reports could not be drawn:\n    " + "\n    ".join(failed))
 
 
 def _images_drawn(name: str, report: dict[str, Any], draft: dict[str, Any]) -> list[str] | None:
-    record_path = truth_folder(name, report) / "images.json"
+    """The labels of the images drawn for this draft, or None unless every one of them is there."""
+    folder = truth_folder(name, report)
+    record_path = folder / "images.json"
     if not record_path.exists():
         return None
     record = json.loads(record_path.read_text(encoding="utf-8"))
     if record.get("draft_sha256") != draft["sha256"]:
+        return None
+    if not all((folder / image["file"]).exists() for image in record["images"]):
         return None
     return [image["label"] for image in record["images"]]
 
@@ -2674,14 +2879,20 @@ def load_reviewed_truth(
         for entry in entries:
             truth[kind].add(entry["value"])
             classes[kind][entry["value"]] = entry["class"]
-    # A URL in the appendix makes its host an indicator too (the tools get the same treatment); the
-    # host has the plainest class of its URLs and its own entry.
-    for url in sorted(truth["url"]):
-        host = url_host(url)
-        if host and not is_ip(host):
+    # A URL in the appendix makes its host an indicator too (the tools get the same treatment). The
+    # host's class is how the host itself is written: the plainest of its own entry and its writing
+    # in each URL. An address that is a URL's host and a value of its own is classed the same way.
+    for entry in review["values"].get("url", []):
+        host = url_host(entry["value"])
+        if not host:
+            continue
+        kind = "domain" if not is_ip(host) else "ipv6" if ":" in host else "ipv4"
+        if kind == "domain":
             truth["domain"].add(host)
-            known = classes["domain"].get(host, CLASSES[-1])
-            classes["domain"][host] = min(known, classes["url"][url], key=CLASSES.index)
+        elif host not in truth[kind]:
+            continue
+        known = classes[kind].get(host, CLASSES[-1])
+        classes[kind][host] = min(known, host_class(entry["writing"]), key=CLASSES.index)
     ambiguous: dict[str, set[str]] = {}
     for entry in review["ambiguous"]:
         ambiguous.setdefault(entry["type"], set()).update(entry["readings"])
@@ -2870,6 +3081,21 @@ def command_run(name: str, label: str) -> None:
     for report in reports:
         text, conversion = load_text(name, report)
         prepared.append((report, text, conversion, load_reviewed_truth(name, report, text, conversion)))
+    # The ground truth is fixed before any tool runs: results made with another review of a report
+    # mean that the review changed after the tools' outputs were seen.
+    reviews = {report["id"]: truth["review_sha256"] for report, _, _, truth in prepared}
+    for made in sorted(HERE.glob(f"results-{name}-*.json")):
+        earlier = json.loads(made.read_text(encoding="utf-8"))
+        changed = [
+            entry["id"]
+            for entry in earlier.get("reports", [])
+            if entry.get("review_sha256") not in (None, reviews.get(entry["id"]))
+        ]
+        if changed:
+            raise SystemExit(
+                f"{made.name} was made with another review of {', '.join(changed)}; the ground truth "
+                "cannot change after the tools have run"
+            )
     commit = git_commit()
     if "+" in commit:
         print(f"WARNING: {commit.split('+', 1)[1]}")
@@ -3016,14 +3242,14 @@ def found(truth: Values, out: Values) -> dict[str, set[str]]:
         if expected:
             hits[kind] = expected & (with_url_hosts(out) if kind == "domain" else set(out[kind]))
     if truth.get("url"):
-        hits["url-host"] = {url_host(u) for u in truth["url"]} & {url_host(u) for u in out["url"]}
+        hits["url-host"] = ({url_host(u) for u in truth["url"]} & {url_host(u) for u in out["url"]}) - {""}
     return hits
 
 
 def expected_counts(truth: Values) -> dict[str, int]:
     counts = {kind: len(truth[kind]) for kind in TYPES if truth.get(kind)}
     if truth.get("url"):
-        counts["url-host"] = len({url_host(u) for u in truth["url"]})
+        counts["url-host"] = len({url_host(u) for u in truth["url"]} - {""})
     return counts
 
 
@@ -3073,6 +3299,7 @@ def totals_of(reports: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
             for category, value in report["precision"][tool].items():
                 total["precision"][category] += value
             total["errors"] += int(tool in report.get("errors", {}))
+            total["unjudged"] = total.get("unjudged", 0) + report.get("unjudged_by_tool", {}).get(tool, 0)
     for total in totals.values():
         p = total["precision"]
         n = p["truth"] + p["a"] + p["b"] + p["c"]
@@ -3103,8 +3330,8 @@ def print_totals(totals: dict[str, dict[str, Any]], status: str) -> None:
 
 
 def _scored_truth(name: str, report: dict[str, Any], entry: dict[str, Any]) -> dict[str, Any]:
-    """The reviewed ground truth of a report in the results; stop if the text, the draft or the
-    review changed since `run`."""
+    """The reviewed ground truth of a report in the results (with its text and conversion record);
+    stop if the text, the draft or the review changed since `run`."""
     text, conversion = load_text(name, report)
     truth = load_reviewed_truth(name, report, text, conversion)
     if (entry["text_sha256"], entry.get("draft_sha256"), entry.get("review_sha256")) != (
@@ -3113,7 +3340,7 @@ def _scored_truth(name: str, report: dict[str, Any], entry: dict[str, Any]) -> d
         truth["review_sha256"],
     ):
         raise SystemExit(f"{report['id']}: the text, the draft or the review changed since `run`; run again")
-    return truth
+    return {**truth, "text": text, "conversion": conversion}
 
 
 def _load_results(name: str, label: str) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
@@ -3139,6 +3366,7 @@ def command_score(name: str, label: str) -> None:
         key = f"{name}/{report['id']}"
         report["recall"], report["recall_by_class"], report["precision"] = {}, {}, {}
         hits_by_tool = {}
+        report["unjudged_by_tool"] = {}
         for tool, out in report["outputs"].items():
             hits = hits_by_tool[tool] = found(truth, out)
             report["recall"][tool] = {k: [len(hits[k]), n] for k, n in expected_counts(truth).items()}
@@ -3154,17 +3382,24 @@ def command_score(name: str, label: str) -> None:
                 for value in out[kind]:
                     category = classify(kind, value, truth, data["ambiguous"], judgements.get(key, {}))
                     if category is None:
-                        unjudged.setdefault(key, {}).setdefault(kind, []).append(value)
+                        if value not in unjudged.setdefault(key, {}).setdefault(kind, []):
+                            unjudged[key][kind].append(value)
+                        report["unjudged_by_tool"][tool] = report["unjudged_by_tool"].get(tool, 0) + 1
                     else:
                         counts[category] += 1
             report["precision"][tool] = counts
-        dropped = {
-            kind: sorted(hits_by_tool["ttprism-raw"][kind] - hits_by_tool["ttprism-default"][kind])
-            for kind in hits_by_tool["ttprism-raw"]
-        }
-        report["lost_by_default_filtering"] = {k: v for k, v in dropped.items() if v}
-        if report["lost_by_default_filtering"]:
-            lost[report["id"]] = report["lost_by_default_filtering"]
+        # What default filtering lost: comparable only when both TTPrism settings ran.
+        if report.get("errors", {}).keys() & {"ttprism-raw", "ttprism-default"}:
+            report["lost_by_default_filtering"] = "not comparable: a TTPrism setting failed on this report"
+        else:
+            dropped = {
+                kind: sorted(hits_by_tool["ttprism-raw"][kind] - hits_by_tool["ttprism-default"][kind])
+                for kind in hits_by_tool["ttprism-raw"]
+            }
+            report["lost_by_default_filtering"] = {k: v for k, v in dropped.items() if v}
+            if report["lost_by_default_filtering"]:
+                lost[report["id"]] = report["lost_by_default_filtering"]
+        report["writing"] = _writing_use(data, report.get("format", "pdf"))
     count = len({(key, kind, v) for key, kinds in unjudged.items() for kind, vs in kinds.items() for v in vs})
     status = "final" if not count else f"provisional: {count} extracted values not judged yet"
     formats = sorted({report.get("format", "pdf") for report in results["reports"]})
@@ -3174,10 +3409,11 @@ def command_score(name: str, label: str) -> None:
     results["totals_by_format"] = {
         fmt: totals_of([r for r in results["reports"] if r.get("format", "pdf") == fmt]) for fmt in formats
     }
-    using = [
-        r["id"] for r in results["reports"] if truths[r["id"]] and _class_counts(truths[r["id"]])[CLASSES[2]]
-    ]
-    results["reports_with_fullwidth_cjk_values"] = using
+    for totals in (results["totals"], *results["totals_by_format"].values()):
+        for total in totals.values():
+            total["status"] = status
+    using = [r["id"] for r in results["reports"] if r["writing"]["uses_fullwidth_cjk"]]
+    results["reports_using_fullwidth_cjk"] = using
     results["lost_by_default_filtering"] = lost
     results["unjudged"] = unjudged
     results_path(name, label).write_text(dump_json(results) + "\n", encoding="utf-8")
@@ -3194,11 +3430,27 @@ def command_score(name: str, label: str) -> None:
             print(f"{report['id']}: {tool} failed: {error}")
     print(f"lost by default filtering: {lost}")
     print(
-        f"reports with ground-truth values written with full-width or CJK-bracket defanging: "
+        f"reports that write indicators with full-width or CJK-bracket defanging: "
         f"{len(using)} of {len(results['reports'])} {using}"
     )
     if count:
         print(f"PROVISIONAL: {count} extracted values still need a judgement (`judge {name} {label}`)")
+
+
+def _writing_use(truth: dict[str, Any], fmt: str) -> dict[str, Any]:
+    """Whether a report writes indicators with full-width or CJK-bracket defanging: the defang
+    statistic counts such a writing inside a value anywhere in its text, or a reviewed ground-truth
+    value is written only so (in a form the draft rules do not read, added by the reviewer)."""
+    text = truth["text"]
+    spans = value_spans(text, 0, len(text), truth["conversion"]["parts"], fmt)
+    counts = _style_counts(defang_occurrences(text), spans)
+    in_values = sum(counts[style] for style in DEFANG_STYLES["fullwidth-cjk"])
+    in_truth = _class_counts(truth)[CLASSES[2]]
+    return {
+        "fullwidth_cjk_in_values": in_values,
+        "fullwidth_cjk_truth_values": in_truth,
+        "uses_fullwidth_cjk": bool(in_values or in_truth),
+    }
 
 
 # --------------------------------------------------------------------------- blinded judging
@@ -3210,7 +3462,11 @@ def judging_path(name: str, label: str) -> Path:
 
 def _contexts(text: str, values: set[tuple[str, str]]) -> dict[tuple[str, str], list[str]]:
     """Up to three lines of the text in which each value occurs (as the line rules read them)."""
-    readings = [(line, read_line(line, "pdf").text.lower()) for line in text.split("\n")]
+    # Defanged schemes are read as normalise_url reads them, so that a URL written hxxp:// is found.
+    readings = [
+        (line, re.sub("fxp(?=:)", "ftp", read_line(line, "pdf").text.lower().replace("hxxp", "http")))
+        for line in text.split("\n")
+    ]
     contexts: dict[tuple[str, str], list[str]] = {key: [] for key in values}
     for key in values:
         needle = key[1].lower()
@@ -3222,21 +3478,38 @@ def _contexts(text: str, values: set[tuple[str, str]]) -> dict[tuple[str, str], 
     return contexts
 
 
+def _outside_truth(
+    name: str, results: dict[str, Any], truths: dict[str, dict[str, Any]], judgements: dict[str, Any]
+) -> set[tuple[str, str, str]]:
+    """(report, type, value) of every extracted value that needs a judgement: not in the ground
+    truth, not masked or ambiguous, and not judged in ``judgements``."""
+    items: set[tuple[str, str, str]] = set()
+    for report in results["reports"]:
+        truth = truths[report["id"]]
+        judged = judgements.get(f"{name}/{report['id']}", {})
+        for out in report["outputs"].values():
+            for kind in TYPES:
+                for value in out[kind]:
+                    if classify(kind, value, truth["truth"], truth["ambiguous"], judged) is None:
+                        items.add((report["id"], kind, value))
+    return items
+
+
 def command_judge(name: str, label: str) -> None:
     """Write a blinded sheet of the extracted values outside the ground truth (all tools together,
     without tool names, in a shuffled order), or with --import take the filled-in sheet into
     judgements.json."""
     results, truths = _load_results(name, label)
     path = judging_path(name, label)
-    # What `run` found (not what `score` adds to the file): the sheet is made from it.
-    outputs_hash = object_sha256(
-        {"meta": results["meta"], "outputs": [r["outputs"] for r in results["reports"]]}
-    )
+    # What the tools found (not what `score` adds to the file, nor the date of the run): the sheet is
+    # made from it.
+    outputs_hash = object_sha256([[r["id"], r["outputs"]] for r in results["reports"]])
     judgements, _ = load_judgements()
     if "--import" in sys.argv:
         sheet = json.loads(path.read_text(encoding="utf-8"))
         if sheet.get("outputs_sha256") != outputs_hash:
             raise SystemExit("the tool outputs changed since the sheet was written; write it again")
+        on_sheet = _outside_truth(name, results, truths, {})
         data = (
             json.loads(JUDGEMENTS.read_text(encoding="utf-8"))
             if JUDGEMENTS.exists()
@@ -3256,6 +3529,9 @@ def command_judge(name: str, label: str) -> None:
             category, reason = item.get("category", ""), item.get("reason", "")
             if not category:
                 continue
+            if (item.get("report"), item.get("type"), item.get("value")) not in on_sheet:
+                problems.append(f"item {item['n']}: not a value the tools found outside the ground truth")
+                continue
             if category not in CATEGORIES or not (
                 isinstance(reason, str) and reason.strip() and "\n" not in reason
             ):
@@ -3274,15 +3550,22 @@ def command_judge(name: str, label: str) -> None:
         left = sum(1 for item in sheet["items"] if not item.get("category"))
         print(f"took {taken} judgements into {JUDGEMENTS.name}; {left} items on the sheet are not judged yet")
         return
-    items: set[tuple[str, str, str]] = set()
-    for report in results["reports"]:
-        truth = truths[report["id"]]
-        judged = judgements.get(f"{name}/{report['id']}", {})
-        for out in report["outputs"].values():
-            for kind in TYPES:
-                for value in out[kind]:
-                    if classify(kind, value, truth["truth"], truth["ambiguous"], judged) is None:
-                        items.add((report["id"], kind, value))
+    if path.exists():
+        # A filled-in sheet is not written over before its judgements are taken.
+        old_sheet = json.loads(path.read_text(encoding="utf-8"))
+        pending = [
+            item["n"]
+            for item in old_sheet.get("items", [])
+            if item.get("category")
+            and judgements.get(f"{name}/{item['report']}", {}).get(item["type"], {}).get(item["value"])
+            != [item.get("category"), item.get("reason")]
+        ]
+        if pending:
+            raise SystemExit(
+                f"{path} has {len(pending)} judged items not yet in {JUDGEMENTS.name}; take them with "
+                "`judge --import` first, or move the sheet away"
+            )
+    items = _outside_truth(name, results, truths, judgements)
     by_id = {report["id"]: report for report in manifest(name)}
     contexts: dict[tuple[str, str, str], list[str]] = {}
     for report_id in sorted({item[0] for item in items}):
@@ -3321,9 +3604,10 @@ def command_judge(name: str, label: str) -> None:
 
 # How often each writing occurs, in the whole text and in the appendix of each report, counted with
 # the forms ascii_reading reads ("all"), and again only where the writing is part of a value the line
-# rules find ("in values"): full-width digits and "１．" numbering are common in Chinese body text, so
-# only the second count says whether indicators are written that way. A form with any non-ASCII
-# character is full-width or CJK.
+# rules find ("in values"): full-width digits, "１．" numbering and the full-width colon are common in
+# Chinese body text, so only the second count says whether indicators are written that way. The
+# styles cover exactly what ascii_reading reads, and a form is full-width or CJK when it has a
+# non-ASCII character other than the spaces around it, as for the writing classes.
 DEFANG_STYLES = {
     "ascii": ("[.]", "(.)", "[dot]", "hxxp", "[:]", "[@]", "[at]", "other ASCII ({.}, [/], [//])"),
     "fullwidth-cjk": (
@@ -3334,56 +3618,64 @@ DEFANG_STYLES = {
         "（.）",
         "．",
         "＠",
+        "：",
+        "／",
+        "－",
         "full-width letters and digits",
-        "other full-width or CJK (：// and bracket forms not listed)",
+        "other full-width or CJK bracket forms",
     ),
 }
+_OTHER_ASCII = DEFANG_STYLES["ascii"][-1]
+_OTHER_CJK = DEFANG_STYLES["fullwidth-cjk"][-1]
 _STYLE_SINGLES = re.compile(
-    "(?P<hxxp>(?<![A-Za-z])(?:[Hh][Xx][Xx][Pp][Ss]?|[Ff][Xx][Pp])(?=[:：\\[]))"
-    "|(?P<scheme>[：][/／][/／]|:[／][／])"
-    "|(?P<dot>．)|(?P<at>＠)|(?P<alnum>[０-９Ａ-Ｚａ-ｚ]+)"
+    "(?P<hxxp>(?<![A-Za-z])(?:[Hh][Xx][Xx][Pp][Ss]?|[Ff][Xx][Pp])(?=[:\uff1a\\[]))"
+    "|(?P<colon>\uff1a)|(?P<slash>\uff0f)|(?P<hyphen>\uff0d)|(?P<dot>\uff0e)|(?P<at>\uff20)"
+    "|(?P<alnum>[\uff10-\uff19\uff21-\uff3a\uff41-\uff5a]+)"
 )
+_SINGLE_STYLES = {
+    "hxxp": "hxxp",
+    "colon": "\uff1a",
+    "slash": "\uff0f",
+    "hyphen": "\uff0d",
+    "dot": "\uff0e",
+    "at": "\uff20",
+    "alnum": "full-width letters and digits",
+}
 _BRACKET_STYLES = {"【": "【.】", "〔": "〔.〕", "［": "［.］", "（": "（.）"}
+
+
+def _form_style(name: str, opening: str, form: str) -> str:
+    """The style of a form that ascii_reading reads (its group name without the bracket number)."""
+    ascii_form = form.replace(" ", "").replace("\u3000", "").isascii()
+    if name in ("fwdot", "fwat"):
+        return "\uff0e" if name == "fwdot" else "\uff20"
+    if name == "dot":
+        if ascii_form:
+            return "[dot]" if "o" in form.lower() else {"[": "[.]", "(": "(.)"}.get(opening, _OTHER_ASCII)
+        if "\u3002" in form and opening in "[(":
+            return "[。]"
+        return _BRACKET_STYLES.get(opening, _OTHER_CJK)
+    if name == "at":
+        return ("[at]" if "t" in form.lower() else "[@]") if ascii_form else "\uff20"
+    if name in ("scheme", "colon"):
+        return "[:]" if ascii_form else "\uff1a"
+    return _OTHER_ASCII if ascii_form else "\uff0f"  # slash, slashes
 
 
 def defang_occurrences(text: str) -> list[tuple[int, int, str]]:
     """Each defang writing in ``text``: (start, end, style)."""
     found = []
     for match in _FORMS.finditer(text):
-        form = match.group(0)
-        name = (match.lastgroup or "").rstrip("0123456789")
-        opening = _BRACKETS[int((match.lastgroup or "0")[len(name) :])][0].replace("\\", "")
-        if name == "dot":
-            if form.isascii():
-                style = (
-                    "[dot]"
-                    if "o" in form.lower()
-                    else {"[": "[.]", "(": "(.)"}.get(opening, DEFANG_STYLES["ascii"][7])
-                )
-            elif "。" in form and opening in "[(":
-                style = "[。]"
-            else:
-                style = _BRACKET_STYLES.get(opening, DEFANG_STYLES["fullwidth-cjk"][8])
-        elif name == "at":
-            style = ("[at]" if "t" in form.lower() else "[@]") if form.isascii() else "＠"
-        elif name in ("scheme", "colon"):
-            style = "[:]" if form.isascii() else DEFANG_STYLES["fullwidth-cjk"][8]
-        else:
-            style = DEFANG_STYLES["ascii"][7] if form.isascii() else DEFANG_STYLES["fullwidth-cjk"][8]
-        found.append((match.start(), match.end(), style))
+        group = match.lastgroup or ""
+        name = group.rstrip("0123456789")
+        opening = _BRACKETS[int(group[len(name) :])][0].replace("\\", "") if group != name else ""
+        found.append((match.start(), match.end(), _form_style(name, opening, match.group(0))))
     form_starts = [start for start, _, _ in found]  # forms do not overlap one another
-    singles = {
-        "hxxp": "hxxp",
-        "scheme": DEFANG_STYLES["fullwidth-cjk"][8],
-        "dot": "．",
-        "at": "＠",
-        "alnum": "full-width letters and digits",
-    }
     for match in _STYLE_SINGLES.finditer(text):
         index = bisect.bisect_left(form_starts, match.end()) - 1
         if index >= 0 and found[index][1] > match.start():
             continue
-        found.append((match.start(), match.end(), singles[match.lastgroup or ""]))
+        found.append((match.start(), match.end(), _SINGLE_STYLES[match.lastgroup or ""]))
     return sorted(found)
 
 

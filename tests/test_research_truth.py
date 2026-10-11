@@ -73,7 +73,7 @@ def warnings(lines: list[str], fmt: str = "pdf") -> list[tuple[int, str]]:
 def test_defang_styles_are_read_as_ascii(raw: str, expected: str, writing: str) -> None:
     reading = evaluate.ascii_reading(raw)
     assert reading.text == expected
-    assert reading.writing_class(0, len(reading.text)) == writing
+    assert reading.writing_class(0, len(reading.text), url="://" in expected) == writing
 
 
 def test_a_reading_knows_where_each_character_came_from() -> None:
@@ -283,8 +283,11 @@ def test_a_hash_cut_by_a_line_break_is_flagged() -> None:
             ["x.dll e3b0c44298fc1c149afbf4c8996fb92427ae41e4", "649b934ca495991b7852b855"]
         )
     }
-    # A list of whole hashes, and a table of names and hashes, are not flagged.
-    assert warnings(["d41d8cd98f00b204e9800998ecf8427e", "0cc175b9c0f1b6a831c399e269772661"]) == []
+    # A list of whole MD5s under an MD5 label, and a table of names and hashes, are not flagged; a list
+    # of 32-digit lines with no MD5 label is flagged once.
+    md5s = ["d41d8cd98f00b204e9800998ecf8427e", "0cc175b9c0f1b6a831c399e269772661"]
+    assert warnings(["MD5", *md5s]) == []
+    assert warnings(md5s) == [(0, "hex-cut")]
     assert (
         warnings(["a.dll d41d8cd98f00b204e9800998ecf8427e", "b.dll 0cc175b9c0f1b6a831c399e269772661"]) == []
     )
@@ -669,6 +672,7 @@ def reviewed_set(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, A
         "images": [{"label": "html/t01.html screenshot 1", "file": "1.png"}],
     }
     (tmp_path / "t" / "truth" / "t01" / "images.json").write_text(json.dumps(images), encoding="utf-8")
+    (tmp_path / "t" / "truth" / "t01" / "1.png").write_bytes(b"")
     template_file = tmp_path / "t" / "truth" / "t01.review.json"
     template = json.loads(template_file.read_text(encoding="utf-8"))
     template.update(
@@ -802,7 +806,8 @@ def test_score_is_provisional_until_every_value_is_judged(
         "fullwidth-cjk-defang": [1, 1, 1.0],
     }
     assert results["totals"]["ioc-finder"]["recall_by_class"]["fullwidth-cjk-defang"] == [0, 1, 0.0]
-    assert results["reports_with_fullwidth_cjk_values"] == ["t01"]
+    assert results["reports_using_fullwidth_cjk"] == ["t01"]
+    assert results["reports"][0]["writing"]["fullwidth_cjk_in_values"] == 1
     # The blinded sheet: every value outside the truth once, without the tools that found it.
     monkeypatch.setattr(sys, "argv", ["evaluate.py", "judge", "t", "after"])
     evaluate.command_judge("t", "after")
@@ -891,11 +896,11 @@ def test_damaged_utf8_is_decoded_leniently_only_when_the_manifest_says_so(tmp_pa
         evaluate.decode_html(page, override="utf-8")
     text, info = evaluate.decode_html(page, override="utf-8:replace")
     assert text == "<p>evil.example.com \ufffd\ufffd</p>"
-    assert info["replaced_bytes"] == 2
+    assert info["replacement_characters_inserted"] == 2
     plain = tmp_path / "iocs.txt"
     plain.write_bytes(b"a.example.com \xff \xef\xbf\xbd\n")  # one damaged byte, one real U+FFFD
     text, info = evaluate.convert(plain, "text", override="utf-8:replace")
-    assert info["replaced_bytes"] == 1
+    assert info["replacement_characters_inserted"] == 1
     assert text == "a.example.com \ufffd \ufffd\n"
 
 
@@ -920,3 +925,258 @@ def test_a_pdf_with_only_an_owner_password_is_read(tmp_path: Path) -> None:
         writer.write(out)
     with pytest.raises(SystemExit, match="encrypted with a user password"):
         evaluate.pdf_text(encrypted)
+
+
+# --------------------------------------------------------------------------- review round 6
+
+SPLIT = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+
+
+def test_spaced_full_width_dots_and_at_signs_are_read() -> None:
+    # pypdf puts spaces around full-width punctuation between ASCII runs.
+    assert values(["update-check ． example ． com", "attacker ＠ mail ． example ． org"]) == {
+        "domain": ["update-check.example.com"],
+        "email": ["attacker@mail.example.org"],
+    }
+    assert values(["hxxps://update-check ． example ． com/a.exe"])["url"] == [
+        "https://update-check.example.com/a.exe"
+    ]
+
+
+def test_spaces_around_a_form_do_not_decide_its_class() -> None:
+    for raw in (
+        "evil\u3000[.]\u3000example.com",
+        "evil[\u3000.\u3000]example.com",
+        "ops\u3000[at]\u3000example.org",
+    ):
+        reading = evaluate.ascii_reading(raw)
+        assert reading.writing_class(0, len(reading.text)) == "ascii-defang", raw
+    styles = [
+        style
+        for _, _, style in evaluate.defang_occurrences("evil\u3000[.]\u3000example.com a\u3000[at]\u3000b")
+    ]
+    assert styles == ["[.]", "[at]"]
+
+
+def test_hxx_or_fxp_inside_a_plain_value_is_plain() -> None:
+    result = draft(["fxpro-login.example.com", "user@fxpmail.example.org", "http://example.com/fxp/a.exe"])
+    assert {e["class"] for entries in result["values"].values() for e in entries} == {"plain"}
+    assert draft(["hxxp://a.example.com/x"])["values"]["url"][0]["class"] == "ascii-defang"
+
+
+@pytest.mark.parametrize(
+    "lines",
+    [
+        # An MD5 and a SHA-256 column: the narrow SHA-256 cell breaks in two halves.
+        ["檔名 MD5 SHA-256", "stage.dll d41d8cd98f00b204e9800998ecf8427e " + SPLIT[:32], SPLIT[32:]],
+        # A label that names SHA-256 with a space, and no label at all.
+        ["SHA 256", SPLIT[:32], SPLIT[32:]],
+        ["雜湊值 說明", SPLIT[:32], SPLIT[32:], "下載器"],
+        # The next cell follows the second half on its line.
+        ["雜湊值 說明", SPLIT[:32], SPLIT[32:] + " 下載器"],
+        # pypdf's no-break space at the line end.
+        ["loader.dll " + SPLIT[:32] + "\u00a0", SPLIT[32:]],
+        ["x.dll " + SPLIT[:40], SPLIT[40:]],
+    ],
+)
+def test_every_split_sha256_is_flagged(lines: list[str]) -> None:
+    result = draft(lines)
+    flagged = {v for w in result["warnings"] if w["kind"] == "hex-cut" for v in w["values"]}
+    assert flagged, result["warnings"]
+    assert flagged <= {v for entries in result["values"].values() for v in (e["value"] for e in entries)}
+
+
+def test_tables_of_whole_hashes_are_not_flagged() -> None:
+    md5 = [
+        "d41d8cd98f00b204e9800998ecf8427e",
+        "0cc175b9c0f1b6a831c399e269772661",
+        "900150983cd24fb0d6963f7d28e17f72",
+    ]
+    assert (
+        warnings(["Android MD5 Windows MD5", f"{md5[0]}    {md5[1]}", f"{md5[2]}    {md5[0]}", md5[1]]) == []
+    )
+    assert warnings([f"{SPLIT} {SPLIT}", f"{SPLIT} {SPLIT}"]) == []
+
+
+def test_line_ends_are_found_past_no_break_spaces() -> None:
+    assert warnings(["C2 backup-telemetry-service.\u00a0", "example.com"]) == [(0, "name-cut")]
+    assert warnings(["http://a.example.com/very/long/pa\u00a0", "th/file.php"]) == [(0, "url-cut")]
+    assert warnings(["backup-telemetry-service\u00a0", "\u00a0.example.com"]) == [(0, "name-cut")]
+
+
+def test_a_name_cut_between_two_punctuation_marks_is_flagged() -> None:
+    # cn06's 163mailboxdownload- / .servehttp.com
+    assert warnings(["163mailboxdownload-", ".servehttp.com"]) == [(0, "name-cut")]
+    assert warnings(["update-check.", ".example.com"]) == [(0, "name-cut")]
+
+
+def test_a_url_that_stops_at_chinese_text_is_flagged() -> None:
+    result = draft(["hxxp://evil[.]example[.]com/files/公文通知.rar"])
+    assert result["values"]["url"][0]["value"] == "http://evil.example.com/files/"
+    assert [w["kind"] for w in result["warnings"]] == ["non-ascii"]
+    assert warnings(["http://evil.example.com/a.exe。"]) == []
+
+
+def test_the_masked_check_is_linear_in_masked_names() -> None:
+    for unit in ("xxx.com ", "wiki.xxxx.com、"):
+
+        def cost(size: int, unit: str = unit) -> float:
+            body = unit * (size // len(unit.encode()))
+            return seconds_per_mb(lambda: draft([body]), size / 1_000_000, repeat=2)
+
+        assert cost(160_000) < 2.5 * cost(40_000), unit
+
+
+def test_lines_on_many_pages_cost_linear_time() -> None:
+    def cost(lines: int) -> float:
+        text = "IOCs\n" + "a.example.com 198.51.100.1\n" * lines + "END"
+        starts = [i for i, char in enumerate(text) if char == "\n"][::2]
+        parts = [
+            {"format": "pdf", "file": "pdf/t.pdf", "start": 0, "end": len(text), "page_starts": [0, *starts]}
+        ]
+        return seconds_per_mb(lambda: evaluate.text_lines(text, 0, len(text), parts, "pdf"), len(text) / 1e6)
+
+    assert cost(40_000) < 2.5 * cost(10_000)
+
+
+def test_a_review_resolves_the_draft_s_own_warnings() -> None:
+    result = draft(CUT)
+    review = corrected_cut(result)
+    review["warnings"]["W1"]["line"] = 7
+    assert any("the resolution is for another warning" in p for p in evaluate.review_problems(result, review))
+
+
+def test_removing_the_host_of_a_kept_url_is_refused() -> None:
+    result = draft(["http://cdn.example.com/a.exe", "cdn.example.com"])
+    review = complete_review(result, remove=[{"type": "domain", "value": "cdn.example.com", "reason": "r"}])
+    assert any("is the host of the URL" in p for p in evaluate.review_problems(result, review))
+
+
+def test_a_url_without_a_host_cannot_stay_in_the_truth() -> None:
+    result = draft(["http://[/]x"])
+    review = complete_review(result)
+    assert any("has no host" in p for p in evaluate.review_problems(result, review))
+    assert (
+        evaluate.found({"url": ["http:///x"]}, {kind: [] for kind in evaluate.TYPES} | {"url": ["x/y"]})[
+            "url-host"
+        ]
+        == set()
+    )
+    assert evaluate.expected_counts({"url": ["http:///x"]})["url-host"] == 0
+
+
+@pytest.mark.parametrize(
+    ("kind", "value"),
+    [
+        ("md5", SPLIT),
+        ("ipv4", "relay.example.com"),
+        ("email", "not-an-address"),
+        ("domain", "nodot"),
+        ("sha1", "zz"),
+    ],
+)
+def test_a_corrected_value_must_have_the_shape_of_its_type(kind: str, value: str) -> None:
+    result = draft(["c2.example.com"])
+    entry = {"type": kind, "value": value, "writing": value, "class": "plain", "location": "x", "reason": "r"}
+    review = complete_review(result)
+    review["add"] = [entry]
+    assert any(f"is not a {kind}" in p for p in evaluate.review_problems(result, review))
+
+
+def test_a_url_host_is_classed_by_how_the_host_is_written() -> None:
+    assert evaluate.host_class("hxxp://stage.example.net/b") == "plain"
+    assert evaluate.host_class("http：//cjk.example.org/c") == "plain"
+    assert evaluate.host_class("http://evil[.]example.com/a") == "ascii-defang"
+    assert evaluate.host_class("http://１９８.51.100.1:80/x") == "fullwidth-cjk-defang"
+
+
+def test_write_template_never_loses_a_filled_template(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(evaluate, "DATA", tmp_path)
+    (tmp_path / "t" / "truth").mkdir(parents=True)
+    entry = report()
+    a, b = draft(["a.example.com"]), draft(["b.example.com"])
+    path = evaluate.template_path("t", entry)
+    evaluate.write_template("t", entry, a, [])
+    filled = {**json.loads(path.read_text(encoding="utf-8")), "reviewed_by": "reviewer of a"}
+    path.write_text(json.dumps(filled), encoding="utf-8")
+    for current in (b, a, b, a):
+        evaluate.write_template("t", entry, current, [{"label": "pdf/t01.pdf page 1", "file": "1.png"}])
+    template = json.loads(path.read_text(encoding="utf-8"))
+    assert (template["draft_sha256"], template["reviewed_by"]) == (a["sha256"], "reviewer of a")
+    assert template["images"] == ["pdf/t01.pdf page 1"]
+
+
+def test_judging_and_lost_values_after_errors(
+    reviewed_set: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    evaluate.command_review("t")
+    commit(reviewed_set)
+    fake_tools(monkeypatch, iocextract_fails=False)
+
+    def failing(path: Path, flags: list[str]) -> dict[str, Any]:
+        if not flags:
+            raise RuntimeError("default failed")
+        return {
+            "values": {kind: ["c2.example.net"] if kind == "domain" else [] for kind in evaluate.TYPES},
+            "warnings": [],
+            "suppressed": {},
+        }
+
+    monkeypatch.setattr(evaluate, "run_ttprism", failing)
+    evaluate.command_run("t", "after")
+    evaluate.command_score("t", "after")
+    results = json.loads((reviewed_set["tmp"] / "results-t-after.json").read_text(encoding="utf-8"))
+    assert results["reports"][0]["lost_by_default_filtering"].startswith("not comparable")
+    assert results["lost_by_default_filtering"] == {}
+    assert {total["status"] for total in results["totals"].values()} == {results["status"]}
+    assert results["totals"]["iocextract"]["unjudged"] == 1
+    # A filled-in sheet is not written over, and only its own items are taken.
+    monkeypatch.setattr(sys, "argv", ["evaluate.py", "judge", "t", "after"])
+    evaluate.command_judge("t", "after")
+    sheet_file = reviewed_set["tmp"] / "t" / "judging" / "after.json"
+    sheet = json.loads(sheet_file.read_text(encoding="utf-8"))
+    sheet["items"][0].update(category="c", reason="r")
+    sheet_file.write_text(json.dumps(sheet), encoding="utf-8")
+    with pytest.raises(SystemExit, match=r"not yet in judgements\.json"):
+        evaluate.command_judge("t", "after")
+    sheet["items"][0]["value"] = "edited.example.com"
+    sheet_file.write_text(json.dumps(sheet), encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", ["evaluate.py", "judge", "t", "after", "--import"])
+    with pytest.raises(SystemExit, match="not a value the tools found"):
+        evaluate.command_judge("t", "after")
+
+
+def test_the_review_cannot_change_after_the_tools_ran(
+    reviewed_set: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    evaluate.command_review("t")
+    commit(reviewed_set)
+    fake_tools(monkeypatch, iocextract_fails=False)
+    evaluate.command_run("t", "after")
+    data = json.loads(evaluate.MANIFEST.read_text(encoding="utf-8"))
+    data["sets"]["t"][0]["truth_review"]["reviewed_by"] = "someone else"
+    evaluate.MANIFEST.write_text(json.dumps(data), encoding="utf-8")
+    commit(reviewed_set)
+    with pytest.raises(SystemExit, match="cannot change after the tools have run"):
+        evaluate.command_run("t", "again")
+
+
+def test_contexts_find_urls_written_with_hxxp() -> None:
+    text = "攻擊者也使用 hxxp://body.example.com/x 作為下載點。\nfxp://files.example.net/a"
+    contexts = evaluate._contexts(
+        text, {("url", "http://body.example.com/x"), ("url", "ftp://files.example.net/a")}
+    )
+    assert all(contexts.values()), contexts
+
+
+def test_the_writing_classes_and_the_defang_styles_cover_the_same_characters() -> None:
+    for raw, style in (
+        ("update－check.example.com", "－"),
+        ("http://203.0.113.9／a.php", "／"),
+        ("http：//a.example.com", "："),
+    ):
+        reading = evaluate.ascii_reading(raw)
+        assert reading.writing_class(0, len(reading.text)) == "fullwidth-cjk-defang"
+        assert style in [s for _, _, s in evaluate.defang_occurrences(raw)]

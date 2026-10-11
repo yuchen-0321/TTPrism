@@ -2,7 +2,7 @@
  "meta": {
   "set": "zh-cn",
   "date": "2026-10-11",
-  "evaluate_sha256": "21300c4ff422a969d012885a67bb9a6854c517c49614d5d149d0abcf6bf52f22",
+  "evaluate_sha256": "90f2663abe31e2eb97782b4b10007985bbe7c054607463b77557728bc34b7d80",
   "styles": {
    "ascii": [
     "[.]",
@@ -22,8 +22,11 @@
     "（.）",
     "．",
     "＠",
+    "：",
+    "／",
+    "－",
     "full-width letters and digits",
-    "other full-width or CJK (：// and bracket forms not listed)"
+    "other full-width or CJK bracket forms"
    ]
   }
  },
@@ -50,8 +53,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 6,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     },
     "in_values": {
      "[.]": 0,
@@ -69,8 +75,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     }
    },
    "appendix": {
@@ -90,8 +99,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 1,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     },
     "in_values": {
      "[.]": 0,
@@ -109,8 +121,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     }
    }
   },
@@ -136,8 +151,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 88,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     },
     "in_values": {
      "[.]": 0,
@@ -155,8 +173,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     }
    },
    "appendix": {
@@ -176,8 +197,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 2,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     },
     "in_values": {
      "[.]": 0,
@@ -195,8 +219,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     }
    }
   },
@@ -222,8 +249,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 7,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     },
     "in_values": {
      "[.]": 0,
@@ -241,8 +271,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     }
    },
    "appendix": {
@@ -262,8 +295,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 2,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     },
     "in_values": {
      "[.]": 0,
@@ -281,8 +317,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     }
    }
   },
@@ -308,8 +347,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 251,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     },
     "in_values": {
      "[.]": 0,
@@ -327,8 +369,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     }
    },
    "appendix": {
@@ -348,8 +393,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 6,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     },
     "in_values": {
      "[.]": 0,
@@ -367,8 +415,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     }
    }
   },
@@ -394,8 +445,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 61,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     },
     "in_values": {
      "[.]": 3,
@@ -413,8 +467,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     }
    },
    "appendix": {
@@ -434,8 +491,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     },
     "in_values": {
      "[.]": 0,
@@ -453,8 +513,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     }
    }
   },
@@ -480,8 +543,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 77,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     },
     "in_values": {
      "[.]": 0,
@@ -499,8 +565,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     }
    },
    "appendix": {
@@ -520,8 +589,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 6,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     },
     "in_values": {
      "[.]": 0,
@@ -539,8 +611,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     }
    }
   },
@@ -566,8 +641,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 16,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     },
     "in_values": {
      "[.]": 8,
@@ -585,8 +663,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     }
    },
    "appendix": {
@@ -606,8 +687,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     },
     "in_values": {
      "[.]": 3,
@@ -625,8 +709,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     }
    }
   },
@@ -652,8 +739,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     },
     "in_values": {
      "[.]": 13,
@@ -671,8 +761,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     }
    },
    "appendix": {
@@ -692,8 +785,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     },
     "in_values": {
      "[.]": 13,
@@ -711,8 +807,11 @@
      "（.）": 0,
      "．": 0,
      "＠": 0,
+     "：": 0,
+     "／": 0,
+     "－": 0,
      "full-width letters and digits": 0,
-     "other full-width or CJK (：// and bracket forms not listed)": 0
+     "other full-width or CJK bracket forms": 0
     }
    }
   }
