@@ -9,7 +9,9 @@ Run from the repository root in a virtual environment with the pinned tools and 
     /tmp/eval/bin/python -I $E defang zh-tw          # how often each defang style occurs
     /tmp/eval/bin/python -I $E truth zh-tw           # ground-truth draft, review page and template
     /tmp/eval/bin/python -I $E review zh-tw          # check the filled-in reviews, write the manifest
-    git commit docs/research/2026-10-real-reports/manifest.json   # before any tool runs
+    git add docs/research/2026-10-real-reports/manifest.json \
+        docs/research/2026-10-real-reports/defang-zh-tw.json
+    git commit -m "Reviewed zh-TW ground truth"      # before any tool runs
     /tmp/eval/bin/python -I $E run zh-tw heldout     # run the tools on the same text
     /tmp/eval/bin/python -I $E judge zh-tw heldout   # blinded sheet of the values outside the truth
     /tmp/eval/bin/python -I $E judge zh-tw heldout --import
@@ -594,18 +596,23 @@ def manifest(name: str) -> list[dict[str, Any]]:
     return reports
 
 
-def committed_manifest() -> dict[str, Any] | None:
-    """The manifest as committed at HEAD of the repository it is in, or None."""
-    git = ["git", "-C", str(MANIFEST.parent)]
+def committed_json(path: Path) -> Any:
+    """The JSON file ``path`` as committed at HEAD of the repository it is in, or None."""
+    git = ["git", "-C", str(path.parent)]
     top = subprocess.run([*git, "rev-parse", "--show-toplevel"], capture_output=True, text=True)  # noqa: S603
     if top.returncode != 0:
         return None
-    relative = MANIFEST.resolve().relative_to(Path(top.stdout.strip()).resolve()).as_posix()
+    relative = path.resolve().relative_to(Path(top.stdout.strip()).resolve()).as_posix()
     show = [*git, "show", f"HEAD:{relative}"]
     shown = subprocess.run(show, capture_output=True, text=True, encoding="utf-8")  # noqa: S603
     if shown.returncode != 0:
         return None
-    data: dict[str, Any] = json.loads(shown.stdout)
+    return json.loads(shown.stdout)
+
+
+def committed_manifest() -> dict[str, Any] | None:
+    """The manifest as committed at HEAD of the repository it is in, or None."""
+    data: dict[str, Any] | None = committed_json(MANIFEST)
     return data
 
 
@@ -1832,7 +1839,9 @@ WARNING_KINDS = {
     "Chinese text goes on with a file extension or path ('年度計畫 .rar', not a date or a port); in a web "
     "page, only before a "
     "line that goes on with a path, query or extension; a URL followed by a slash after a space; or a URL "
-    "whose host does not end in a top-level domain: the URL may go on, or be cut inside its host",
+    "whose host does not end in a top-level domain; or a line that ends in a URL scheme ('hxxps://', or "
+    "'hxxps' before a line that starts with '://'), which gives no URL: the URL may go on, or be cut inside "
+    "its host or after its scheme",
     "file-extension": "a name whose top-level domain is also a common file extension, left out of the draft",
     "url-unparseable": "a URL without a host that can be a name or an address, or with another scheme "
     "after an ASCII separator: two URLs may be written together",
@@ -2063,6 +2072,17 @@ def draft_truth(
             raw_start, raw_end = reading.span(match.start(), match.end() + 1)
             warnings.add(n, "unread-defang", f"not read: {visible(reading.raw[raw_start:raw_end])!r}")
         _loose_defang_warnings(warnings, n, reading, result)
+        scheme = _SCHEME_AT_END.search(reading.text)
+        if scheme and (
+            scheme.group(1)
+            or (index + 1 < len(readings) and readings[index + 1].text.lstrip().startswith(":/"))
+        ):
+            warnings.add(
+                n,
+                "url-cut",
+                f"the line ends in the URL scheme {scheme.group().strip()!r}: the URL's host may be on the "
+                "next line, and the draft has no URL for it",
+            )
         _cut_warnings(warnings, index, lines, readings, results, expected)
         out_lines.append(
             {
@@ -2111,6 +2131,12 @@ def draft_truth(
 
 _HASH_TYPES = ("md5", "sha1", "sha256")
 # Another URL right after an ASCII separator in a URL: two URLs written together with no space.
+# A URL scheme at the end of a line (as read: "hxxp[:]//" is "hxxp://"), which a word processor
+# breaks before a host that does not fit: _URL needs a character after "//", so the URL is lost and
+# its host drafted alone. A scheme without its colon counts only before a line that starts with it.
+_SCHEME_AT_END = re.compile(
+    r"(?<![A-Za-z0-9_])(?:https?|hxxps?|ftp|fxp)(:/{0,2})?\s*$", re.ASCII | re.IGNORECASE
+)
 _JOINED_URL = re.compile(r"[,;|\\](?:h[tx][tx]ps?|f[tx]p)://", re.IGNORECASE)
 
 
@@ -4524,11 +4550,12 @@ def defang_path(name: str) -> Path:
 
 def check_defang(name: str, texts: dict[str, str]) -> None:
     """Stop unless the set's defang statistic was made by this evaluate.py from each report's current
-    text (``texts``: id to text SHA-256) and appendix markers: the pre-registered counts must describe
-    the same text and appendix as the reviewed ground truth and the results."""
+    text (``texts``: id to text SHA-256) and appendix markers, and is committed as it stands: the
+    pre-registered counts must describe the same text and appendix as the reviewed ground truth and
+    the results, and be fixed with the review before any tool runs."""
     path = defang_path(name)
     if not path.exists():
-        raise SystemExit(f"{path.name} is missing; run `defang {name}` (and commit it) before `run`")
+        raise SystemExit(f"{path.name} is missing; run `defang {name}` and commit it with the review")
     data = json.loads(path.read_text(encoding="utf-8"))
     recorded = {entry["id"]: entry for entry in data.get("reports", [])}
     stale = [
@@ -4542,6 +4569,10 @@ def check_defang(name: str, texts: dict[str, str]) -> None:
             f"{path.name} was made from another text, appendix markers or evaluate.py"
             + (f" ({', '.join(stale)})" if stale else "")
             + f"; run `defang {name}` again"
+        )
+    if committed_json(path) != data:
+        raise SystemExit(
+            f"{path.name} is not committed as it stands; `git add` it and commit it with the review"
         )
 
 

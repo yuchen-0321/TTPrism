@@ -312,10 +312,11 @@ after it.
    appendix starts and ends; the markers are corrected until they are right, and are then fixed
    (the review covers them through the draft's SHA-256).
 4. `defang`: count the writings (6.3). The file records each report's text SHA-256 and appendix
-   markers, and `run` and `score` stop unless it matches the current text, markers and evaluate.py:
-   a marker or charset corrected later (at the review, say) means running `text`, `defang` and
-   `truth` again.
-5. `truth`, the review, `review`, and a commit of the manifest. The ground truth is fixed before any
+   markers, and `run`, `judge` and `score` stop unless it matches the current text, markers and
+   evaluate.py and is committed as it stands: a marker or charset corrected later (at the review,
+   say) means running `text`, `defang` and `truth` again.
+5. `truth`, the review, `review`, and a commit of the manifest and the defang statistic (the
+   statistic is a new file, so it is added with `git add` first). The ground truth is fixed before any
    tool runs, by a reviewer who has not seen any tool's output: `review` refuses once the set has
    results, and `run` refuses unless every report's review is complete, committed as it stands and
    made against the draft that the current text and rules give.
@@ -387,7 +388,7 @@ limits are in 6.8). The kinds (the review page explains each kind it shows):
 | `hex-cut` | hex digits at a line end and the next line's start that make a SHA-1 or SHA-256 together, unless both are whole MD5s under an MD5 label in effect or both lines are rows of MD5s (each holds another MD5 besides these); a run of lines of 32 hex digits with no MD5 label in effect (two of them may be the halves of a SHA-256); a piece of 16 or more hex digits of the length of no hash |
 | `hash-label` | a hash whose length differs from the hash type named in the label of its block |
 | `name-cut` | a name ending at a line end in `.` or `-` before a line that starts with a name or with `.` or `-`, or a line starting with `.` or `-` after a name; digits and dots at a line end and the start of the next lines (up to three, while a line holds only digits and dots) that make an IPv4 address of octets up to 255 together, when the first line's do not end in a whole one (a narrow cell breaks full-width digits anywhere: `１９８．５` / `１．１０` / `０．２３`); not a number after `/`, `:` or `-` (a date, a port), nor an ASCII number without dots before a line that starts with a whole address (the last cell of a row) |
-| `url-cut` | in PDF text, a URL that reaches the line end before a line that does not start with a value or a scheme (past a list number or a type cell: `2.`, `2、`, `(2)`, `一、`, `-`, `URL`, `IP`, `IP:Port`, `Domain`, `Host`, `C2`, `C&C`, `MD5`, `SHA1`, `SHA256`, `Hash`, `Email`, `Port`), that starts with the full-width form of a URL character (`＿ v2.exe`), or that is Chinese text when the URL ends in `/` `=` `?` `&` `-` `_` or the Chinese text goes on with a file extension (`年度計畫 .rar`, `年第 1 季報告 .pdf`, `.7z`) or a path, not a date or a port (`113/05/01`, `2024-05-01`, `443/tcp`); in a web page, which `HtmlText` does not wrap, only before a line that goes on with a path, query or extension; a URL followed by a slash after a space; a URL whose host does not end in a top-level domain (cut inside its host) |
+| `url-cut` | in PDF text, a URL that reaches the line end before a line that does not start with a value or a scheme (past a list number or a type cell: `2.`, `2、`, `(2)`, `一、`, `-`, `URL`, `IP`, `IP:Port`, `Domain`, `Host`, `C2`, `C&C`, `MD5`, `SHA1`, `SHA256`, `Hash`, `Email`, `Port`), that starts with the full-width form of a URL character (`＿ v2.exe`), or that is Chinese text when the URL ends in `/` `=` `?` `&` `-` `_` or the Chinese text goes on with a file extension (`年度計畫 .rar`, `年第 1 季報告 .pdf`, `.7z`) or a path, not a date or a port (`113/05/01`, `2024-05-01`, `443/tcp`); in a web page, which `HtmlText` does not wrap, only before a line that goes on with a path, query or extension; a URL followed by a slash after a space; a URL whose host does not end in a top-level domain (cut inside its host); a line that ends in a URL scheme (`hxxps://`, `hxxp[:]//`, `https:`, or `hxxps` before a line that starts with `://`), where a word processor broke before a host that did not fit: the draft has no URL there, only its host from the next line |
 | `file-extension` | a name left out because its top-level domain is also a file extension |
 | `url-unparseable` | a URL without a host that can be a name or an address, or with another scheme after an ASCII separator (two URLs written together: `…:8080,hxxp://…`) |
 | `non-ascii` | a value read from non-ASCII writing (full-width or CJK forms, Unicode or soft hyphens, ligatures, deleted format characters), or a URL that stops before non-ASCII letters (past spaces and format characters, and past the punctuation the rules took off its end) or before the full-width form of a URL character with more of the URL or the line's end after it (`a.php？id=1`, pypdf's `a.php ？ id=1`); after a space (pypdf's space between table cells), Chinese text counts only when the URL ends in a separator or the text goes on with a file extension or path, so that a description cell is not flagged; a value next to a full-width or Unicode hyphen with spaces around it, or before a spaced full-width colon and digits (`update － check.example.com`, `evil.example.com ： 8080`), as pypdf gives them at a change of font |
@@ -579,8 +580,9 @@ CHROMIUM=/path/to/chromium /tmp/eval/bin/python -I $E truth zh-tw
 # review eval-data/zh-tw/truth/<id>.review.html against its images; fill in <id>.review.json
 # (a marker or charset corrected at the review: text, defang and truth again)
 /tmp/eval/bin/python -I $E review zh-tw
-git commit -m "Reviewed zh-TW ground truth" docs/research/2026-10-real-reports/manifest.json \
+git add docs/research/2026-10-real-reports/manifest.json \
     docs/research/2026-10-real-reports/defang-zh-tw.json
+git commit -m "Reviewed zh-TW ground truth"
 /tmp/eval/bin/python -I $E run zh-tw heldout
 /tmp/eval/bin/python -I $E judge zh-tw heldout     # judge eval-data/zh-tw/judging/heldout.json
 /tmp/eval/bin/python -I $E judge zh-tw heldout --import

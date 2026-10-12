@@ -344,7 +344,12 @@ def test_the_synthetic_zh_tw_set_runs_end_to_end(
     step("review", "zh-tw")
     with pytest.raises(SystemExit, match="not committed as it stands"):
         step("run", "zh-tw", "after")
-    git(repo, "commit", "-q", "-am", "reviewed ground truth")
+    git(repo, "commit", "-q", "-m", "reviewed ground truth", "manifest.json")
+    # The defang statistic is a new file: committed with the review only once it is added.
+    with pytest.raises(SystemExit, match=r"defang-zh-tw\.json is not committed as it stands"):
+        step("run", "zh-tw", "after")
+    git(repo, "add", "defang-zh-tw.json")
+    git(repo, "commit", "-q", "-m", "defang statistic")
 
     # run, score (provisional), blinded judging, score (final).
     out = step("run", "zh-tw", "after")

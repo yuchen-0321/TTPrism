@@ -663,10 +663,12 @@ def reviewed_set(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, A
     monkeypatch.setattr(evaluate, "MANIFEST", manifest)
     monkeypatch.setattr(evaluate, "JUDGEMENTS", tmp_path / "judgements.json")
     monkeypatch.setattr(evaluate, "committed_manifest", lambda: committed["data"])
+    monkeypatch.setattr(evaluate, "committed_json", lambda path: committed.get(path.name))
     monkeypatch.setattr(evaluate, "check_html_parser", evaluate.html_parser_info)
     monkeypatch.setattr(sys, "argv", ["evaluate.py", "truth", "t", "--no-render"])
     evaluate.command_text("t")
     evaluate.command_defang("t")
+    committed["defang-t.json"] = json.loads(evaluate.defang_path("t").read_text(encoding="utf-8"))
     evaluate.command_truth("t")
     result = json.loads((tmp_path / "t" / "truth" / "t01.draft.json").read_text(encoding="utf-8"))
     images = {
@@ -691,6 +693,8 @@ def reviewed_set(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, A
 
 def commit(reviewed_set: dict[str, Any]) -> None:
     reviewed_set["committed"]["data"] = json.loads(evaluate.MANIFEST.read_text(encoding="utf-8"))
+    defang = evaluate.defang_path("t")
+    reviewed_set["committed"][defang.name] = json.loads(defang.read_text(encoding="utf-8"))
 
 
 def test_review_stops_on_an_unresolved_warning(reviewed_set: dict[str, Any]) -> None:
@@ -1830,6 +1834,13 @@ def test_run_and_score_stop_on_a_defang_statistic_of_other_markers(
     with pytest.raises(SystemExit, match="run `defang t` again"):
         evaluate.command_run("t", "after")
     evaluate.command_defang("t")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["meta"]["date"] = "2000-01-01"  # another run of `defang` than the committed one
+    path.write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(SystemExit, match=r"defang-t\.json is not committed as it stands"):
+        evaluate.command_run("t", "after")
+    evaluate.command_defang("t")
+    commit(reviewed_set)
     evaluate.command_run("t", "after")
     path.unlink()
     with pytest.raises(SystemExit, match="is missing"):
@@ -1893,6 +1904,24 @@ def test_a_url_a_tool_built_is_not_shown_at_the_end_of_a_longer_name() -> None:
         "(without its scheme) (line before) C2 為 evil-cdn.example.net、evil_cdn.example.net 與 -example.net"
         " / example[.]net 並列",
     ]
+
+
+def test_a_url_cut_after_its_scheme_is_flagged() -> None:
+    for lines in (
+        ["URL hxxps://", "downloads[.]example[.]com/files/update/setup.exe"],
+        ["網址：hxxp[:]//", "198[.]51[.]100[.]23:8080/gate/"],
+        ["下載網址為 https:", "//cdn.example.net/a.exe"],
+        ["hxxps:/", "/cdn.example.net/a.exe"],
+        ["hxxps", "://cdn.example.net/a.exe"],
+        ["ｈｘｘｐｓ：／／", "cdn．example．net"],
+    ):
+        assert (0, "url-cut") in warnings(lines), lines
+    for lines in (
+        ["協定為 https 與 ftp", "cdn.example.net"],
+        ["hxxps://cdn.example.net/a.exe", "IP 198.51.100.23"],
+        ["使用 https", "連線"],
+    ):
+        assert (0, "url-cut") not in warnings(lines), lines
 
 
 def test_a_line_with_a_value_twice_is_shown_once() -> None:
