@@ -24,7 +24,8 @@ every command, and `text` stops while the set has no selection rule or its rule 
 it stands.
 
 Text: PDFs are read with pypdf (page.extract_text() per page, headers and footers included; a PDF
-with only an owner password is decrypted with the empty user password). Web pages are decoded
+with only an owner password is decrypted with the empty user password; a glyph pypdf cannot map,
+which it gives as a lone surrogate, becomes U+FFFD and is counted by page). Web pages are decoded
 strictly and laid out by HtmlText below (Python's html.parser, no CSS); see decode_html and HtmlText
 for the rules. html.parser changed in Python's 2025 security releases, and older releases lose page
 content silently, so `text` first converts a few canary pages and stops on any other Python. When a
@@ -666,9 +667,15 @@ def conversion_path(name: str, report: dict[str, Any]) -> Path:
     return DATA / name / "text" / f"{report['id']}.conversion.json"
 
 
+_SURROGATE = re.compile("[\ud800-\udfff]")
+
+
 def pdf_text(path: Path) -> tuple[str, dict[str, Any]]:
     """The text of a PDF, page by page, and where each page starts in it. A PDF with only an owner
-    password (common in government reports) is decrypted with the empty user password."""
+    password (common in government reports) is decrypted with the empty user password. pypdf gives a
+    lone surrogate for a glyph it cannot map (a Big5 user-defined character, 造字, or a CID with no
+    ToUnicode entry); each is replaced with U+FFFD and counted, by page, so that the text can be
+    written and the reviewer sees the character on the page."""
     import pypdf  # type: ignore[import-not-found]
 
     reader = pypdf.PdfReader(str(path))
@@ -679,6 +686,14 @@ def pdf_text(path: Path) -> tuple[str, dict[str, Any]]:
             raise SystemExit(f"{path.name}: encrypted with a user password, which cannot be read")
         info["encryption"] = f"decrypted with the empty user password ({result.name})"
     pages = [page.extract_text() or "" for page in reader.pages]
+    surrogates = {}
+    for number, page in enumerate(pages, start=1):
+        count = len(_SURROGATE.findall(page))
+        if count:
+            surrogates[str(number)] = count
+            pages[number - 1] = _SURROGATE.sub("\ufffd", page)
+    if surrogates:
+        info["lone_surrogates_replaced"] = surrogates
     text = "\n".join(pages)
     starts, offset = [], 0
     for page in pages:
@@ -794,6 +809,12 @@ def command_text(name: str) -> None:
         print(f"    text sha256   {info['text_sha256']}")
         if "encryption" in info:
             print(f"    {info['encryption']}")
+        for part in [info, *info.get("attachments", [])]:
+            if part.get("lone_surrogates_replaced"):
+                print(
+                    f"    UNMAPPED GLYPHS: lone surrogates replaced with U+FFFD, by page: "
+                    f"{part['lone_surrogates_replaced']}"
+                )
         if fmt == "html":
             print_html_conversion("    ", info)
         for attachment in info.get("attachments", []):
@@ -4212,13 +4233,17 @@ def _contexts(text: str, values: set[tuple[str, str]]) -> dict[tuple[str, str], 
         inside = found if found and found[0].startswith("(inside") else []
         if not found or inside:
             found = across(needle)
-        if not found and kind == "url" and "://" in needle:
+        # Only a URL with a whole host can stand somewhere without the scheme a tool added: one whose
+        # host is a bare word or number ("http://45", "https://api") was cut by a tool, and its places
+        # inside the longer URL are what the rater needs.
+        host = url_host(needle) if kind == "url" else ""
+        whole_host = "." in host and _host_has_tld(host)
+        if not found and kind == "url" and "://" in needle and whole_host:
             bare = needle.split("://", 1)[1]
             found = [
                 f"(without its scheme) {c}" for c in in_lines(bare, "bare") if not c.startswith("(inside")
             ]
-            host = url_host(needle)
-            if not found and host:
+            if not found:
                 found = [
                     f"(its host {host}) {c}" for c in in_lines(host, "domain") if not c.startswith("(inside")
                 ]

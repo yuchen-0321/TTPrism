@@ -1850,3 +1850,39 @@ def test_an_address_host_counts_in_the_appendix_as_in_the_body() -> None:
     truth, entry = reviewed_truth(text)
     use = evaluate._writing_use(truth, "pdf", entry, {})
     assert use["fullwidth_cjk_indicators_in_appendix"] == use["fullwidth_cjk_indicators_in_body"] == 2
+
+
+def test_lone_surrogates_from_pypdf_are_replaced_and_counted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class Page:
+        def __init__(self, text: str) -> None:
+            self.text = text
+
+        def extract_text(self) -> str:
+            return self.text
+
+    class Reader:
+        is_encrypted = False
+
+        def __init__(self, path: str) -> None:
+            # A Big5 user-defined character (造字) as pypdf gives it, and an unmapped CID.
+            self.pages = [Page("附錄 黃\udcfa@先生"), Page("evil.example.com\ud802")]
+
+    fake = type(sys)("pypdf")
+    fake.PdfReader = Reader  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "pypdf", fake)
+    text, info = evaluate.pdf_text(tmp_path / "t.pdf")
+    assert text == "附錄 黃�@先生\nevil.example.com�"
+    assert info["lone_surrogates_replaced"] == {"1": 1, "2": 1}
+    assert evaluate.text_sha256(text)
+
+
+def test_cut_urls_with_a_bare_host_keep_their_own_line() -> None:
+    text = "本次事件共發現 45 個惡意樣本，透過 Windows API 呼叫。\nURL\thxxp://45【.】77【.】12【.】3/update/a.exe\n"
+    text += "URL\thxxps://api【.】example【.】net/v1/beacon"
+    contexts = evaluate._contexts(text, {("url", "http://45"), ("url", "https://api")})
+    assert contexts[("url", "http://45")] == [
+        "(inside a longer value) URL\thxxp://45【.】77【.】12【.】3/update/a.exe"
+    ]
+    assert contexts[("url", "https://api")][0].startswith("(inside a longer value) URL\thxxps://api")

@@ -306,7 +306,9 @@ after it.
    charsets) and its appendix markers (`start`, and `end` or `end_of_text`), which every command
    checks. The manifest's `fields` describes each.
 3. `text`: PDFs with pypdf (one with only an owner password is decrypted with the empty user
-   password), web pages decoded strictly and laid out by `HtmlText`. `text` prints where each
+   password; a glyph pypdf cannot map, such as a Big5 user-defined character, 造字, comes out as a
+   lone surrogate and becomes U+FFFD, counted and printed by page), web pages decoded strictly and
+   laid out by `HtmlText`. `text` prints where each
    appendix starts and ends; the markers are corrected until they are right, and are then fixed
    (the review covers them through the draft's SHA-256).
 4. `defang`: count the writings (6.3). The file records each report's text SHA-256 and appendix
@@ -487,8 +489,10 @@ a line break cut can be seen to be cut. A place inside a longer value (a name in
 letter or digit next to it, or a value's punctuation with one beyond it; not sentence punctuation
 before Chinese text, nor a footnote number before a URL) is shown only when no other place, nor any of
 the fallbacks below, is found, marked so. A value written in no single
-line, as a tool built it, gets the lines it spans across a line break, else the places where it
-stands without the scheme a tool added, else the places of its host, each marked so. There is one
+line, as a tool built it, gets the lines it spans across a line break, else (for a URL whose host
+is a whole name or address; one cut to a bare word or number, `http://45`, keeps its places inside
+the longer URL) the places where it stands without the scheme a tool added, else the places of its
+host, each marked so. There is one
 rater, and no agreement between raters is measured. Before the sheet is judged, nothing the tool
 prints pairs a value with the tool that found or dropped it: `run` prints counts only, and `score`
 lists TTPrism's dropped line-wrap fragments only once every value is judged. While any value is unjudged, `score`
