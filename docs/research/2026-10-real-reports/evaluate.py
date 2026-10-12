@@ -3628,6 +3628,7 @@ def command_run(name: str, label: str) -> None:
     for report in reports:
         text, conversion = load_text(name, report)
         prepared.append((report, text, conversion, load_reviewed_truth(name, report, text, conversion)))
+    check_defang(name, {report["id"]: conversion["text_sha256"] for report, _, conversion, _ in prepared})
     # The ground truth is fixed before any tool runs: results made with another review of a report
     # mean that the review changed after the tools' outputs were seen.
     reviews = {report["id"]: truth["review_sha256"] for report, _, _, truth in prepared}
@@ -3905,6 +3906,7 @@ def _load_results(name: str, label: str) -> tuple[dict[str, Any], dict[str, dict
     if made_by != sha256(SCRIPT):
         raise SystemExit("another version of evaluate.py made these results; run them again")
     truths = {entry["id"]: _scored_truth(name, by_id[entry["id"]], entry) for entry in results["reports"]}
+    check_defang(name, {entry["id"]: entry["text_sha256"] for entry in results["reports"]})
     return results, truths
 
 
@@ -4046,8 +4048,9 @@ def _writing_use(
         if klass == CLASSES[2]:
             in_appendix.add((kind, value))
         host = url_host(value) if kind == "url" else ""
-        if host in lookup.truth.get("domain", ()) and host_class(writing) == CLASSES[2]:
-            in_appendix.add(("domain", host))
+        listed = host in lookup.truth.get("domain", ()) or host in lookup.url_hosts
+        if host and listed and host_class(writing) == CLASSES[2]:
+            in_appendix.add(("domain" if not is_ip(host) else "ipv6" if ":" in host else "ipv4", host))
     in_body = {
         (kind, value)
         for kind, value in body_fullwidth_values(truth, fmt, report)
@@ -4087,8 +4090,9 @@ _VALUE_CHARS = {
     "domain": ("abcdefghijklmnopqrstuvwxyz0123456789.-_", "abcdefghijklmnopqrstuvwxyz0123456789.-_"),
     "email": ("abcdefghijklmnopqrstuvwxyz0123456789.-_+%", "abcdefghijklmnopqrstuvwxyz0123456789.-_"),
     "ipv4": ("0123456789.", "0123456789"),
-    # A URL's rest without its scheme stands on its own only when no "://" or path comes before it.
-    "bare": ("abcdefghijklmnopqrstuvwxyz0123456789/:", "abcdefghijklmnopqrstuvwxyz0123456789"),
+    # A URL's rest without its scheme stands on its own only when no "//" or path comes before it, and
+    # when it does not go on into a longer name ("dl" of "dl.example.net", as a cut URL gives it).
+    "bare": ("abcdefghijklmnopqrstuvwxyz0123456789/", "abcdefghijklmnopqrstuvwxyz0123456789.-_"),
 }
 
 
@@ -4166,7 +4170,7 @@ def _contexts(text: str, values: set[tuple[str, str]]) -> dict[tuple[str, str], 
         if kind == "url":
             return not (before[-1:].isascii() and before[-1:].isalpha())
         if kind == "bare":
-            return not (before[-1:] in ("/", ":") or _ascii_alnum(before[-1:]))
+            return not (before[-1:] == "/" or _ascii_alnum(before[-1:]))
         return not (
             before[-1:]
             and before[-1:] in before_chars
@@ -4479,6 +4483,33 @@ def value_spans(
     return spans
 
 
+def defang_path(name: str) -> Path:
+    return HERE / f"defang-{name}.json"
+
+
+def check_defang(name: str, texts: dict[str, str]) -> None:
+    """Stop unless the set's defang statistic was made by this evaluate.py from each report's current
+    text (``texts``: id to text SHA-256) and appendix markers: the pre-registered counts must describe
+    the same text and appendix as the reviewed ground truth and the results."""
+    path = defang_path(name)
+    if not path.exists():
+        raise SystemExit(f"{path.name} is missing; run `defang {name}` (and commit it) before `run`")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    recorded = {entry["id"]: entry for entry in data.get("reports", [])}
+    stale = [
+        report["id"]
+        for report in manifest(name)
+        if recorded.get(report["id"], {}).get("text_sha256") != texts.get(report["id"])
+        or recorded.get(report["id"], {}).get("appendix_markers") != report["appendix"]
+    ]
+    if data.get("meta", {}).get("evaluate_sha256") != sha256(SCRIPT) or stale or len(recorded) != len(texts):
+        raise SystemExit(
+            f"{path.name} was made from another text, appendix markers or evaluate.py"
+            + (f" ({', '.join(stale)})" if stale else "")
+            + f"; run `defang {name}` again"
+        )
+
+
 def command_defang(name: str) -> None:
     entries = []
     for report in manifest(name):
@@ -4494,6 +4525,7 @@ def command_defang(name: str) -> None:
             "original_url": report["original_url"],
             "format": fmt,
             "text_sha256": conversion["text_sha256"],
+            "appendix_markers": report["appendix"],
             "full_text": {
                 "all": _style_counts(occurrences, None),
                 "in_values": _style_counts(occurrences, whole_spans),
@@ -4515,7 +4547,7 @@ def command_defang(name: str) -> None:
         },
         "reports": entries,
     }
-    (HERE / f"defang-{name}.json").write_text(dump_json(results) + "\n", encoding="utf-8")
+    defang_path(name).write_text(dump_json(results) + "\n", encoding="utf-8")
 
 
 def main() -> None:

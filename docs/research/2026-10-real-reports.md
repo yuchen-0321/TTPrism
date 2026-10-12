@@ -309,7 +309,10 @@ after it.
    password), web pages decoded strictly and laid out by `HtmlText`. `text` prints where each
    appendix starts and ends; the markers are corrected until they are right, and are then fixed
    (the review covers them through the draft's SHA-256).
-4. `defang`: count the writings (6.3).
+4. `defang`: count the writings (6.3). The file records each report's text SHA-256 and appendix
+   markers, and `run` and `score` stop unless it matches the current text, markers and evaluate.py:
+   a marker or charset corrected later (at the review, say) means running `text`, `defang` and
+   `truth` again.
 5. `truth`, the review, `review`, and a commit of the manifest. The ground truth is fixed before any
    tool runs, by a reviewer who has not seen any tool's output: `review` refuses once the set has
    results, and `run` refuses unless every report's review is complete, committed as it stands and
@@ -569,8 +572,10 @@ E=docs/research/2026-10-real-reports/evaluate.py
 /tmp/eval/bin/python -I $E defang zh-tw
 CHROMIUM=/path/to/chromium /tmp/eval/bin/python -I $E truth zh-tw
 # review eval-data/zh-tw/truth/<id>.review.html against its images; fill in <id>.review.json
+# (a marker or charset corrected at the review: text, defang and truth again)
 /tmp/eval/bin/python -I $E review zh-tw
-git commit -m "Reviewed zh-TW ground truth" docs/research/2026-10-real-reports/manifest.json
+git commit -m "Reviewed zh-TW ground truth" docs/research/2026-10-real-reports/manifest.json \
+    docs/research/2026-10-real-reports/defang-zh-tw.json
 /tmp/eval/bin/python -I $E run zh-tw heldout
 /tmp/eval/bin/python -I $E judge zh-tw heldout     # judge eval-data/zh-tw/judging/heldout.json
 /tmp/eval/bin/python -I $E judge zh-tw heldout --import

@@ -666,6 +666,7 @@ def reviewed_set(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, A
     monkeypatch.setattr(evaluate, "check_html_parser", evaluate.html_parser_info)
     monkeypatch.setattr(sys, "argv", ["evaluate.py", "truth", "t", "--no-render"])
     evaluate.command_text("t")
+    evaluate.command_defang("t")
     evaluate.command_truth("t")
     result = json.loads((tmp_path / "t" / "truth" / "t01.draft.json").read_text(encoding="utf-8"))
     images = {
@@ -1814,3 +1815,38 @@ def test_the_use_counts_are_of_distinct_indicators() -> None:
     truth["truth"]["domain"] = ["c2.example.net"]
     use = evaluate._writing_use(truth, "pdf", entry, {})
     assert use["fullwidth_cjk_indicators_in_appendix"] == 2  # the name, and the URL
+
+
+def test_run_and_score_stop_on_a_defang_statistic_of_other_markers(
+    reviewed_set: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    evaluate.command_review("t")
+    commit(reviewed_set)
+    fake_tools(monkeypatch, iocextract_fails=False)
+    path = evaluate.defang_path("t")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["reports"][0]["appendix_markers"] = {"start": "IOCs", "start_occurrence": 2}
+    path.write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(SystemExit, match="run `defang t` again"):
+        evaluate.command_run("t", "after")
+    evaluate.command_defang("t")
+    evaluate.command_run("t", "after")
+    path.unlink()
+    with pytest.raises(SystemExit, match="is missing"):
+        evaluate.command_score("t", "after")
+
+
+def test_contexts_of_cut_urls_and_values_after_a_label_colon() -> None:
+    text = "網址 hxxps://dl【.】example.net/a.exe\n網域 dl【.】example.net\n網域：update[.]example[.]org"
+    contexts = evaluate._contexts(text, {("url", "https://dl"), ("url", "http://update.example.org")})
+    assert contexts[("url", "https://dl")] == [
+        "(inside a longer value) 網址 hxxps://dl【.】example.net/a.exe"
+    ]
+    assert contexts[("url", "http://update.example.org")][0].startswith("(without its scheme) 網域：")
+
+
+def test_an_address_host_counts_in_the_appendix_as_in_the_body() -> None:
+    text = "C2 為 hxxp://198【.】51【.】100【.】7/a\nIOCs\nhxxp://198【.】51【.】100【.】7/a\nEND"
+    truth, entry = reviewed_truth(text)
+    use = evaluate._writing_use(truth, "pdf", entry, {})
+    assert use["fullwidth_cjk_indicators_in_appendix"] == use["fullwidth_cjk_indicators_in_body"] == 2

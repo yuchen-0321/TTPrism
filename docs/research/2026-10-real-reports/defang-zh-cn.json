@@ -1,8 +1,8 @@
 {
  "meta": {
   "set": "zh-cn",
-  "date": "2026-10-11",
-  "evaluate_sha256": "24f5941f00a2418dd81e98a0aa00ee5f50bddffbfc1acf40a6c2ff67d3956b77",
+  "date": "2026-10-12",
+  "evaluate_sha256": "e039e26ee31b24c4f795e5df9dc8b8a42c1f7c9dcf7831df2ec783cddec8f2a8",
   "styles": {
    "ascii": [
     "[.]",
@@ -36,6 +36,10 @@
    "original_url": "https://s.tencent.com/research/report/471.html",
    "format": "pdf",
    "text_sha256": "27a876d7036f1716b879f45b982dc4904dc43280186a43fd69c3623343295826",
+   "appendix_markers": {
+    "start": "0x6 附录(IOCs):",
+    "end": "注册表："
+   },
    "full_text": {
     "all": {
      "[.]": 0,
@@ -134,6 +138,12 @@
    "original_url": "https://ti.360.net/uploads/2018/09/20/6f8ad451646c9eda1f75c5d31f39f668.pdf",
    "format": "pdf",
    "text_sha256": "cf8698b5194d2d635d006de3147fa3676609ddc2fe0d4b8b5ae1dbb927ceeea0",
+   "appendix_markers": {
+    "start": "附录 1：文件 MD5 列表",
+    "end": "附录 3：360 追日团队",
+    "start_occurrence": 2,
+    "start_occurrence_reason": "the heading also occurs earlier in the text; the appendix is the second occurrence"
+   },
    "full_text": {
     "all": {
      "[.]": 0,
@@ -232,6 +242,10 @@
    "original_url": "http://blogs.360.cn/post/analysis-of-APT-C-38.html",
    "format": "pdf",
    "text_sha256": "70aeabd07d9eaef4cf43e3dc3473a7d6a32dc32a153b76a62e7cd66093a157bb",
+   "appendix_markers": {
+    "start": "附录 A ：样本 MD5",
+    "end": "附录 C"
+   },
    "full_text": {
     "all": {
      "[.]": 0,
@@ -330,6 +344,10 @@
    "original_url": "https://s.tencent.com/research/report/836.html",
    "format": "pdf",
    "text_sha256": "df30b4840b342249d2ceb1e3d53126d38893bbffe5a5039fe55825dd376d553b",
+   "appendix_markers": {
+    "start": "6.2 IOCs",
+    "end": "6.3 MITRE ATT&CK"
+   },
    "full_text": {
     "all": {
      "[.]": 0,
@@ -428,6 +446,12 @@
    "original_url": "https://ti.qianxin.com/uploads/2020/09/17/69da886eecc7087e9dac2d3ea4c66ba8.pdf",
    "format": "pdf",
    "text_sha256": "19e3a4a9db235ef8db974692a0c9d6c3b7341359182e8c8fdba8952e9ee5abc7",
+   "appendix_markers": {
+    "start": "IOCs ",
+    "end": "附录1  奇安信威胁情报中心",
+    "start_occurrence": 2,
+    "start_occurrence_reason": "the heading also occurs earlier in the text; the appendix is the second occurrence"
+   },
    "full_text": {
     "all": {
      "[.]": 3,
@@ -526,6 +550,10 @@
    "original_url": "https://mp.weixin.qq.com/s/omacDXAdio88a_f0Xwu-kg",
    "format": "pdf",
    "text_sha256": "9ef16a7b6aa1555a8338a4e5a211f751e75261fa43e8516b4ac1da1ab9671691",
+   "appendix_markers": {
+    "start": "附录 1⾎茜草⾏动部分IOC",
+    "end": "附录 2奇安信威胁情报中⼼"
+   },
    "full_text": {
     "all": {
      "[.]": 0,
@@ -624,6 +652,10 @@
    "original_url": "https://blogs.360.cn/post/APT-C-44.html",
    "format": "pdf",
    "text_sha256": "72069178fb92cd56a0893a08a6811f2393de9900d784865415c0a78092555c80",
+   "appendix_markers": {
+    "start": "IOC\n样本 md5",
+    "end": "参考\n"
+   },
    "full_text": {
     "all": {
      "[.]": 8,
@@ -722,6 +754,10 @@
    "original_url": "https://mp.weixin.qq.com/s/5mBqxf_v6G006EnjECoTHw",
    "format": "pdf",
    "text_sha256": "e9ab4d4fac8bb6deac3194924ce8d176444e80fffb1b617950cfc38b57f59deb",
+   "appendix_markers": {
+    "start": "0x04.IOCs",
+    "end": "0x05. 相关链接"
+   },
    "full_text": {
     "all": {
      "[.]": 13,
