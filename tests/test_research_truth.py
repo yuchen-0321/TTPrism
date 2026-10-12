@@ -1878,6 +1878,30 @@ def test_lone_surrogates_from_pypdf_are_replaced_and_counted(
     assert evaluate.text_sha256(text)
 
 
+def test_a_url_a_tool_built_is_not_shown_at_the_end_of_a_longer_name() -> None:
+    text = (
+        "本中心發現攻擊者使用 update.example.com 與 mail.example.com 作為中繼站。\n"
+        "update[.]example[.]com\nmail[.]example[.]com\nEmail attacker[@]example[.]com"
+    )
+    contexts = evaluate._contexts(text, {("url", "http://example.com")})
+    assert contexts[("url", "http://example.com")] == ["(without its scheme) Email attacker[@]example[.]com"]
+    text = "C2 為 evil-cdn.example.net、evil_cdn.example.net 與 -example.net\nexample[.]net 並列"
+    contexts = evaluate._contexts(text, {("url", "http://example.net")})
+    assert contexts[("url", "http://example.net")] == [
+        "(without its scheme) C2 為 evil-cdn.example.net、evil_cdn.example.net 與 -example.net"
+        " / (next line) example[.]net 並列",
+        "(without its scheme) (line before) C2 為 evil-cdn.example.net、evil_cdn.example.net 與 -example.net"
+        " / example[.]net 並列",
+    ]
+
+
+def test_a_line_with_a_value_twice_is_shown_once() -> None:
+    contexts = evaluate._contexts(
+        "C2 為 evil[.]example[.]com 與 evil[.]example[.]com", {("domain", "evil.example.com")}
+    )
+    assert contexts[("domain", "evil.example.com")] == ["C2 為 evil[.]example[.]com 與 evil[.]example[.]com"]
+
+
 def test_cut_urls_with_a_bare_host_keep_their_own_line() -> None:
     text = "本次事件共發現 45 個惡意樣本，透過 Windows API 呼叫。\nURL\thxxp://45【.】77【.】12【.】3/update/a.exe\n"
     text += "URL\thxxps://api【.】example【.】net/v1/beacon"

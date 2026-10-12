@@ -4111,9 +4111,10 @@ _VALUE_CHARS = {
     "domain": ("abcdefghijklmnopqrstuvwxyz0123456789.-_", "abcdefghijklmnopqrstuvwxyz0123456789.-_"),
     "email": ("abcdefghijklmnopqrstuvwxyz0123456789.-_+%", "abcdefghijklmnopqrstuvwxyz0123456789.-_"),
     "ipv4": ("0123456789.", "0123456789"),
-    # A URL's rest without its scheme stands on its own only when no "//" or path comes before it, and
-    # when it does not go on into a longer name ("dl" of "dl.example.net", as a cut URL gives it).
-    "bare": ("abcdefghijklmnopqrstuvwxyz0123456789/", "abcdefghijklmnopqrstuvwxyz0123456789.-_"),
+    # A URL's rest without its scheme stands on its own only when no "//", path or longer name comes
+    # before it ("example.com" of "update.example.com"; an e-mail address's "@" may), and when it does
+    # not go on into a longer name ("dl" of "dl.example.net", as a cut URL gives it).
+    "bare": ("abcdefghijklmnopqrstuvwxyz0123456789/.-_", "abcdefghijklmnopqrstuvwxyz0123456789.-_"),
 }
 
 
@@ -4191,7 +4192,11 @@ def _contexts(text: str, values: set[tuple[str, str]]) -> dict[tuple[str, str], 
         if kind == "url":
             return not (before[-1:].isascii() and before[-1:].isalpha())
         if kind == "bare":
-            return not (before[-1:] == "/" or _ascii_alnum(before[-1:]))
+            return not (
+                before[-1:] == "/"
+                or _ascii_alnum(before[-1:])
+                or (before[-1:] in (".", "-", "_") and _ascii_alnum(before[:1]))
+            )
         return not (
             before[-1:]
             and before[-1:] in before_chars
@@ -4205,10 +4210,15 @@ def _contexts(text: str, values: set[tuple[str, str]]) -> dict[tuple[str, str], 
         while position != -1 and len(found) < 3:
             line = bisect.bisect_right(starts, position) - 1
             offset = position - starts[line]
+            # A line with the value more than once gives the same window again; it is shown once.
             if bounded(kind, position, len(needle)):
-                found.append(place(line, offset, line, offset + len(needle)))
+                shown = place(line, offset, line, offset + len(needle))
+                if shown not in found:
+                    found.append(shown)
             elif len(inside) < 3:
-                inside.append(f"(inside a longer value) {place(line, offset, line, offset + len(needle))}")
+                shown = f"(inside a longer value) {place(line, offset, line, offset + len(needle))}"
+                if shown not in inside:
+                    inside.append(shown)
             position = joined.find(needle, position + 1)
         return found or inside
 

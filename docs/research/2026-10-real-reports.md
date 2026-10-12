@@ -491,8 +491,9 @@ before Chinese text, nor a footnote number before a URL) is shown only when no o
 the fallbacks below, is found, marked so. A value written in no single
 line, as a tool built it, gets the lines it spans across a line break, else (for a URL whose host
 is a whole name or address; one cut to a bare word or number, `http://45`, keeps its places inside
-the longer URL) the places where it stands without the scheme a tool added, else the places of its
-host, each marked so. There is one
+the longer URL) the places where it stands without the scheme a tool added (not as the end of a
+longer name: `example.com` of `update.example.com`), else the places of its host, each marked so. A
+line with the value more than once is shown once. There is one
 rater, and no agreement between raters is measured. Before the sheet is judged, nothing the tool
 prints pairs a value with the tool that found or dropped it: `run` prints counts only, and `score`
 lists TTPrism's dropped line-wrap fragments only once every value is judged. While any value is unjudged, `score`
