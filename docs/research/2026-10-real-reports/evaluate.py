@@ -349,12 +349,19 @@ def url_host(url: str) -> str:
     return host.lower().rstrip(".")
 
 
-def host_class(writing: str) -> str:
-    """The writing class of the host in a URL written so (as the review records the writing)."""
-    reading = ascii_reading(writing)
-    match = re.match(r"\s*[A-Za-z][A-Za-z0-9+.\-]*://([^/?#\s]*)", reading.text)
+def joined_writing(writing: str) -> str:
+    """A writing as a review records it, joined: without white space, nor the " / " that marks a line
+    break in it (a value that line breaks cut is written with one where each line ends)."""
+    return re.sub(r"\s+/\s+|\s+", "", writing)
+
+
+def _written_host(writing: str) -> tuple[Reading, int, int]:
+    """The reading of a URL's writing, joined, and where the URL's host is in it (after the scheme, or
+    at the start of a writing without one); (-1, -1) when it shows no host."""
+    reading = ascii_reading(joined_writing(writing))
+    match = re.match(r"(?:[A-Za-z][A-Za-z0-9+.\-]*://)?([^/?#\s]*)", reading.text)
     if match is None or not match.group(1):
-        return reading.writing_class(0, len(reading.text), url=True) if reading.text else CLASSES[0]
+        return reading, -1, -1
     start, end = match.span(1)
     start += match.group(1).rfind("@") + 1
     host = reading.text[start:end]
@@ -362,7 +369,21 @@ def host_class(writing: str) -> str:
         end = start + host.find("]") + 1 if "]" in host else end
     elif ":" in host:
         end = start + host.index(":")
-    return reading.writing_class(start, end) if end > start else CLASSES[0]
+    return (reading, start, end) if end > start else (reading, -1, -1)
+
+
+def host_class(writing: str) -> str:
+    """The writing class of the host in a URL written so (as the review records the writing)."""
+    reading, start, end = _written_host(writing)
+    if start < 0:
+        return reading.writing_class(0, len(reading.text), url=True) if reading.text else CLASSES[0]
+    return reading.writing_class(start, end)
+
+
+def written_host(writing: str) -> str:
+    """The host, in standard form, that a URL's writing shows ("" if none), as host_class reads it."""
+    reading, start, end = _written_host(writing)
+    return url_host("http://" + reading.text[start:end]) if start >= 0 else ""
 
 
 def is_host(host: str) -> bool:
@@ -2908,7 +2929,9 @@ REVIEW_HELP = (
     "fixes it and lists the warning in its 'warnings'), with a note. Corrections: add {type, value, "
     "writing, class, location, reason}; remove {type, value, reason}; ambiguous {type, readings (two or "
     "more), writing, location, reason, from_draft (whether a reading is a draft value)}. Values in "
-    "standard form; class is plain, ascii-defang or fullwidth-cjk-defang. To correct a draft value's "
+    "standard form; writings as the page shows them, with ' / ' where a line breaks (an added URL's "
+    "writing must show its host, whose class is read from it); class is plain, ascii-defang or "
+    "fullwidth-cjk-defang. To correct a draft value's "
     "writing, class or place, remove it and add it again. Then run `review`."
 )
 
@@ -3168,6 +3191,13 @@ def review_problems(
             problems.append(f"add: {entry['value']!r} is masked; masked values are left out")
         if entry["type"] == "url" and not normalise_url(entry["value"])[1]:
             problems.append(f"add: the URL {entry['value']!r} has no host")
+        # The class of an added URL's host is read from its writing, so the writing must show the host.
+        elif entry["type"] == "url" and (shown := written_host(entry["writing"])) != url_host(entry["value"]):
+            problems.append(
+                f"add: the writing {entry['writing']!r} does not show the host of {entry['value']!r} (it "
+                f"reads {shown!r}); write the URL from its scheme as the page shows it, with ' / ' where a "
+                "line breaks"
+            )
         added.add(key)
     pages, files = image_labels_required(draft)
     checked = review["pages_checked"]

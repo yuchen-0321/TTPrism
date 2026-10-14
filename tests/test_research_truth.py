@@ -1333,6 +1333,49 @@ def test_a_url_host_is_classed_by_its_plainest_writing_in_any_occurrence(
     assert truth["classes"]["domain"]["evil.example.net"] == "plain"
 
 
+def test_the_host_of_a_url_added_with_its_line_breaks_is_classed_by_its_writing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for writing, klass in (
+        ("hxxp://update- / check【.】example【.】c / om/files/a.exe", "fullwidth-cjk-defang"),
+        ("hxxp://update-\ncheck【.】example【.】c\nom/files/a.exe", "fullwidth-cjk-defang"),
+        ("hxxp://update- / check[.]example[.]com/files/a.exe", "ascii-defang"),
+        ("https:// / update-check.example.com【/】files/a.exe", "plain"),
+    ):
+        assert evaluate.host_class(writing) == klass, writing
+        assert evaluate.written_host(writing) == "update-check.example.com", writing
+    assert evaluate.host_class("hxxp://evil ． example ． com/a") == "fullwidth-cjk-defang"
+    text = "IOCs\n下載 hxxp://update-\ncheck【.】example【.】c\nom/files/a.exe\nEND"
+    entry = {**report(), "id": "t01"}
+    parts = [{"format": "pdf", "start": 0, "end": len(text)}]
+    result = evaluate.draft_truth(text, entry, parts)
+    remove = [
+        {"type": kind, "value": e["value"], "reason": "cut by the line break"}
+        for kind, entries in result["values"].items()
+        for e in entries
+    ]
+    added = {
+        "type": "url",
+        "value": "http://update-check.example.com/files/a.exe",
+        "writing": "hxxp://update- / check【.】example【.】c / om/files/a.exe",
+        "class": "fullwidth-cjk-defang",
+        "location": "page 1",
+        "reason": "wrapped in its cell",
+    }
+    entry["truth_review"] = complete_review(result, remove=remove, add=[added])
+    assert evaluate.review_problems(result, entry["truth_review"]) == []
+    monkeypatch.setattr(evaluate, "committed_manifest", lambda: {"sets": {"t": [entry]}})
+    truth = evaluate.load_reviewed_truth("t", entry, text, {"parts": parts})
+    assert truth["classes"]["domain"] == {"update-check.example.com": "fullwidth-cjk-defang"}
+    # A writing that does not show the host (a label before the scheme, a typo) is refused.
+    for writing in (
+        "URL：hxxp://update-check【.】example【.】com/files/a.exe",
+        "hxxp://update-chek【.】example【.】com/a",
+    ):
+        review = complete_review(result, remove=remove, add=[{**added, "writing": writing}])
+        assert any("does not show the host" in p for p in evaluate.review_problems(result, review)), writing
+
+
 def test_a_report_uses_full_width_writing_only_for_indicators() -> None:
     text = "版本７．０．０．１ 與 ｗｗｗ．example．org\nIOCs\nc2.example.net\nEND"
     entry = report()

@@ -411,8 +411,12 @@ images checked (every PDF page the appendix is on, and screenshots of each web p
 was checked, and a resolution for every warning — `confirmed`, or `corrected` by an `add`, `remove` or
 `ambiguous` entry that names it — each with a note; a resolution must be for the draft's own warning
 of that number (its kind, line and message). Every added value is in standard form and of the shape
-of its type, and records its writing as the page shows it, its writing class and where it stands; a
-draft value whose writing, class or place is wrong is removed and added again. A `remove` entry that
+of its type, and records its writing as the page shows it (with ` / ` where a line breaks, as in
+`hxxp://update- / check【.】example【.】com/a.exe`), its writing class and where it stands; a
+draft value whose writing, class or place is wrong is removed and added again. The class of an added
+URL's host is read from its writing, joined (white space and the ` / ` marks taken out), so `review`
+refuses an added URL whose writing does not show its host there; a form the reading does not know is
+written as the nearest form it knows, with the page's form in the reason. A `remove` entry that
 matches no value of the draft is an error, and so is one that removes a name which a URL kept in
 the truth has as its host (the URL would make it an indicator again), or that lists such a name as a
 reading of an `ambiguous` entry (the URL settles the reading). An `ambiguous` entry lists two
