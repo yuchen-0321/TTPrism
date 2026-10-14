@@ -4230,21 +4230,25 @@ def _contexts(text: str, values: set[tuple[str, str]]) -> dict[tuple[str, str], 
         )
 
     def in_lines(needle: str, kind: str) -> list[str]:
+        """One place per line (its first hit standing alone, else its first hit inside a longer
+        value), so that a line with the value several times, such as a web page's long paragraph,
+        does not crowd out the value's other lines."""
         found: list[str] = []
         inside: list[str] = []
+        inside_lines: set[int] = set()
         position = joined.find(needle) if needle else -1
         while position != -1 and len(found) < 3:
             line = bisect.bisect_right(starts, position) - 1
             offset = position - starts[line]
-            # A line with the value more than once gives the same window again; it is shown once.
             if bounded(kind, position, len(needle)):
-                shown = place(line, offset, line, offset + len(needle))
-                if shown not in found:
-                    found.append(shown)
-            elif len(inside) < 3:
-                shown = f"(inside a longer value) {place(line, offset, line, offset + len(needle))}"
-                if shown not in inside:
-                    inside.append(shown)
+                found.append(place(line, offset, line, offset + len(needle)))
+                if line + 1 >= len(starts):
+                    break
+                position = joined.find(needle, starts[line + 1])
+                continue
+            if len(inside) < 3 and line not in inside_lines:
+                inside_lines.add(line)
+                inside.append(f"(inside a longer value) {place(line, offset, line, offset + len(needle))}")
             position = joined.find(needle, position + 1)
         return found or inside
 

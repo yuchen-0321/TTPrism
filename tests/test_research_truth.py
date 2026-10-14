@@ -1929,6 +1929,32 @@ def test_a_line_with_a_value_twice_is_shown_once() -> None:
         "C2 為 evil[.]example[.]com 與 evil[.]example[.]com", {("domain", "evil.example.com")}
     )
     assert contexts[("domain", "evil.example.com")] == ["C2 為 evil[.]example[.]com 與 evil[.]example[.]com"]
+    # Also when it ends the line (its window then differs), and in a web page's long paragraph.
+    text = "C2 為 evil[.]example[.]com 與 evil[.]example[.]com\nC2 伺服器：evil[.]example[.]com"
+    contexts = evaluate._contexts(text, {("domain", "evil.example.com")})
+    assert contexts[("domain", "evil.example.com")] == [
+        "C2 為 evil[.]example[.]com 與 evil[.]example[.]com",
+        "C2 伺服器：evil[.]example[.]com",
+    ]
+    filler = "惡意程式偽裝成正常服務，" * 20
+    paragraph = f"樣本會連線 {{0}}，{filler}再次連線 {{0}}，{filler}最後連線 {{0}}。"
+    text = f"{paragraph}\n\n經分析，回連的 C2 伺服器為 {{0}}，已確認為惡意。\nIOC update[.]example[.]com"
+    text = text.format("update.example.com")
+    contexts = evaluate._contexts(text, {("domain", "update.example.com")})
+    places = contexts[("domain", "update.example.com")]
+    assert len(places) == 3
+    assert places[0].startswith("樣本會連線 update.example.com")
+    assert places[1] == "經分析，回連的 C2 伺服器為 update.example.com，已確認為惡意。"
+    assert places[2] == "IOC update[.]example[.]com"
+
+
+def test_a_value_inside_longer_values_gets_one_place_per_line() -> None:
+    text = "hxxp://evil.example.com/a 與 hxxp://evil.example.com/b\nhxxp://evil.example.com/c"
+    contexts = evaluate._contexts(text, {("url", "http://evil.example.com/")})
+    assert [c.split(") ", 1)[1][:30] for c in contexts[("url", "http://evil.example.com/")]] == [
+        "hxxp://evil.example.com/a 與 hx",
+        "hxxp://evil.example.com/c",
+    ]
 
 
 def test_cut_urls_with_a_bare_host_keep_their_own_line() -> None:

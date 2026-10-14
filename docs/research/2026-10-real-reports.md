@@ -494,7 +494,8 @@ line, as a tool built it, gets the lines it spans across a line break, else (for
 is a whole name or address; one cut to a bare word or number, `http://45`, keeps its places inside
 the longer URL) the places where it stands without the scheme a tool added (not as the end of a
 longer name: `example.com` of `update.example.com`), else the places of its host, each marked so. A
-line with the value more than once is shown once. There is one
+line with the value more than once is shown once, around the first of them (a web page's paragraph
+is one line), so that it does not crowd out the value's other lines. There is one
 rater, and no agreement between raters is measured. Before the sheet is judged, nothing the tool
 prints pairs a value with the tool that found or dropped it: `run` prints counts only, and `score`
 lists TTPrism's dropped line-wrap fragments only once every value is judged. While any value is unjudged, `score`
