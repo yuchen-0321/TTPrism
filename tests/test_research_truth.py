@@ -1342,9 +1342,20 @@ def test_the_host_of_a_url_added_with_its_line_breaks_is_classed_by_its_writing(
         ("hxxp://update- / check[.]example[.]com/files/a.exe", "ascii-defang"),
         ("https:// / update-check.example.com【/】files/a.exe", "plain"),
     ):
-        assert evaluate.host_class(writing) == klass, writing
-        assert evaluate.written_host(writing) == "update-check.example.com", writing
-    assert evaluate.host_class("hxxp://evil ． example ． com/a") == "fullwidth-cjk-defang"
+        assert evaluate.host_class(writing, "update-check.example.com") == klass, writing
+        assert evaluate.written_host(writing, "update-check.example.com") == "update-check.example.com"
+    # A writing from the text is one line: its spaces are pypdf's, and a spaced slash is the text's.
+    for writing in (
+        "hxxp://evil ． example ． com/a",
+        "hxxps ： / / evil【.】example【.】com/a",
+        "hxxps 【 : 】【 / 】【 / 】 evil 【.】 example 【.】 com/a.exe",
+    ):
+        assert evaluate.host_class(writing) == "fullwidth-cjk-defang", writing
+    # A writing the review added with a spaced slash in its scheme is read without taking it for a
+    # line break, since only that reading shows the URL's host.
+    writing = "hxxp : / / update【.】example【.】com/a"
+    assert evaluate.host_class(writing, "update.example.com") == "fullwidth-cjk-defang"
+    assert evaluate.written_host(writing, "update.example.com") == "update.example.com"
     text = "IOCs\n下載 hxxp://update-\ncheck【.】example【.】c\nom/files/a.exe\nEND"
     entry = {**report(), "id": "t01"}
     parts = [{"format": "pdf", "start": 0, "end": len(text)}]
@@ -1374,6 +1385,29 @@ def test_the_host_of_a_url_added_with_its_line_breaks_is_classed_by_its_writing(
     ):
         review = complete_review(result, remove=remove, add=[{**added, "writing": writing}])
         assert any("does not show the host" in p for p in evaluate.review_problems(result, review)), writing
+
+
+@pytest.mark.parametrize(
+    ("line", "expected"),
+    [
+        (
+            "IOC：hxxp://evil[.]example[.]com、198.51.100.23、attacker[@]example[.]org",
+            {
+                "url": ["http://evil.example.com"],
+                "ipv4": ["198.51.100.23"],
+                "email": ["attacker@example.org"],
+            },
+        ),
+        (
+            "hxxp://198.51.100.23:8080，ops@example.com",
+            {"url": ["http://198.51.100.23:8080"], "email": ["ops@example.com"]},
+        ),
+        ("tcp://198.51.100.23:80,ops@example.com", {"ipv4": ["198.51.100.23"], "email": ["ops@example.com"]}),
+        ("ldap://user:pw@ldap.example.com/x", {"domain": ["ldap.example.com"]}),
+    ],
+)
+def test_what_follows_a_url_is_not_taken_for_user_info(line: str, expected: dict[str, list[str]]) -> None:
+    assert values([line]) == expected
 
 
 def test_a_report_uses_full_width_writing_only_for_indicators() -> None:

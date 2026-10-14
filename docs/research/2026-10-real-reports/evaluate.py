@@ -349,19 +349,12 @@ def url_host(url: str) -> str:
     return host.lower().rstrip(".")
 
 
-def joined_writing(writing: str) -> str:
-    """A writing as a review records it, joined: without white space, nor the " / " that marks a line
-    break in it (a value that line breaks cut is written with one where each line ends)."""
-    return re.sub(r"\s+/\s+|\s+", "", writing)
-
-
-def _written_host(writing: str) -> tuple[Reading, int, int]:
-    """The reading of a URL's writing, joined, and where the URL's host is in it (after the scheme, or
-    at the start of a writing without one); (-1, -1) when it shows no host."""
-    reading = ascii_reading(joined_writing(writing))
+def _host_span(reading: Reading) -> tuple[int, int]:
+    """Where a URL's host is in the reading of its writing (after the scheme, or at the start of a
+    writing without one); (-1, -1) when it shows no host."""
     match = re.match(r"(?:[A-Za-z][A-Za-z0-9+.\-]*://)?([^/?#\s]*)", reading.text)
     if match is None or not match.group(1):
-        return reading, -1, -1
+        return -1, -1
     start, end = match.span(1)
     start += match.group(1).rfind("@") + 1
     host = reading.text[start:end]
@@ -369,20 +362,37 @@ def _written_host(writing: str) -> tuple[Reading, int, int]:
         end = start + host.find("]") + 1 if "]" in host else end
     elif ":" in host:
         end = start + host.index(":")
-    return (reading, start, end) if end > start else (reading, -1, -1)
+    return (start, end) if end > start else (-1, -1)
 
 
-def host_class(writing: str) -> str:
-    """The writing class of the host in a URL written so (as the review records the writing)."""
-    reading, start, end = _written_host(writing)
+def _written_host(writing: str, host: str | None) -> tuple[Reading, int, int]:
+    """The reading of a URL's writing, joined, and where the URL's host is in it. A writing from the
+    text (``host`` None) is one line, and only its white space is taken out. A writing a review added
+    is written with " / " where a line breaks, and ``host`` is its URL's host: the marks are taken out
+    too, unless only the reading with them shows the host (a spaced slash, "hxxps : / / …")."""
+    readings = []
+    for pattern in (r"\s+",) if host is None else (r"\s+/\s+|\s+", r"\s+"):
+        reading = ascii_reading(re.sub(pattern, "", writing))
+        start, end = _host_span(reading)
+        if host is None or (start >= 0 and url_host("http://" + reading.text[start:end]) == host):
+            return reading, start, end
+        readings.append((reading, start, end))
+    return readings[0]
+
+
+def host_class(writing: str, host: str | None = None) -> str:
+    """The writing class of the host in a URL written so: in the text, or as a review added it (then
+    ``host`` is the URL's host; see _written_host)."""
+    reading, start, end = _written_host(writing, host)
     if start < 0:
         return reading.writing_class(0, len(reading.text), url=True) if reading.text else CLASSES[0]
     return reading.writing_class(start, end)
 
 
-def written_host(writing: str) -> str:
-    """The host, in standard form, that a URL's writing shows ("" if none), as host_class reads it."""
-    reading, start, end = _written_host(writing)
+def written_host(writing: str, host: str) -> str:
+    """The host, in standard form, that the writing of a URL a review added shows ("" if none), as
+    host_class reads it; ``host`` is the URL's host."""
+    reading, start, end = _written_host(writing, host)
     return url_host("http://" + reading.text[start:end]) if start >= 0 else ""
 
 
@@ -1619,7 +1629,7 @@ _ROW_HEAD = re.compile(
     re.IGNORECASE,
 )
 _OTHER_SCHEME = re.compile(
-    r"(?<![A-Za-z0-9+.\-])[A-Za-z][A-Za-z0-9+.\-]{0,15}://(?:[^\s/@]{0,64}@)?", re.ASCII
+    r"(?<![A-Za-z0-9+.\-])[A-Za-z][A-Za-z0-9+.\-]{0,15}://(?:[A-Za-z0-9._~%!$&'()*+=:\-]{0,64}@)?", re.ASCII
 )
 
 
@@ -1754,8 +1764,10 @@ def line_values(reading: Reading) -> dict[str, list[dict[str, Any]]]:
         add("url", match.start(), match.start() + len(value), match.end())
         taken.append(match.span())
     # The scheme of another kind of URL (ldap://, tcp://, wss:// ...) and its user info are taken out,
-    # so that its host is found as a name or an address; such URLs are not values of their own.
-    rest = _blank(text, taken + [match.span() for match in _OTHER_SCHEME.finditer(text)])
+    # so that its host is found as a name or an address; such URLs are not values of their own. They
+    # are looked for outside the URLs found, so that what follows a URL is not taken for user info.
+    rest = _blank(text, taken)
+    rest = _blank(rest, [match.span() for match in _OTHER_SCHEME.finditer(rest)])
     # A full-width slash outside a URL separates alternatives ("198.51.100.23／evil.example.com"), so a
     # name after it is not a path.
     rest = "".join(" " if char == "/" and reading.kinds[i] == "cjk" else char for i, char in enumerate(rest))
@@ -3192,7 +3204,10 @@ def review_problems(
         if entry["type"] == "url" and not normalise_url(entry["value"])[1]:
             problems.append(f"add: the URL {entry['value']!r} has no host")
         # The class of an added URL's host is read from its writing, so the writing must show the host.
-        elif entry["type"] == "url" and (shown := written_host(entry["writing"])) != url_host(entry["value"]):
+        elif (
+            entry["type"] == "url"
+            and (shown := written_host(entry["writing"], host := url_host(entry["value"]))) != host
+        ):
             problems.append(
                 f"add: the writing {entry['writing']!r} does not show the host of {entry['value']!r} (it "
                 f"reads {shown!r}); write the URL from its scheme as the page shows it, with ' / ' where a "
@@ -3496,14 +3511,14 @@ def load_reviewed_truth(
     # host's class is how the host itself is written: the plainest of its own entry and its writing
     # in every occurrence of each of its URLs (in the draft's lines, or as the review added it). An
     # address that is a URL's host and a value of its own is classed the same way.
-    writings: dict[str, list[str]] = {}
+    writings: dict[str, list[tuple[str, bool]]] = {}  # (writing, whether the review added it)
     for line in draft["lines"]:
         for item in line["values"]:
             if item["type"] == "url":
-                writings.setdefault(item["value"], []).append(item["writing"])
+                writings.setdefault(item["value"], []).append((item["writing"], False))
     for entry in review["add"]:
         if entry["type"] == "url":
-            writings[entry["value"]] = [entry["writing"]]
+            writings[entry["value"]] = [(entry["writing"], True)]
     for entry in review["values"].get("url", []):
         host = url_host(entry["value"])
         if not host:
@@ -3513,7 +3528,8 @@ def load_reviewed_truth(
             truth["domain"].add(host)
         elif host not in truth[kind]:
             continue
-        written = [host_class(w) for w in writings.get(entry["value"], [entry["writing"]])]
+        recorded = writings.get(entry["value"], [(entry["writing"], True)])
+        written = [host_class(w, host if added else None) for w, added in recorded]
         classes[kind][host] = min([classes[kind].get(host, CLASSES[-1]), *written], key=CLASSES.index)
     ambiguous: dict[str, set[str]] = {}
     for entry in review["ambiguous"]:
@@ -4114,19 +4130,19 @@ def _writing_use(
     # when it is written so.
     in_appendix: set[tuple[str, str]] = set()
     written = [
-        (item["type"], item["value"], item["class"], item["writing"])
+        (item["type"], item["value"], item["class"], item["writing"], False)
         for line in truth["draft"]["lines"]
         for item in line["values"]
         if (item["type"], item["value"]) not in removed
-    ] + [(e["type"], e["value"], e["class"], e["writing"]) for e in truth["review"]["add"]]
-    for kind, value, klass, writing in written:
+    ] + [(e["type"], e["value"], e["class"], e["writing"], True) for e in truth["review"]["add"]]
+    for kind, value, klass, writing, added in written:
         if value not in lookup.truth.get(kind, ()):
             continue
         if klass == CLASSES[2]:
             in_appendix.add((kind, value))
         host = url_host(value) if kind == "url" else ""
         listed = host in lookup.truth.get("domain", ()) or host in lookup.url_hosts
-        if host and listed and host_class(writing) == CLASSES[2]:
+        if host and listed and host_class(writing, host if added else None) == CLASSES[2]:
             in_appendix.add(("domain" if not is_ip(host) else "ipv6" if ":" in host else "ipv4", host))
     in_body = {
         (kind, value)

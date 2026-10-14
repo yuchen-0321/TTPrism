@@ -344,8 +344,9 @@ value, or an ASCII digit before a spaced full-width dot (`1． 198.51.100.23`), 
 (`１．198.51.100.23` gives no address, `１．evil.example.com` gives `1.evil.example.com`), and the line
 gets a `loose-defang` warning; a full-width dot in a run of digits with at most two
 dots (a date or version, `１１３．０６．０１`, `v2．0`) or right before a URL does not give one. The
-scheme of another kind of URL (`ldap://`, `tcp://`, `wss://` …) and its user info are taken out, so
-that its host is found as a name or an address; such URLs are not values of their own. A name's
+scheme of another kind of URL (`ldap://`, `tcp://`, `wss://` …) and its user info (ASCII
+characters of user info before an `@`) are taken out, outside the URLs already found, so that its
+host is found as a name or an address; such URLs are not values of their own. A name's
 last label must be a top-level domain of `iana-tlds.txt` (the IANA list of 2026-09-30, copied from
 the PyPI package `tlds` 2026093003 because data.iana.org could not be reached; not TTPrism's list),
 which leaves out file names such as `setup.msi` (names under `.onion`, a special-use name that is not
@@ -414,8 +415,10 @@ of that number (its kind, line and message). Every added value is in standard fo
 of its type, and records its writing as the page shows it (with ` / ` where a line breaks, as in
 `hxxp://update- / check【.】example【.】com/a.exe`), its writing class and where it stands; a
 draft value whose writing, class or place is wrong is removed and added again. The class of an added
-URL's host is read from its writing, joined (white space and the ` / ` marks taken out), so `review`
-refuses an added URL whose writing does not show its host there; a form the reading does not know is
+URL's host is read from its writing, joined (white space and the ` / ` marks taken out, or only the
+white space when just that reading shows the host: a spaced slash in the scheme, `hxxp : / / …`;
+a writing the draft took from the text is one line, and only its white space is taken out), so
+`review` refuses an added URL whose writing does not show its host there; a form the reading does not know is
 written as the nearest form it knows, with the page's form in the reason. A `remove` entry that
 matches no value of the draft is an error, and so is one that removes a name which a URL kept in
 the truth has as its host (the URL would make it an indicator again), or that lists such a name as a
