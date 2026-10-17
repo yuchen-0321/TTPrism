@@ -248,7 +248,159 @@
      ]
     }
    },
-   "line_wrap_fragments": []
+   "line_wrap_fragments": [],
+   "recall": {
+    "ttprism-default": {
+     "url": [
+      4,
+      5
+     ],
+     "domain": [
+      4,
+      5
+     ],
+     "sha256": [
+      3,
+      3
+     ],
+     "url-host": [
+      4,
+      5
+     ]
+    },
+    "ttprism-raw": {
+     "url": [
+      5,
+      5
+     ],
+     "domain": [
+      5,
+      5
+     ],
+     "sha256": [
+      3,
+      3
+     ],
+     "url-host": [
+      5,
+      5
+     ]
+    },
+    "iocextract": {
+     "url": [
+      5,
+      5
+     ],
+     "domain": [
+      5,
+      5
+     ],
+     "sha256": [
+      3,
+      3
+     ],
+     "url-host": [
+      5,
+      5
+     ]
+    },
+    "ioc-finder": {
+     "url": [
+      5,
+      5
+     ],
+     "domain": [
+      5,
+      5
+     ],
+     "sha256": [
+      3,
+      3
+     ],
+     "url-host": [
+      5,
+      5
+     ]
+    }
+   },
+   "recall_by_class": {
+    "ttprism-default": {
+     "plain": [
+      11,
+      13
+     ]
+    },
+    "ttprism-raw": {
+     "plain": [
+      13,
+      13
+     ]
+    },
+    "iocextract": {
+     "plain": [
+      13,
+      13
+     ]
+    },
+    "ioc-finder": {
+     "plain": [
+      13,
+      13
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 10,
+     "a": 2,
+     "b": 0,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 13,
+     "a": 2,
+     "b": 0,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 8,
+     "a": 0,
+     "b": 0,
+     "c": 4,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 13,
+     "a": 2,
+     "b": 0,
+     "c": 5,
+     "masked": 0,
+     "ambiguous": 0
+    }
+   },
+   "unjudged_by_tool": {},
+   "lost_by_default_filtering": {
+    "url": [
+     "https://nvd.nist.gov/vuln/detail/cve-2024-32114"
+    ],
+    "domain": [
+     "nvd.nist.gov"
+    ],
+    "url-host": [
+     "nvd.nist.gov"
+    ]
+   },
+   "writing": {
+    "fullwidth_cjk_indicators_in_appendix": 0,
+    "fullwidth_cjk_indicators_in_body": 0,
+    "fullwidth_cjk_in_any_value": 0,
+    "uses_fullwidth_cjk": false
+   }
   },
   {
    "id": "tw02-cycraft-toxicpanda-2026",
@@ -465,7 +617,133 @@
      "sha256": []
     }
    },
-   "line_wrap_fragments": []
+   "line_wrap_fragments": [],
+   "recall": {
+    "ttprism-default": {
+     "url": [
+      13,
+      13
+     ],
+     "domain": [
+      12,
+      12
+     ],
+     "url-host": [
+      12,
+      12
+     ]
+    },
+    "ttprism-raw": {
+     "url": [
+      13,
+      13
+     ],
+     "domain": [
+      12,
+      12
+     ],
+     "url-host": [
+      12,
+      12
+     ]
+    },
+    "iocextract": {
+     "url": [
+      13,
+      13
+     ],
+     "domain": [
+      12,
+      12
+     ],
+     "url-host": [
+      12,
+      12
+     ]
+    },
+    "ioc-finder": {
+     "url": [
+      13,
+      13
+     ],
+     "domain": [
+      12,
+      12
+     ],
+     "url-host": [
+      12,
+      12
+     ]
+    }
+   },
+   "recall_by_class": {
+    "ttprism-default": {
+     "plain": [
+      25,
+      25
+     ]
+    },
+    "ttprism-raw": {
+     "plain": [
+      25,
+      25
+     ]
+    },
+    "iocextract": {
+     "plain": [
+      25,
+      25
+     ]
+    },
+    "ioc-finder": {
+     "plain": [
+      25,
+      25
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 24,
+     "a": 0,
+     "b": 1,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 25,
+     "a": 0,
+     "b": 2,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 13,
+     "a": 0,
+     "b": 1,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 25,
+     "a": 0,
+     "b": 2,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    }
+   },
+   "unjudged_by_tool": {},
+   "lost_by_default_filtering": {},
+   "writing": {
+    "fullwidth_cjk_indicators_in_appendix": 0,
+    "fullwidth_cjk_indicators_in_body": 0,
+    "fullwidth_cjk_in_any_value": 0,
+    "uses_fullwidth_cjk": false
+   }
   },
   {
    "id": "tw03-twcert-kev-2026",
@@ -722,7 +1000,147 @@
      "sha256": []
     }
    },
-   "line_wrap_fragments": []
+   "line_wrap_fragments": [],
+   "recall": {
+    "ttprism-default": {
+     "url": [
+      10,
+      15
+     ],
+     "domain": [
+      9,
+      10
+     ],
+     "url-host": [
+      9,
+      10
+     ]
+    },
+    "ttprism-raw": {
+     "url": [
+      15,
+      15
+     ],
+     "domain": [
+      10,
+      10
+     ],
+     "url-host": [
+      10,
+      10
+     ]
+    },
+    "iocextract": {
+     "url": [
+      15,
+      15
+     ],
+     "domain": [
+      10,
+      10
+     ],
+     "url-host": [
+      10,
+      10
+     ]
+    },
+    "ioc-finder": {
+     "url": [
+      14,
+      15
+     ],
+     "domain": [
+      10,
+      10
+     ],
+     "url-host": [
+      10,
+      10
+     ]
+    }
+   },
+   "recall_by_class": {
+    "ttprism-default": {
+     "plain": [
+      19,
+      25
+     ]
+    },
+    "ttprism-raw": {
+     "plain": [
+      25,
+      25
+     ]
+    },
+    "iocextract": {
+     "plain": [
+      25,
+      25
+     ]
+    },
+    "ioc-finder": {
+     "plain": [
+      24,
+      25
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 18,
+     "a": 0,
+     "b": 11,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 25,
+     "a": 0,
+     "b": 11,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 15,
+     "a": 0,
+     "b": 7,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 24,
+     "a": 0,
+     "b": 11,
+     "c": 3,
+     "masked": 0,
+     "ambiguous": 0
+    }
+   },
+   "unjudged_by_tool": {},
+   "lost_by_default_filtering": {
+    "url": [
+     "https://nvd.nist.gov/vuln/detail/CVE-2015-3306",
+     "https://nvd.nist.gov/vuln/detail/CVE-2015-5477",
+     "https://nvd.nist.gov/vuln/detail/CVE-2016-3081",
+     "https://nvd.nist.gov/vuln/detail/CVE-2021-3199",
+     "https://nvd.nist.gov/vuln/detail/CVE-2023-22894"
+    ],
+    "domain": [
+     "nvd.nist.gov"
+    ],
+    "url-host": [
+     "nvd.nist.gov"
+    ]
+   },
+   "writing": {
+    "fullwidth_cjk_indicators_in_appendix": 0,
+    "fullwidth_cjk_indicators_in_body": 0,
+    "fullwidth_cjk_in_any_value": 0,
+    "uses_fullwidth_cjk": false
+   }
   },
   {
    "id": "tw04-nics-policy-151-2026",
@@ -1249,7 +1667,564 @@
      "sha256": []
     }
    },
-   "line_wrap_fragments": []
+   "line_wrap_fragments": [],
+   "recall": {
+    "ttprism-default": {
+     "url": [
+      67,
+      70
+     ],
+     "domain": [
+      41,
+      44
+     ],
+     "url-host": [
+      40,
+      43
+     ]
+    },
+    "ttprism-raw": {
+     "url": [
+      70,
+      70
+     ],
+     "domain": [
+      44,
+      44
+     ],
+     "url-host": [
+      43,
+      43
+     ]
+    },
+    "iocextract": {
+     "url": [
+      70,
+      70
+     ],
+     "domain": [
+      43,
+      44
+     ],
+     "url-host": [
+      43,
+      43
+     ]
+    },
+    "ioc-finder": {
+     "url": [
+      70,
+      70
+     ],
+     "domain": [
+      44,
+      44
+     ],
+     "url-host": [
+      43,
+      43
+     ]
+    }
+   },
+   "recall_by_class": {
+    "ttprism-default": {
+     "plain": [
+      108,
+      114
+     ]
+    },
+    "ttprism-raw": {
+     "plain": [
+      114,
+      114
+     ]
+    },
+    "iocextract": {
+     "plain": [
+      113,
+      114
+     ]
+    },
+    "ioc-finder": {
+     "plain": [
+      114,
+      114
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 107,
+     "a": 0,
+     "b": 0,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 114,
+     "a": 0,
+     "b": 0,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 70,
+     "a": 0,
+     "b": 0,
+     "c": 1,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 114,
+     "a": 0,
+     "b": 0,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    }
+   },
+   "unjudged_by_tool": {},
+   "lost_by_default_filtering": {
+    "url": [
+     "https://csrc.nist.gov/pubs/sp/800/185/r1/ipd",
+     "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.1800-45.pdf",
+     "https://www.nist.gov/blogs/cybersecurity-insights/securing-water-and-wastewater-operational-technology-environments"
+    ],
+    "domain": [
+     "csrc.nist.gov",
+     "nvlpubs.nist.gov",
+     "www.nist.gov"
+    ],
+    "url-host": [
+     "csrc.nist.gov",
+     "nvlpubs.nist.gov",
+     "www.nist.gov"
+    ]
+   },
+   "writing": {
+    "fullwidth_cjk_indicators_in_appendix": 0,
+    "fullwidth_cjk_indicators_in_body": 0,
+    "fullwidth_cjk_in_any_value": 0,
+    "uses_fullwidth_cjk": false
+   }
   }
- ]
+ ],
+ "status": "final",
+ "judgements_sha256": "838bacf8ba5174e83380c39f22d2e7db17e4de63c7d61d07fffd05d0f1084e39",
+ "totals": {
+  "ttprism-default": {
+   "recall": {
+    "domain": [
+     66,
+     71,
+     0.9296
+    ],
+    "sha256": [
+     3,
+     3,
+     1.0
+    ],
+    "url": [
+     94,
+     103,
+     0.9126
+    ],
+    "url-host": [
+     65,
+     70,
+     0.9286
+    ]
+   },
+   "recall_by_class": {
+    "plain": [
+     163,
+     177,
+     0.9209
+    ]
+   },
+   "precision": {
+    "truth": 159,
+    "a": 2,
+    "b": 12,
+    "c": 0,
+    "masked": 0,
+    "ambiguous": 0,
+    "judged_total": 173,
+    "strict": 0.9306,
+    "lenient": 1.0
+   },
+   "errors": 0,
+   "unjudged": 0,
+   "status": "final"
+  },
+  "ttprism-raw": {
+   "recall": {
+    "domain": [
+     71,
+     71,
+     1.0
+    ],
+    "sha256": [
+     3,
+     3,
+     1.0
+    ],
+    "url": [
+     103,
+     103,
+     1.0
+    ],
+    "url-host": [
+     70,
+     70,
+     1.0
+    ]
+   },
+   "recall_by_class": {
+    "plain": [
+     177,
+     177,
+     1.0
+    ]
+   },
+   "precision": {
+    "truth": 177,
+    "a": 2,
+    "b": 13,
+    "c": 0,
+    "masked": 0,
+    "ambiguous": 0,
+    "judged_total": 192,
+    "strict": 0.9323,
+    "lenient": 1.0
+   },
+   "errors": 0,
+   "unjudged": 0,
+   "status": "final"
+  },
+  "iocextract": {
+   "recall": {
+    "domain": [
+     70,
+     71,
+     0.9859
+    ],
+    "sha256": [
+     3,
+     3,
+     1.0
+    ],
+    "url": [
+     103,
+     103,
+     1.0
+    ],
+    "url-host": [
+     70,
+     70,
+     1.0
+    ]
+   },
+   "recall_by_class": {
+    "plain": [
+     176,
+     177,
+     0.9944
+    ]
+   },
+   "precision": {
+    "truth": 106,
+    "a": 0,
+    "b": 8,
+    "c": 5,
+    "masked": 0,
+    "ambiguous": 0,
+    "judged_total": 119,
+    "strict": 0.8908,
+    "lenient": 0.958
+   },
+   "errors": 0,
+   "unjudged": 0,
+   "status": "final"
+  },
+  "ioc-finder": {
+   "recall": {
+    "domain": [
+     71,
+     71,
+     1.0
+    ],
+    "sha256": [
+     3,
+     3,
+     1.0
+    ],
+    "url": [
+     102,
+     103,
+     0.9903
+    ],
+    "url-host": [
+     70,
+     70,
+     1.0
+    ]
+   },
+   "recall_by_class": {
+    "plain": [
+     176,
+     177,
+     0.9944
+    ]
+   },
+   "precision": {
+    "truth": 176,
+    "a": 2,
+    "b": 13,
+    "c": 8,
+    "masked": 0,
+    "ambiguous": 0,
+    "judged_total": 199,
+    "strict": 0.8945,
+    "lenient": 0.9598
+   },
+   "errors": 0,
+   "unjudged": 0,
+   "status": "final"
+  }
+ },
+ "totals_by_format": {
+  "html": {
+   "ttprism-default": {
+    "recall": {
+     "domain": [
+      66,
+      71,
+      0.9296
+     ],
+     "sha256": [
+      3,
+      3,
+      1.0
+     ],
+     "url": [
+      94,
+      103,
+      0.9126
+     ],
+     "url-host": [
+      65,
+      70,
+      0.9286
+     ]
+    },
+    "recall_by_class": {
+     "plain": [
+      163,
+      177,
+      0.9209
+     ]
+    },
+    "precision": {
+     "truth": 159,
+     "a": 2,
+     "b": 12,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0,
+     "judged_total": 173,
+     "strict": 0.9306,
+     "lenient": 1.0
+    },
+    "errors": 0,
+    "unjudged": 0,
+    "status": "final"
+   },
+   "ttprism-raw": {
+    "recall": {
+     "domain": [
+      71,
+      71,
+      1.0
+     ],
+     "sha256": [
+      3,
+      3,
+      1.0
+     ],
+     "url": [
+      103,
+      103,
+      1.0
+     ],
+     "url-host": [
+      70,
+      70,
+      1.0
+     ]
+    },
+    "recall_by_class": {
+     "plain": [
+      177,
+      177,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 177,
+     "a": 2,
+     "b": 13,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0,
+     "judged_total": 192,
+     "strict": 0.9323,
+     "lenient": 1.0
+    },
+    "errors": 0,
+    "unjudged": 0,
+    "status": "final"
+   },
+   "iocextract": {
+    "recall": {
+     "domain": [
+      70,
+      71,
+      0.9859
+     ],
+     "sha256": [
+      3,
+      3,
+      1.0
+     ],
+     "url": [
+      103,
+      103,
+      1.0
+     ],
+     "url-host": [
+      70,
+      70,
+      1.0
+     ]
+    },
+    "recall_by_class": {
+     "plain": [
+      176,
+      177,
+      0.9944
+     ]
+    },
+    "precision": {
+     "truth": 106,
+     "a": 0,
+     "b": 8,
+     "c": 5,
+     "masked": 0,
+     "ambiguous": 0,
+     "judged_total": 119,
+     "strict": 0.8908,
+     "lenient": 0.958
+    },
+    "errors": 0,
+    "unjudged": 0,
+    "status": "final"
+   },
+   "ioc-finder": {
+    "recall": {
+     "domain": [
+      71,
+      71,
+      1.0
+     ],
+     "sha256": [
+      3,
+      3,
+      1.0
+     ],
+     "url": [
+      102,
+      103,
+      0.9903
+     ],
+     "url-host": [
+      70,
+      70,
+      1.0
+     ]
+    },
+    "recall_by_class": {
+     "plain": [
+      176,
+      177,
+      0.9944
+     ]
+    },
+    "precision": {
+     "truth": 176,
+     "a": 2,
+     "b": 13,
+     "c": 8,
+     "masked": 0,
+     "ambiguous": 0,
+     "judged_total": 199,
+     "strict": 0.8945,
+     "lenient": 0.9598
+    },
+    "errors": 0,
+    "unjudged": 0,
+    "status": "final"
+   }
+  }
+ },
+ "reports_using_fullwidth_cjk": [],
+ "lost_by_default_filtering": {
+  "tw01-teamt5-activemq-2026": {
+   "url": [
+    "https://nvd.nist.gov/vuln/detail/cve-2024-32114"
+   ],
+   "domain": [
+    "nvd.nist.gov"
+   ],
+   "url-host": [
+    "nvd.nist.gov"
+   ]
+  },
+  "tw03-twcert-kev-2026": {
+   "url": [
+    "https://nvd.nist.gov/vuln/detail/CVE-2015-3306",
+    "https://nvd.nist.gov/vuln/detail/CVE-2015-5477",
+    "https://nvd.nist.gov/vuln/detail/CVE-2016-3081",
+    "https://nvd.nist.gov/vuln/detail/CVE-2021-3199",
+    "https://nvd.nist.gov/vuln/detail/CVE-2023-22894"
+   ],
+   "domain": [
+    "nvd.nist.gov"
+   ],
+   "url-host": [
+    "nvd.nist.gov"
+   ]
+  },
+  "tw04-nics-policy-151-2026": {
+   "url": [
+    "https://csrc.nist.gov/pubs/sp/800/185/r1/ipd",
+    "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.1800-45.pdf",
+    "https://www.nist.gov/blogs/cybersecurity-insights/securing-water-and-wastewater-operational-technology-environments"
+   ],
+   "domain": [
+    "csrc.nist.gov",
+    "nvlpubs.nist.gov",
+    "www.nist.gov"
+   ],
+   "url-host": [
+    "csrc.nist.gov",
+    "nvlpubs.nist.gov",
+    "www.nist.gov"
+   ]
+  }
+ },
+ "unjudged": {}
 }
