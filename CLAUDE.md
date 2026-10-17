@@ -94,3 +94,9 @@ git-ignored `eval-data/`.
 - Do not push, tag, merge, publish or change repository settings without the maintainer's explicit
   approval. Releases are tagged and signed by the maintainer (`docs/maintainer-setup.md`).
 - Use the project's virtualenv; do not install interpreters or change the system environment.
+- After editing any file, rerun the relevant checks (at least `python -m pytest tests/test_repo_hygiene.py`
+  and the affected tests) before reporting the work as done.
+- Never put vulnerability details in public issues, pull requests or commit messages; fix reported
+  vulnerabilities through a private GitHub security advisory and follow the timeline in SECURITY.md.
+- When reporting CI status, use the run for the latest commit; a run cancelled by a newer push counts
+  as neither passed nor failed.
