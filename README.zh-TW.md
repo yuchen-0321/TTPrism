@@ -9,7 +9,7 @@
 
 > 本文件對應英文版 [README.md](https://github.com/yuchen-0321/TTPrism/blob/main/README.md)；兩者不一致時以英文版為準。
 
-**TTPrism 把一份威脅報告或一次沙箱執行結果，拆成其中的 IOC（入侵指標）和 MITRE ATT&CK（MITRE 整理的攻擊手法知識庫）技術**，就像稜鏡把光拆成光譜。中文報告裡全形與中日韓括號的 defang（把指標改寫成無法直接點擊的形式）寫法，例如 `evil【.】com`、`１９８．５１．１００．２３`，它也讀得懂。
+**TTPrism 把一份威脅報告或一次沙箱執行結果，拆成其中的 IOC（入侵指標）和 MITRE ATT&CK（MITRE 整理的攻擊手法知識庫）技術**，就像稜鏡把光拆成光譜。它也讀得懂全形與中日韓括號的 defang（把指標改寫成無法直接點擊的形式）寫法，例如 `evil【.】com`、`１９８．５１．１００．２３`。
 
 到目前為止評估過的 12 份真實中文 IOC 清單，沒有一份用全形或中日韓括號的 defang 寫法，所以 TTPrism 對這些寫法的處理只有合成測試支持；實測到的優勢是錯誤值較少，以及能修復被 PDF 斷行切開的值，recall（抓到的比例）和 ioc-finder 相同。詳見[評估](https://github.com/yuchen-0321/TTPrism/blob/main/README.zh-TW.md#評估)。
 
@@ -120,7 +120,7 @@ attack-technique,T1059.001,reported,PowerShell (reported as T1086)
 
 ### CAPE 報告轉成 ATT&CK 技術與 STIX
 
-CAPE 的 `report.json` 會自動偵測：
+CAPE 的 `report.json` 會自動偵測。下面的範例用的是 repo 裡的合成報告 [`tests/data/cape_report.json`](https://github.com/yuchen-0321/TTPrism/blob/main/tests/data/cape_report.json)，存成 `report.json`：
 
 ```sh
 $ ttprism extract report.json -f csv --include-reserved

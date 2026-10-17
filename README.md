@@ -8,8 +8,8 @@
 [![CI](https://github.com/yuchen-0321/TTPrism/actions/workflows/ci.yml/badge.svg)](https://github.com/yuchen-0321/TTPrism/actions/workflows/ci.yml)
 
 **TTPrism splits a threat report or sandbox run into its IOCs and MITRE ATT&CK techniques**, the
-way a prism splits light into a spectrum. It also reads the full-width and CJK-bracket defanging
-of Chinese-language reports (`evil【.】com`, `１９８．５１．１００．２３`).
+way a prism splits light into a spectrum. It also reads full-width and CJK-bracket defanging
+(`evil【.】com`, `１９８．５１．１００．２３`).
 
 On the 12 real Chinese-language IOC lists evaluated so far, none of which uses full-width or
 CJK-bracket defanging (so that handling is supported only by synthetic tests), TTPrism's measured
@@ -143,7 +143,8 @@ they are.
 
 ### Turn a CAPE report into ATT&CK techniques and STIX
 
-CAPE's `report.json` is detected automatically:
+CAPE's `report.json` is detected automatically. The examples below use the synthetic report in
+[`tests/data/cape_report.json`](https://github.com/yuchen-0321/TTPrism/blob/main/tests/data/cape_report.json), saved as `report.json`:
 
 ```sh
 $ ttprism extract report.json -f csv --include-reserved
