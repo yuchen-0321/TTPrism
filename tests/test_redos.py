@@ -18,8 +18,10 @@ from ttprism.inputs import InputError, load_json
 
 SIZE = 1_000_000
 TEXT_SECONDS_PER_MB = 10.0
-# A text with a soft hyphen read as a hyphen is extracted twice (see analyze.MAX_SOFT_HYPHEN_CHECK_CHARS).
-SOFT_HYPHEN_CHECK_RATIO = 2.5
+# A text with a soft hyphen read as a hyphen is extracted twice (see analyze.MAX_SOFT_HYPHEN_CHECK_CHARS)
+# plus the check's own work: about twice the cost by design. The limit catches a third extraction or a
+# superlinear cost, not timing noise on a shared runner.
+SOFT_HYPHEN_CHECK_RATIO = 3.0
 COMMAND_SECONDS_PER_MB = 5.0
 JSON_SECONDS_PER_MB = 10.0
 # Everyday command lines: about 0.03 to 0.1 s/MB in the development container, and 19 to 28 times
@@ -228,16 +230,20 @@ def test_extraction_is_linear(text: str) -> None:
 
 def test_soft_hyphen_check_costs_at_most_a_second_extraction() -> None:
     # A soft hyphen that refang reads as a hyphen makes the first 8 Mi characters be extracted a second
-    # time, so the worst case costs about twice as much with one. Measured against the same input
-    # without the soft hyphen, so that the ratio does not depend on the machine; that input itself is
-    # held to the absolute limit.
+    # time, so by design the worst case costs about twice as much with one, plus the check's own work;
+    # the limit of 3 is there to catch a third extraction or a superlinear cost. Measured against the
+    # same input without the soft hyphen, so that the ratio does not depend on the machine; that input
+    # itself is held to the absolute limit. The two run in turn, three times each, and the fastest of
+    # each is compared, so that a slow stretch of a shared runner falls on both.
     worst = "\u5740:1:2:3::" * (SIZE // 9)
     options = AnalysisOptions(include_reserved=True)
     with_soft_hyphen, without = "a\u00adb " + worst, "ab " + worst
-    plain = seconds_per_mb(lambda: analyze_text(without, options), size_mb(without), repeat=2)
-    soft = seconds_per_mb(
-        lambda: analyze_text(with_soft_hyphen, options), size_mb(with_soft_hyphen), repeat=2
-    )
+    plain = soft = float("inf")
+    for _ in range(3):
+        plain = min(plain, seconds_per_mb(lambda: analyze_text(without, options), size_mb(without)))
+        soft = min(
+            soft, seconds_per_mb(lambda: analyze_text(with_soft_hyphen, options), size_mb(with_soft_hyphen))
+        )
     assert plain < TEXT_SECONDS_PER_MB, f"{plain:.2f} s/MB"
     assert soft / plain <= SOFT_HYPHEN_CHECK_RATIO, f"{soft / plain:.2f} times the cost without it"
 

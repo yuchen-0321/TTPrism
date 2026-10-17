@@ -50,7 +50,7 @@ about twice as slow. Costs are per MB of input.
 | Rule matching | Worst pathological case in `tests/test_redos.py` | 0.9 s/MB |
 | IOC extraction | CAPE command lines, everyday content | 0.8–1.1 s/MB |
 | IOC extraction | Report text (`tests/data/report_zh.md` repeated) | 0.9–1.2 s/MB |
-| IOC extraction | Report text with a soft hyphen read as a hyphen: at most its first 8 Mi characters are extracted a second time | At most about twice the cost of the same text without it (the tests allow 2.5 times); 5.4 s/MB on the worst pathological case with one added |
+| IOC extraction | Report text with a soft hyphen read as a hyphen: at most its first 8 Mi characters are extracted a second time | At most about twice the cost of the same text without it (the tests allow 3 times); 5.4 s/MB on the worst pathological case with one added |
 | IOC extraction | Worst pathological case in `tests/test_redos.py` | 2.3–3.5 s/MB |
 
 At the default `--max-size` of 64 MiB, a whole analysis (`ttprism extract`, reading and decoding
