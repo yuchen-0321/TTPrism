@@ -29,7 +29,10 @@ interesting = st.sampled_from(
 )
 noisy_text = st.lists(st.one_of(interesting, st.characters()), max_size=400).map("".join)
 
-label = st.from_regex(r"[a-z0-9](?:[a-z0-9-]{0,10}[a-z0-9])?", fullmatch=True)
+# Three or more x's is how reports mask a label ("wiki.xxxx.com"); such names are dropped on purpose.
+label = st.from_regex(r"[a-z0-9](?:[a-z0-9-]{0,10}[a-z0-9])?", fullmatch=True).filter(
+    lambda s: len(s) < 3 or s.strip("x")
+)
 tld = st.sampled_from(sorted(t for t in known_tlds() if t.isalpha() and t not in FILE_EXTENSION_TLDS))
 domain = st.builds(lambda labels, t: ".".join([*labels, t]), st.lists(label, min_size=1, max_size=3), tld)
 ipv4 = st.tuples(*[st.integers(0, 255)] * 4).map(lambda t: ".".join(map(str, t)))
