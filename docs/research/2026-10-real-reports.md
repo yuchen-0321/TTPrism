@@ -5,10 +5,15 @@ measures TTPrism, iocextract and ioc-finder on public TLP:CLEAR reports, with ea
 appendix as the ground truth.
 
 **Status:** the Simplified-Chinese set (8 reports) was measured before and after fixing what it
-showed. The Traditional-Chinese set (4 reports, chosen by a rule committed before any candidate was
-looked at) was held out during the fixes and measured once, at the end (section 8): none of the 12
-reports uses full-width or CJK-bracket writing. Release 0.1.0 differs from 435bb97 in `src/` only by its
-version string, changed after the measurement. TTPrism (`src/`) is frozen
+showed. The Traditional-Chinese reports were held out during the fixes and measured at the end
+(section 8), in two sets: set 1 (4 reports, chosen by a rule committed before any candidate was
+looked at, under rulings that read "indicators" literally), of which only one is a real IOC list in
+Traditional Chinese, two are lists of reference links and one has an English body; and set 2 (4
+reports, chosen afterwards from the same lists under the maintainer's amended rule), all with a real
+IOC list in Traditional Chinese, one of them shared with set 1. None of these reports, nor the eight
+Simplified-Chinese ones, uses full-width or CJK-bracket writing; two of set 2 defang with ASCII `[.]`
+(8.7). Release 0.1.0 differs from 435bb97 in `src/` only by its version string, changed after the
+measurement of set 1. TTPrism (`src/`) is frozen
 at 435bb97, the commit at which the "after" results below were made, and does not change again for
 this evaluation. The evaluation tool was changed after 435bb97, before any Traditional-Chinese file
 was added: its ground truth is now a draft that a reviewer checks line by line against the rendered
@@ -610,6 +615,14 @@ git commit -m "Reviewed zh-TW ground truth"
 /tmp/eval/bin/python -I $E score zh-tw heldout
 ```
 
+zh-TW set 2 (8.4) is reproduced the same way with the set `zh-tw-2` in place of `zh-tw` (its files in
+`eval-data/zh-tw-2/`, its statistic in `defang-zh-tw-2.json`, its results in
+`results-zh-tw-2-heldout.json`). `score` writes the SHA-256 of `judgements.json` into the results;
+`results-zh-tw-heldout.json` keeps the hash of `judgements.json` as of cfa148b, before set 2's
+judgements were added to it. Scoring set 1 again with today's `judgements.json` gives the same totals
+(set 2's entries are under `zh-tw-2/` and are not read for set 1) but writes the newer hash, so the
+committed set-1 file is left as it was scored.
+
 The source files go in `eval-data/<set>/pdf/<id>.pdf` or `eval-data/<set>/html/<id>.html`; the
 results list the SHA-256 of each source file and of its text, and each step stops if what it was made
 from changed.
@@ -730,3 +743,93 @@ reference URLs with three hashes; only tw02's list is indicators of compromise a
 the evaluator (Claude, an AI assistant working for the maintainer), reviewed the ground truth
 before any tool ran and judged the values outside it without seeing which tool found them; there is
 no second rater.
+
+### 8.4 zh-TW set 2 (amended rule) — zh-TW 第二組（修正後規則）
+
+Set 1 and its numbers (8.1 to 8.3) stay as they were measured. After them, the maintainer amended
+the selection rule on 2026-10-17 (in the manifest: `selection_rule` → `zh-tw-2`): a report is in
+Traditional Chinese when its body and its IOC section are, and an IOC list holds values the report
+presents as indicators of malicious activity (C2 names and addresses, malicious URLs, sample hashes,
+sender addresses), not reference or vendor links or CVE IDs. The reason given: the set is to show
+how Taiwanese authors write indicators, and with 3–4 reports one report whose indicators stand in an
+English text, or one list of reference links, is a quarter of the set. Set 2 was then chosen
+mechanically from the same four sources' lists, in the same order, newest first, and each pick was
+checked by a second, independent reading. **These candidates had been opened, and their lists read,
+for set 1, and set 1 had been measured before set 2 was chosen**; set 2 is not a held-out sample in
+the sense set 1 was. The standing rulings that a compilation's reprint of an item is that item and
+that a URL only in an `href` is not in a list still hold; the rulings 1, 3 and 6 of 8.1 (literal
+indicators; a zh-TW version of an English post; `skipped` only for newer items) are replaced, and
+`skipped` → `zh-tw-2` lists all 1,315 items opened in the three passes, the newer ones with why they
+fail the amended rule (ActiveMQ: 正文為英文，僅前言為中文; the KEV reports: vendor and NVD links)
+and the older ones with the pass that opened them.
+
+| id | Source | Report | Published | Form | Its IOC list |
+|---|---|---|---|---|---|
+| tw05 | TeamT5 | 如何應對微軟 SharePoint 漏洞攻擊事件【TeamT5 詳解】 | 2025-07-24 | web page | 7 addresses (可疑的 IP 位址或網域名稱) |
+| tw02 | CyCraft | 【精選威脅情資】ToxicPanda 2.0 全球擴張… (as in set 1) | 2026-10-14 | web page | 12 URLs (C2 and phishing) |
+| tw06 | TWCERT/CC | CISA更新Medusa勒索軟體安全防護指引：揭露新型勒索手法與入侵指標 | 2026-09-30 | web page | 20 addresses, 1 name, 2 URLs, 6 MD5, 1 SHA-1, 2 SHA-256 |
+| tw07 | NICS | 113年第3季資通安全技術報告 | undated (PDF created 2024-11-19) | PDF | 表2 惡意域名列表: 10 names |
+
+TeamT5's newer posts have no IOC list in Traditional Chinese (ActiveMQ's is in its English body);
+TWCERT/CC's newer items are vulnerability bulletins and KEV reports with vendor and NVD links; NICS's
+web pages have no IOC list (its weekly report 16 ranks legitimate services such as `docs.google.com`
+by their share of phishing records, which the amended rule does not count), and its newest PDF with
+one is the 113Q3 technical report, which the first pass could not read (its file host was blocked
+then). Every source has a report, so TeamT5's next one (a CrazyHunter case study of 2025-03-18, with
+MD5 tables) is not used. tw02 is the same file, text, draft, review, tool outputs (checked equal)
+and judgements as in set 1. The TTPrism run is 435bb97's code with the version string 0.1.0, as the
+results' `meta` says.
+
+### 8.5 Results of set 2
+
+The review added two SHA-256 to tw06: TWCERT/CC's table holds each in one cell as two paragraphs,
+shown on two lines (33 and 31 hex digits), which the draft flagged (`hex-cut`). The four ground
+truths hold 61 values; with URL hosts, 75 (24 names, 27 addresses, 15 URLs, 6 MD5, 1 SHA-1, 2
+SHA-256; 14 URL hosts): 41 written plainly and 34 with ASCII `[.]` (tw06's addresses, name and URLs,
+and every name of tw07). 64 extracted values outside the truths were judged (tw02's 2 as in set 1,
+and 62 more: 6 a, 20 b, 36 c), and the totals are final.
+
+| Tool | Recall, all | plain | ASCII `[.]` | SHA-256 | Precision strict / lenient | a / b / c |
+| --- | --- | --- | --- | --- | --- | --- |
+| TTPrism raw | 73/75 | 39/41 | 34/34 | 0/2 | 0.804 / 1.000 | 4 / 19 / 0 |
+| TTPrism default | 73/75 | 39/41 | 34/34 | 0/2 | 0.811 / 1.000 | 4 / 18 / 0 |
+| iocextract | 71/75 | 39/41 | 32/34 | 0/2 | 0.521 / 0.625 | 0 / 10 / 36 |
+| ioc-finder | 73/75 | 39/41 | 34/34 | 0/2 | 0.784 / 0.990 | 6 / 21 / 1 |
+
+- No tool found tw06's two SHA-256 split over two lines of a cell; each half (33 and 31 hex digits)
+  is the length of no hash, so none reported a wrong value for them either.
+- iocextract's other misses are tw07's `www.unionadjs.com` and `union.macoms.la`, which follow
+  `連線惡意域名(` without a space: it read the Chinese text into the host
+  (`http://連線惡意域名www.unionadjs.com`, c). Its 36 c are mostly an `http://` it adds to every
+  defanged address and name written without a scheme (`143.110.243[.]154` → `http://143.110.243.154`),
+  as on zh-cn.
+- ioc-finder's one c is a reference URL in tw07 cut at a PDF line break.
+- TTPrism found every value but the two SHA-256 and reported no wrong value; its a values are tw07's
+  body indicators (`cdn.polyfill.io`, `www.googie-anaiytics.com`, `kuurza.com`, `polyfill.io`).
+  ioc-finder also found the two body URLs written without a scheme.
+- TTPrism's and ioc-finder's lower strict precision comes from tw07's reference list (b), not from
+  wrong values; iocextract's comes from both.
+
+### 8.6 Reading of set 2
+
+Descriptively, as 6.4 fixed: no report of set 2 uses full-width or CJK-bracket writing, and two of
+its four (tw06, TWCERT/CC's rendering of an FBI list, and tw07, NICS's technical report) defang
+every indicator with ASCII `[.]`. On these, TTPrism and ioc-finder found every defanged value and
+iocextract all but two; the differences between the tools are in wrong values (iocextract 36,
+ioc-finder 1, TTPrism 0) and in the two SHA-256 that a table cell split, which none found.
+
+### 8.7 Summary by report type
+
+- Simplified Chinese: eight reports with an IOC appendix (section 3); none uses full-width or
+  CJK-bracket writing.
+- Traditional Chinese, set 1 (8.1 to 8.3): four reports, of which one (tw02) is a real IOC list in
+  Traditional Chinese, two (tw03, tw04) are lists of reference links and one (tw01) has an English
+  body; none uses full-width or CJK-bracket writing.
+- Traditional Chinese, set 2 (8.4 to 8.6): four reports with a real IOC list in Traditional Chinese
+  (tw02 among them); none uses full-width or CJK-bracket writing, two use ASCII `[.]`.
+
+So none of the reports with a real IOC list evaluated so far (eight Simplified-Chinese, four
+Traditional-Chinese) writes indicators with full-width or CJK-bracket defanging, and **TTPrism's
+handling of those writings is supported only by synthetic tests**. Set 2 was chosen after set 1 had
+been measured, from candidates already looked at; one rater, the evaluator (Claude), reviewed every
+ground truth and judged every value outside them.

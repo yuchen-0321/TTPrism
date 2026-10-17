@@ -89,12 +89,14 @@ their advisory.
   Hypothesis fuzz tests.
 - Project governance: security policy with private vulnerability reporting, threat model,
   contributing guide, code of conduct, issue templates.
-- An evaluation on 12 public Chinese-language reports against iocextract and ioc-finder, with a
+- An evaluation on public Chinese-language reports against iocextract and ioc-finder, with a
   ground truth reviewed line by line before any tool ran and blinded judging
-  (`docs/research/2026-10-real-reports.md`): eight Simplified-Chinese reports, on which the fixes
-  above were made, and four Traditional-Chinese reports held out until the end. None of the 12
-  uses full-width or CJK-bracket defanging, so TTPrism's handling of those writings is supported
-  only by synthetic tests.
+  (`docs/research/2026-10-real-reports.md`): eight Simplified-Chinese reports with an IOC appendix,
+  on which the fixes above were made, and Traditional-Chinese reports held out until the end, in a
+  first set of four (one real IOC list, two lists of reference links, one English body) and a
+  second set of four real IOC lists in Traditional Chinese chosen under a corrected rule. None of
+  them uses full-width or CJK-bracket defanging (two of the second set use ASCII `[.]`), so
+  TTPrism's handling of those writings is supported only by synthetic tests.
 
 [Unreleased]: https://github.com/yuchen-0321/TTPrism/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/yuchen-0321/TTPrism/releases/tag/v0.1.0
