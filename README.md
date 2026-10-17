@@ -9,10 +9,13 @@ way a prism splits light into a spectrum.
   and from CAPE sandbox reports, and **undoes defanging**: ASCII forms (`evil[.]com`, `hxxp://`) and
   full-width and CJK forms (`evil【.】com`, `evil．com`, `attacker［＠］mail．com`,
   `１９８．５１．１００．２３`), which English-oriented extractors missed in a synthetic test. None of
-  the eight real Simplified-Chinese reports [evaluated so far](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-real-reports.md) used the full-width or CJK
-  forms; there TTPrism's measured advantages were repairing names and URLs split across PDF lines
-  and reporting fewer wrong values (partly through fixes made on those same reports; a held-out
-  Traditional-Chinese set is next).
+  the 12 real reports [evaluated so far](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-real-reports.md)
+  (eight Simplified-Chinese, four Traditional-Chinese) uses these writings; TTPrism's handling of
+  them is supported only by synthetic tests. On the Simplified-Chinese reports TTPrism's measured
+  advantages were repairing names and URLs split across PDF lines and reporting fewer wrong values
+  (partly through fixes made on those same reports); on the four Traditional-Chinese web pages,
+  held out from those fixes, all three tools found nearly every value and TTPrism reported no wrong
+  value.
 - **Maps sandbox behaviour to ATT&CK** with YAML rules for CAPE signatures, command lines, API call
   sequences and registry writes. It also **normalises outdated technique IDs**: about a quarter of
   the TTP labels in CAPE's signatures point at techniques ATT&CK has since revoked.
@@ -236,7 +239,7 @@ TLP:CLEAR material.
 
 ## 繁體中文簡介
 
-TTPrism 從威脅報告與沙箱輸出中抽取 IOC，並把行為對應到 MITRE ATT&CK。除了 ASCII 的 defang 寫法，它也處理全形與中日韓括號寫法，例如 `【.】`、`．`、`［＠］`、全形數字，在合成測試中，既有的英文導向工具漏掉了這些寫法（見[研究紀錄](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-existing-tools.md)）；它也能抽出緊接中文字、沒有空白的網域，這點 ioc-finder 同樣做得到。不過目前評估的 8 份真實簡體中文報告都沒有用到全形或中日韓括號寫法；在這些報告上，TTPrism 量到的優勢是修復被 PDF 斷行切開的網域與 URL，以及抽出較少錯誤的值，其中一部分來自針對同一批報告所做的修正，保留不看的繁體中文報告尚待量測（見[真實報告評估](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-real-reports.md)）。ATT&CK 對應規則以 YAML 撰寫，分析師不必寫程式也能貢獻。安全漏洞請依 [SECURITY.md](https://github.com/yuchen-0321/TTPrism/blob/main/SECURITY.md) 私下回報；誤報、漏報請開公開 issue。
+TTPrism 從威脅報告與沙箱輸出中抽取 IOC，並把行為對應到 MITRE ATT&CK。除了 ASCII 的 defang 寫法，它也處理全形與中日韓括號寫法，例如 `【.】`、`．`、`［＠］`、全形數字，在合成測試中，既有的英文導向工具漏掉了這些寫法（見[研究紀錄](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-existing-tools.md)）；它也能抽出緊接中文字、沒有空白的網域，這點 ioc-finder 同樣做得到。不過目前評估的 12 份真實報告都沒有用到這些寫法；TTPrism 對它們的處理只有合成測試支持。在 8 份簡體中文報告上，TTPrism 量到的優勢是修復被 PDF 斷行切開的網域與 URL，以及抽出較少錯誤的值，其中一部分來自針對同一批報告所做的修正；在修正期間保留不看的 4 份繁體中文網頁報告上，三個工具都幾乎抽到所有值，TTPrism 沒有抽出錯誤的值（見[真實報告評估](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-real-reports.md)）。ATT&CK 對應規則以 YAML 撰寫，分析師不必寫程式也能貢獻。安全漏洞請依 [SECURITY.md](https://github.com/yuchen-0321/TTPrism/blob/main/SECURITY.md) 私下回報；誤報、漏報請開公開 issue。
 
 ## License
 

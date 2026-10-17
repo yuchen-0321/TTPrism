@@ -5,8 +5,9 @@ measures TTPrism, iocextract and ioc-finder on public TLP:CLEAR reports, with ea
 appendix as the ground truth.
 
 **Status:** the Simplified-Chinese set (8 reports) was measured before and after fixing what it
-showed. The Traditional-Chinese set (3–4 reports chosen by the maintainer) is held out: it will be
-measured once, at the end, and has not been looked at during the fixes. TTPrism (`src/`) is frozen
+showed. The Traditional-Chinese set (4 reports, chosen by a rule committed before any candidate was
+looked at) was held out during the fixes and measured once, at the end (section 8): none of the 12
+reports uses full-width or CJK-bracket writing. TTPrism (`src/`) is frozen
 at 435bb97, the commit at which the "after" results below were made, and does not change again for
 this evaluation. The evaluation tool was changed after 435bb97, before any Traditional-Chinese file
 was added: its ground truth is now a draft that a reviewer checks line by line against the rendered
@@ -665,3 +666,66 @@ older than the report taken: TeamT5 60 (and the SharePoint post), TWCERT/CC 19 (
 article), NICS 688 in the first pass (its vulnerability bulletins, weekly reports and policy
 reports; a second agent read 1,073 pages to check it), CyCraft none. No PDF of any source was
 needed: every item that qualified first was a web page.
+
+### 8.2 Results
+
+The four reviewed ground truths hold 107 values, all written plainly: tw01 5 URLs and 3 SHA-256,
+tw02 13 URLs, tw03 15 URLs, tw04 70 URLs and 1 name. With the hosts of the URLs, the truth has 103
+URLs, 71 names and 3 SHA-256 (177 values; 70 URL hosts). The review changed one value: tw03's
+draft had read the git commit id inside a listed GitHub URL as a SHA-1, and the review removed it,
+since the list gives URLs. All four reports are web pages, so the PDF subtotal is empty. No tool
+failed on any report. 29 extracted values outside the truth were judged (2 a, 14 b, 13 c), and the
+totals are final.
+
+**How indicators are written (6.3.1).** No report uses full-width or CJK-bracket writing: every
+value of the four ground truths is plain, and no value in the bodies is written so. The defang
+statistic (`defang-zh-tw.json`) finds no defang style inside any value of the appendices; in the
+whole texts, the only one inside a value is ASCII `(at)`, three times, in TWCERT/CC's own mailboxes in
+its page footer (`cert_service(at)cert.org.tw`), and full-width forms occur only outside values
+(the full-width colon, slash and two full-width digits of the Chinese text). As 6.4 fixed in
+advance: **none of the 12 real reports evaluated so far uses these writings; TTPrism's handling of
+them is supported only by synthetic tests** (6.4 said "11–12" while the size of this set was open;
+it has four reports, so the count is 12).
+
+**The tools (6.3.2).**
+
+| Tool | Recall, all (plain) | Name | URL | URL host | SHA-256 | Precision strict / lenient | a / b / c |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| TTPrism raw | 177/177 | 71/71 | 103/103 | 70/70 | 3/3 | 0.932 / 1.000 | 2 / 13 / 0 |
+| TTPrism default | 163/177 | 66/71 | 94/103 | 65/70 | 3/3 | 0.931 / 1.000 | 2 / 12 / 0 |
+| iocextract | 176/177 | 70/71 | 103/103 | 70/70 | 3/3 | 0.891 / 0.958 | 0 / 8 / 5 |
+| ioc-finder | 176/177 | 71/71 | 102/103 | 70/70 | 3/3 | 0.895 / 0.960 | 2 / 13 / 8 |
+
+What each tool missed and got wrong, report by report:
+
+- TTPrism raw found every value. TTPrism default dropped the nine NIST and NVD reference URLs and
+  their hosts (tw01 1, tw03 5, tw04 3) through its default allowlist of reference sites, which is
+  what that list is for; it is reported, raw is the one compared.
+- iocextract missed the bare name `Reginfo.gov` (tw04); it has no extractor for names, which it
+  reports only as URL hosts. Its wrong values: three times of day in tw01's sample broker log and
+  one in tw04's date line read as IPv6 addresses (`08:44:38`, `04:20:17`), and a URL whose host is
+  the placeholder `<REDACTED>` (`http://<redacted>/evil.xml`).
+- ioc-finder missed the openSUSE reference URL whose path holds a mailing-list address
+  (`…/list/updates@lists.opensuse.org/message/…`, tw03): it cut the URL at the `@` and gave the
+  first part and a piece without its scheme (both c). Its other wrong values are names that are not
+  names: Java packages and source files in tw01's stack trace (`java.net`,
+  `org.apache.activemq.network`, `ResourceXmlApplicationContext.java`,
+  `XmlBeanDefinitionReader.java`), a path segment (`security-advisories.data`) and a file name in a
+  URL (`CHANGELOG.md`).
+- The two a values are tw01's C2 address and name in its body (`103.201.131.121`,
+  `www.fastsecurey.info`); TTPrism (both settings) and ioc-finder reported them, iocextract did
+  not.
+
+### 8.3 Reading
+
+Descriptively, as 6.4 fixed: four cases, no test. On these four web pages, where every value is
+written plainly and stands on its own line or between Chinese punctuation, all three tools found
+nearly every value; the differences are one value each for iocextract and ioc-finder, and the
+wrong values (iocextract 5, ioc-finder 8, TTPrism 0) come from log lines, stack traces and URLs
+with an `@` in the path. The set tests little of what TTPrism was built for: no report uses
+full-width or CJK-bracket defanging, none is a PDF, so no value is cut by a line break, and under
+the selection rulings of 8.1 the lists of tw03 and tw04 are reference lists and tw01's mixes
+reference URLs with three hashes; only tw02's list is indicators of compromise alone. One person,
+the evaluator (Claude, an AI assistant working for the maintainer), reviewed the ground truth
+before any tool ran and judged the values outside it without seeing which tool found them; there is
+no second rater.
