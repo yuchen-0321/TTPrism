@@ -7,7 +7,8 @@ appendix as the ground truth.
 **Status:** the Simplified-Chinese set (8 reports) was measured before and after fixing what it
 showed. The Traditional-Chinese set (4 reports, chosen by a rule committed before any candidate was
 looked at) was held out during the fixes and measured once, at the end (section 8): none of the 12
-reports uses full-width or CJK-bracket writing. TTPrism (`src/`) is frozen
+reports uses full-width or CJK-bracket writing. Release 0.1.0 differs from 435bb97 in `src/` only by its
+version string, changed after the measurement. TTPrism (`src/`) is frozen
 at 435bb97, the commit at which the "after" results below were made, and does not change again for
 this evaluation. The evaluation tool was changed after 435bb97, before any Traditional-Chinese file
 was added: its ground truth is now a draft that a reviewer checks line by line against the rendered

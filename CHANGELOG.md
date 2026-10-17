@@ -7,6 +7,8 @@ their advisory.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-17
+
 ### Added
 
 - IOC extraction from report text and Markdown: URLs, domains, IPv4, IPv6, email addresses,
@@ -87,3 +89,12 @@ their advisory.
   Hypothesis fuzz tests.
 - Project governance: security policy with private vulnerability reporting, threat model,
   contributing guide, code of conduct, issue templates.
+- An evaluation on 12 public Chinese-language reports against iocextract and ioc-finder, with a
+  ground truth reviewed line by line before any tool ran and blinded judging
+  (`docs/research/2026-10-real-reports.md`): eight Simplified-Chinese reports, on which the fixes
+  above were made, and four Traditional-Chinese reports held out until the end. None of the 12
+  uses full-width or CJK-bracket defanging, so TTPrism's handling of those writings is supported
+  only by synthetic tests.
+
+[Unreleased]: https://github.com/yuchen-0321/TTPrism/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/yuchen-0321/TTPrism/releases/tag/v0.1.0

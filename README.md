@@ -24,8 +24,8 @@ way a prism splits light into a spectrum.
   executed or fetched, and CSV output is safe to open in Excel. See the
   [threat model](https://github.com/yuchen-0321/TTPrism/blob/main/docs/threat-model.md).
 
-> **Status:** pre-release (0.1.0.dev). The first PyPI release (v0.1) is planned. Feedback and
-> detection-quality reports are very welcome.
+> **Status:** 0.1.0, the first release. Feedback and detection-quality reports are very
+> welcome.
 
 ## Install
 
