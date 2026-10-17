@@ -1129,6 +1129,152 @@
      "the tail of a value that wraps onto a new line in the PDF"
     ]
    }
+  },
+  "zh-tw/tw03-twcert-kev-2026": {
+   "url": {
+    "https://lists.opensuse.org/archives/list/updates": [
+     "c",
+     "a cut URL: the path stops at the '@' of 'updates@lists.opensuse.org' inside a reference URL"
+    ],
+    "https://www.cisa.gov/news-events/directives/bod-26-04-implementation-guidance-prioritizing-security-": [
+     "b",
+     "the third 相關連結 link as the page writes it (its own link text ends in 'security-'); a reference, not an indicator"
+    ],
+    "lists.opensuse.org/message/WE6YZRG5UVXMGQ7IVDRYBPIWV4M6UUGM/": [
+     "c",
+     "a piece of a reference URL cut at the '@' of the mailing-list address in its path, without its scheme"
+    ],
+    "https://www.cisa.gov/news-events/directives/bod-26-04-prioritizing-security-updates-based-risk": [
+     "b",
+     "the second 相關連結 link (CISA BOD 26-04); a reference, not an indicator"
+    ],
+    "https://www.cisa.gov/known-exploited-vulnerabilities-catalog": [
+     "b",
+     "the first 相關連結 link (CISA's KEV catalog); a reference, not an indicator"
+    ],
+    "https://kb.isc.org/article/AA-01272": [
+     "b",
+     "the ISC advisory URL archived inside a web.archive.org reference link; a reference, not an indicator"
+    ]
+   },
+   "domain": {
+    "kb.isc.org": [
+     "b",
+     "the host of the ISC advisory URL archived inside a web.archive.org reference link; a reference, not an indicator"
+    ],
+    "changelog.md": [
+     "c",
+     "the file name CHANGELOG.md in a reference URL's path, not a domain"
+    ],
+    "www.cisa.gov": [
+     "b",
+     "the host of CISA reference links in 相關連結; a reference, not an indicator"
+    ],
+    "cert.org.tw": [
+     "b",
+     "TWCERT/CC's own domain, in its footer mailboxes; not an indicator"
+    ]
+   },
+   "email": {
+    "int_report@cert.org.tw": [
+     "b",
+     "TWCERT/CC's own incident-report mailbox in the page footer, written int_report(at)cert.org.tw; not an indicator"
+    ],
+    "cve@cert.org.tw": [
+     "b",
+     "TWCERT/CC's own CVE mailbox in the page footer, written cve(at)cert.org.tw; not an indicator"
+    ],
+    "cert_service@cert.org.tw": [
+     "b",
+     "TWCERT/CC's own service mailbox in the page footer, written cert_service(at)cert.org.tw; not an indicator"
+    ],
+    "updates@lists.opensuse.org": [
+     "b",
+     "the openSUSE updates mailing-list address that stands in a reference URL's path; correct, not an indicator"
+    ]
+   },
+   "sha1": {
+    "903fe5ab7a275bd69c3c3346af2d21cf87ebeabf": [
+     "b",
+     "a git commit id (a SHA-1) inside a reference URL to the ONLYOFFICE changelog; correct, not an indicator"
+    ]
+   }
+  },
+  "zh-tw/tw01-teamt5-activemq-2026": {
+   "ipv6": {
+    "08:50:10": [
+     "c",
+     "a time of day (08:50:10) in a sample log line, not an IPv6 address"
+    ],
+    "08:44:39": [
+     "c",
+     "a time of day (08:44:39) in a sample log line, not an IPv6 address"
+    ],
+    "08:44:38": [
+     "c",
+     "a time of day (08:44:38) in a sample log line, not an IPv6 address"
+    ]
+   },
+   "ipv4": {
+    "103.201.131.121": [
+     "a",
+     "the C2 of the download script and of SoxAgent, named in the body (Exploitation Status)"
+    ]
+   },
+   "domain": {
+    "resourcexmlapplicationcontext.java": [
+     "c",
+     "a Java source file name in a sample stack trace, not a domain"
+    ],
+    "java.net": [
+     "c",
+     "the Java package java.net (java.net.ConnectException) in a sample log line, not a domain"
+    ],
+    "www.fastsecurey.info": [
+     "a",
+     "a C2 of SoxAgent, named in the body (Exploitation Status)"
+    ],
+    "org.apache.activemq.network": [
+     "c",
+     "the Java package org.apache.activemq.network in a sample log line, not a domain"
+    ],
+    "security-advisories.data": [
+     "c",
+     "the path segment security-advisories.data of a reference URL, not a domain"
+    ],
+    "xmlbeandefinitionreader.java": [
+     "c",
+     "a Java source file name in a sample stack trace, not a domain"
+    ]
+   },
+   "url": {
+    "http://<redacted>/evil.xml": [
+     "c",
+     "a URL whose host is the placeholder <REDACTED> in a sample log line; no real URL"
+    ]
+   }
+  },
+  "zh-tw/tw02-cycraft-toxicpanda-2026": {
+   "ipv4": {
+    "127.0.0.1": [
+     "b",
+     "the loopback address the ADB daemon listens on, named in the body; correct, not an indicator"
+    ]
+   },
+   "domain": {
+    "cycraft.ai": [
+     "b",
+     "the name of CyCraft's own blog (CyCraft.AI 部落格) in the site footer; the publisher's own, not an indicator"
+    ]
+   }
+  },
+  "zh-tw/tw04-nics-policy-151-2026": {
+   "ipv6": {
+    "04:20:17": [
+     "c",
+     "a time of day (下午 04:20:17) in the page's date line, not an IPv6 address"
+    ]
+   }
   }
  }
 }
