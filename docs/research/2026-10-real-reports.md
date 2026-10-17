@@ -11,10 +11,10 @@ at 435bb97, the commit at which the "after" results below were made, and does no
 this evaluation. The evaluation tool was changed after 435bb97, before any Traditional-Chinese file
 was added: its ground truth is now a draft that a reviewer checks line by line against the rendered
 pages before any tool runs, and the whole procedure for the held-out set, down to how its results
-will be read, is written down in section 6 in advance. The tool is frozen with that section; after
+will be read, is written down in section 6 in advance. The tool is frozen with that section (at bbd961b); after
 it, only the Traditional-Chinese entries of the manifest (selection rule first, before anyone looks
 at the files), the reviewed ground truth, the judgements, the documentation and the results may
-change.
+change, and the tool only to fix a bug found during the run, as 6.9 says.
 
 Everything needed to check the numbers is in [`2026-10-real-reports/`](2026-10-real-reports/):
 the script, the manifest (original URLs, appendix markers, the reviewed ground truth or, for zh-cn,
@@ -294,7 +294,7 @@ same regression.
 
 This section is committed before any Traditional-Chinese file is in the working directory; the commit
 at which the first one is added is the freeze commit of the evaluation tool, and nothing below changes
-after it.
+after it, except as 6.9 says for a bug in the evaluation tool found during the run.
 
 ### 6.1 Order of the steps
 
@@ -564,6 +564,17 @@ images is, and that a line of 6,000 characters is wrapped within the page's widt
   the host as a name). Removing a name that is the host of a URL kept in the truth, or listing it as
   a reading of an ambiguous entry, is refused by `review`, not silently undone.
 - Results made by another evaluate.py stop `score` without saying what changed.
+
+### 6.9 A bug in the evaluation tool found during the run
+
+The evaluation tool (`evaluate.py`) is frozen at bbd961b, and TTPrism (`src/`) stays at 435bb97. If
+the measurement of the held-out set shows a bug in the evaluation tool, the bug is fixed and a test
+is added for it, and everything is run again for all reports and all tools (from `text` on; a report
+whose draft the fix changes is reviewed again against the new draft before `run`). This note then
+records what was changed and the numbers before and after the fix. TTPrism itself is not changed.
+The maintainer's rule, as given on 2026-10-17:
+
+> 評估工具若在繁中執行中發現 bug，就修正並補測試，所有報告、所有工具全部重跑，修改內容和修正前後的數字都要寫進研究報告。TTPrism 本身不改。
 
 ## 7. Reproducing
 
