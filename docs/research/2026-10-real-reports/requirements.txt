@@ -1,0 +1,10 @@
+# Tools evaluated and the PDF-to-text converter, at the versions used for the results in this folder.
+# TTPrism itself is installed from the repository at the commit recorded in each results file, and every
+# installed distribution is listed in the results (meta.installed).
+pypdf==6.20.0
+iocextract==1.16.1
+ioc-finder==9.4.1
+# iocextract imports requests without declaring it.
+requests==2.34.2
+# pypdf decrypts PDFs with only an owner password (AES) with cryptography.
+cryptography==50.0.2

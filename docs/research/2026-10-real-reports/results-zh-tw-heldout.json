@@ -1,0 +1,2230 @@
+{
+ "meta": {
+  "set": "zh-tw",
+  "label": "heldout",
+  "date": "2026-10-17",
+  "ttprism_commit": "35e854e928a4cd0155863b9a4f62c1a65fbc2053",
+  "ttprism": {
+   "version": "0.1.0.dev0",
+   "path": "src/ttprism/__init__.py"
+  },
+  "versions": {
+   "ttprism": "0.1.0.dev0",
+   "iocextract": "1.16.1",
+   "ioc-finder": "9.4.1",
+   "pypdf": "6.20.0",
+   "cryptography": "50.0.2"
+  },
+  "python": "3.11.17 (main, Oct  1 2026, 15:41:07) [GCC 13.3.0]",
+  "html_parser_sha256": {
+   "html/parser.py": "3a02c73b41c1095a7cddb8b824387ffb875b19f37e0e6f591753d7a88a2fe52a",
+   "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
+   "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
+  },
+  "evaluate_sha256": "84edeb1c5e812aa558e00438c2e3b04004979e6a9d781e684a62cf0294ac8d14",
+  "tlds_sha256": "d1f1b45f581a52af1bca531b6c68a159c2b71ced087d04bebb6770f72130cb2f",
+  "installed": [
+   "PyYAML==6.0.3",
+   "Pygments==2.21.0",
+   "certifi==2026.7.22",
+   "cffi==2.1.1",
+   "charset-normalizer==3.5.2",
+   "click==8.5.0",
+   "cryptography==50.0.2",
+   "hypothesis==6.168.5",
+   "idna==3.20",
+   "iniconfig==2.3.1",
+   "ioc_fanger==5.1.1",
+   "ioc_finder==9.4.1",
+   "iocextract==1.16.1",
+   "packaging==26.3",
+   "pluggy==1.6.0",
+   "pycparser==3.11",
+   "pyparsing==3.3.3",
+   "pypdf==6.20.0",
+   "pytest==9.1.1",
+   "regex==2026.9.29",
+   "requests==2.34.2",
+   "sortedcontainers==2.4.0",
+   "ttprism==0.1.0.dev0",
+   "urllib3==2.8.0"
+  ],
+  "ttprism_settings": {
+   "ttprism-default": "(defaults)",
+   "ttprism-raw": "--include-reserved --no-default-allowlist"
+  }
+ },
+ "reports": [
+  {
+   "id": "tw01-teamt5-activemq-2026",
+   "original_url": "https://teamt5.org/tw/blog/alert-exploitation-of-cve-2026-34197-in-apache-active-mq",
+   "format": "html",
+   "source_sha256": "2981639fde2cc995fcb34b339a549f900c640b19ed81d74de0cc27375fd4204d",
+   "text_sha256": "d49d44de206deb49013dea2a74f65bd1837fdd5553d0ff2dc9a9aeee9a6f20f9",
+   "conversion": {
+    "format": "html",
+    "python": "3.11.17 (main, Oct  1 2026, 15:41:07) [GCC 13.3.0]",
+    "html_parser_sha256": {
+     "html/parser.py": "3a02c73b41c1095a7cddb8b824387ffb875b19f37e0e6f591753d7a88a2fe52a",
+     "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
+     "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
+    },
+    "evaluate_sha256": "84edeb1c5e812aa558e00438c2e3b04004979e6a9d781e684a62cf0294ac8d14",
+    "conversion_inputs_sha256": "8398bb849905ce4a402ccf81b086a018a9561053d25de4676c1fb45746c99216",
+    "commit": "9b665f5f113fd3ce2ae7aeb9928fed56a099af27",
+    "decoding": {
+     "encoding": "utf-8",
+     "chosen_by": "valid UTF-8",
+     "declared": {
+      "http": "utf-8",
+      "meta": "utf-8"
+     },
+     "mismatch": []
+    },
+    "method": "evaluate.py decode_html and HtmlText (Python standard library html.parser); rules in their docstrings",
+    "hidden_characters_kept": 0,
+    "soft_hyphens_deleted": 0,
+    "replacement_characters": 0,
+    "unclosed_dropped_elements": [],
+    "parts": [
+     {
+      "format": "html",
+      "file": "html/tw01-teamt5-activemq-2026.html",
+      "start": 0,
+      "end": 10678
+     }
+    ]
+   },
+   "draft_sha256": "b967555d66c7c1e1b9bca4fe8b6cf72a636e8ae51ed6c68e129d60659755d0a3",
+   "review_sha256": "f5c1593003f67d7c8f121e314b806a0f80996b8af6512d59f53dde26bd90e207",
+   "truth_counts": {
+    "url": 5,
+    "domain": 5,
+    "sha256": 3
+   },
+   "truth_classes": {
+    "plain": 13,
+    "ascii-defang": 0,
+    "fullwidth-cjk-defang": 0
+   },
+   "left_out": {
+    "masked": {},
+    "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {
+      "allowlisted": 3,
+      "filename_like_domain": 3
+     }
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {
+      "filename_like_domain": 3
+     }
+    }
+   },
+   "errors": {},
+   "unparseable_urls": {
+    "iocextract": [
+     "http://<redacted>/evil.xml"
+    ]
+   },
+   "outputs": {
+    "ttprism-default": {
+     "url": [
+      "https://activemq.apache.org/security-advisories.data/CVE-2026-34197-announcement.txt",
+      "https://github.com/DEVSECURITYSPRO/CVE-2026-34197",
+      "https://horizon3.ai/attack-research/disclosures/cve-2026-34197-activemq-rce-jolokia/",
+      "https://www.fortiguard.com/encyclopedia/ips/60672"
+     ],
+     "domain": [
+      "activemq.apache.org",
+      "horizon3.ai",
+      "www.fastsecurey.info",
+      "www.fortiguard.com"
+     ],
+     "ipv4": [
+      "103.201.131.121"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [],
+     "sha1": [],
+     "sha256": [
+      "60521e103bb134aea3169da6d3dfdcdae8e4d5e82df265a377b648bae39aca5f",
+      "968ec5e0c4aa7e15f0a04c5e7f96393aa7cbf12d2125dfe7dd20351408dd0615",
+      "c5eacffa5c909209f97f720740802024761c432e8ebbd2d6e5b30fe0e79e19de"
+     ]
+    },
+    "ttprism-raw": {
+     "url": [
+      "https://activemq.apache.org/security-advisories.data/CVE-2026-34197-announcement.txt",
+      "https://github.com/DEVSECURITYSPRO/CVE-2026-34197",
+      "https://horizon3.ai/attack-research/disclosures/cve-2026-34197-activemq-rce-jolokia/",
+      "https://nvd.nist.gov/vuln/detail/cve-2024-32114",
+      "https://www.fortiguard.com/encyclopedia/ips/60672"
+     ],
+     "domain": [
+      "activemq.apache.org",
+      "github.com",
+      "horizon3.ai",
+      "nvd.nist.gov",
+      "www.fastsecurey.info",
+      "www.fortiguard.com"
+     ],
+     "ipv4": [
+      "103.201.131.121"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [],
+     "sha1": [],
+     "sha256": [
+      "60521e103bb134aea3169da6d3dfdcdae8e4d5e82df265a377b648bae39aca5f",
+      "968ec5e0c4aa7e15f0a04c5e7f96393aa7cbf12d2125dfe7dd20351408dd0615",
+      "c5eacffa5c909209f97f720740802024761c432e8ebbd2d6e5b30fe0e79e19de"
+     ]
+    },
+    "iocextract": {
+     "url": [
+      "http://<redacted>/evil.xml",
+      "https://activemq.apache.org/security-advisories.data/CVE-2026-34197-announcement.txt",
+      "https://github.com/DEVSECURITYSPRO/CVE-2026-34197",
+      "https://horizon3.ai/attack-research/disclosures/cve-2026-34197-activemq-rce-jolokia/",
+      "https://nvd.nist.gov/vuln/detail/cve-2024-32114",
+      "https://www.fortiguard.com/encyclopedia/ips/60672"
+     ],
+     "domain": [],
+     "ipv4": [],
+     "ipv6": [
+      "08:44:38",
+      "08:44:39",
+      "08:50:10"
+     ],
+     "email": [],
+     "md5": [],
+     "sha1": [],
+     "sha256": [
+      "60521e103bb134aea3169da6d3dfdcdae8e4d5e82df265a377b648bae39aca5f",
+      "968ec5e0c4aa7e15f0a04c5e7f96393aa7cbf12d2125dfe7dd20351408dd0615",
+      "c5eacffa5c909209f97f720740802024761c432e8ebbd2d6e5b30fe0e79e19de"
+     ]
+    },
+    "ioc-finder": {
+     "url": [
+      "https://activemq.apache.org/security-advisories.data/CVE-2026-34197-announcement.txt",
+      "https://github.com/DEVSECURITYSPRO/CVE-2026-34197",
+      "https://horizon3.ai/attack-research/disclosures/cve-2026-34197-activemq-rce-jolokia/",
+      "https://nvd.nist.gov/vuln/detail/cve-2024-32114",
+      "https://www.fortiguard.com/encyclopedia/ips/60672"
+     ],
+     "domain": [
+      "activemq.apache.org",
+      "github.com",
+      "horizon3.ai",
+      "java.net",
+      "nvd.nist.gov",
+      "org.apache.activemq.network",
+      "resourcexmlapplicationcontext.java",
+      "security-advisories.data",
+      "www.fastsecurey.info",
+      "www.fortiguard.com",
+      "xmlbeandefinitionreader.java"
+     ],
+     "ipv4": [
+      "103.201.131.121"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [],
+     "sha1": [],
+     "sha256": [
+      "60521e103bb134aea3169da6d3dfdcdae8e4d5e82df265a377b648bae39aca5f",
+      "968ec5e0c4aa7e15f0a04c5e7f96393aa7cbf12d2125dfe7dd20351408dd0615",
+      "c5eacffa5c909209f97f720740802024761c432e8ebbd2d6e5b30fe0e79e19de"
+     ]
+    }
+   },
+   "line_wrap_fragments": [],
+   "recall": {
+    "ttprism-default": {
+     "url": [
+      4,
+      5
+     ],
+     "domain": [
+      4,
+      5
+     ],
+     "sha256": [
+      3,
+      3
+     ],
+     "url-host": [
+      4,
+      5
+     ]
+    },
+    "ttprism-raw": {
+     "url": [
+      5,
+      5
+     ],
+     "domain": [
+      5,
+      5
+     ],
+     "sha256": [
+      3,
+      3
+     ],
+     "url-host": [
+      5,
+      5
+     ]
+    },
+    "iocextract": {
+     "url": [
+      5,
+      5
+     ],
+     "domain": [
+      5,
+      5
+     ],
+     "sha256": [
+      3,
+      3
+     ],
+     "url-host": [
+      5,
+      5
+     ]
+    },
+    "ioc-finder": {
+     "url": [
+      5,
+      5
+     ],
+     "domain": [
+      5,
+      5
+     ],
+     "sha256": [
+      3,
+      3
+     ],
+     "url-host": [
+      5,
+      5
+     ]
+    }
+   },
+   "recall_by_class": {
+    "ttprism-default": {
+     "plain": [
+      11,
+      13
+     ]
+    },
+    "ttprism-raw": {
+     "plain": [
+      13,
+      13
+     ]
+    },
+    "iocextract": {
+     "plain": [
+      13,
+      13
+     ]
+    },
+    "ioc-finder": {
+     "plain": [
+      13,
+      13
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 10,
+     "a": 2,
+     "b": 0,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 13,
+     "a": 2,
+     "b": 0,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 8,
+     "a": 0,
+     "b": 0,
+     "c": 4,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 13,
+     "a": 2,
+     "b": 0,
+     "c": 5,
+     "masked": 0,
+     "ambiguous": 0
+    }
+   },
+   "unjudged_by_tool": {},
+   "lost_by_default_filtering": {
+    "url": [
+     "https://nvd.nist.gov/vuln/detail/cve-2024-32114"
+    ],
+    "domain": [
+     "nvd.nist.gov"
+    ],
+    "url-host": [
+     "nvd.nist.gov"
+    ]
+   },
+   "writing": {
+    "fullwidth_cjk_indicators_in_appendix": 0,
+    "fullwidth_cjk_indicators_in_body": 0,
+    "fullwidth_cjk_in_any_value": 0,
+    "uses_fullwidth_cjk": false
+   }
+  },
+  {
+   "id": "tw02-cycraft-toxicpanda-2026",
+   "original_url": "https://www.cycraft.com/post/toxicpanda-20261014",
+   "format": "html",
+   "source_sha256": "b4504a9eea37f066861cf810cb59c9fd77d5966b06c630f942d0932ce1636a06",
+   "text_sha256": "7c05ec6704362dd812dd1263cc38eb36ba217a375d815fd250e962083350285f",
+   "conversion": {
+    "format": "html",
+    "python": "3.11.17 (main, Oct  1 2026, 15:41:07) [GCC 13.3.0]",
+    "html_parser_sha256": {
+     "html/parser.py": "3a02c73b41c1095a7cddb8b824387ffb875b19f37e0e6f591753d7a88a2fe52a",
+     "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
+     "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
+    },
+    "evaluate_sha256": "84edeb1c5e812aa558e00438c2e3b04004979e6a9d781e684a62cf0294ac8d14",
+    "conversion_inputs_sha256": "8398bb849905ce4a402ccf81b086a018a9561053d25de4676c1fb45746c99216",
+    "commit": "9b665f5f113fd3ce2ae7aeb9928fed56a099af27",
+    "decoding": {
+     "encoding": "utf-8",
+     "chosen_by": "valid UTF-8",
+     "declared": {
+      "http": "utf-8",
+      "meta": "utf-8"
+     },
+     "mismatch": []
+    },
+    "method": "evaluate.py decode_html and HtmlText (Python standard library html.parser); rules in their docstrings",
+    "hidden_characters_kept": 0,
+    "soft_hyphens_deleted": 0,
+    "replacement_characters": 0,
+    "unclosed_dropped_elements": [],
+    "parts": [
+     {
+      "format": "html",
+      "file": "html/tw02-cycraft-toxicpanda-2026.html",
+      "start": 0,
+      "end": 12648
+     }
+    ]
+   },
+   "draft_sha256": "0f7541dc9112bd6575d8b548836fffc6b62e80bc6e3d21860fc7f5a9b2d67030",
+   "review_sha256": "ac68dc4aded4222db0165a28f957cd85cdb356a4745b857fae3b1fd3ba20b17b",
+   "truth_counts": {
+    "url": 13,
+    "domain": 12
+   },
+   "truth_classes": {
+    "plain": 25,
+    "ascii-defang": 0,
+    "fullwidth-cjk-defang": 0
+   },
+   "left_out": {
+    "masked": {},
+    "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {
+      "allowlisted": 1,
+      "reserved": 1
+     }
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {}
+    }
+   },
+   "errors": {},
+   "unparseable_urls": {},
+   "outputs": {
+    "ttprism-default": {
+     "url": [
+      "http://xcmtxc1oam1.s3.ap-south-1.amazonaws.com",
+      "https://api.telegram.org/file/bot8331125434:AAEsxWq7_xZWUjN0IFLO3fTU54ZCBnZS4YI/documents/file_22526.apk",
+      "https://api.telegram.org/file/bot8978201863:AAG4vnsJVOAbABfF6dXhhM8YJ14pd5LaxVw/documents/file_1389.apk",
+      "https://cctvv2.com/panel",
+      "https://ejjsi5fbl.s3.ap-southeast-1.amazonaws.com/",
+      "https://g8688808.com",
+      "https://github.com/Zimperium/IOC/tree/master/2026-08-ToxicPanda",
+      "https://googleplaydown.com/dUyFpz0Ai7Sp",
+      "https://osy4u8pmu.s3.ap-southeast-1.amazonaws.com/",
+      "https://svhc5arco.s3.ap-southeast-1.amazonaws.com/",
+      "https://ui920fht4m1.s3.mx-central-1.amazonaws.com/",
+      "https://www.v17001.com/panel",
+      "https://www.w17907.com/panel"
+     ],
+     "domain": [
+      "api.telegram.org",
+      "cctvv2.com",
+      "cycraft.ai",
+      "ejjsi5fbl.s3.ap-southeast-1.amazonaws.com",
+      "g8688808.com",
+      "googleplaydown.com",
+      "osy4u8pmu.s3.ap-southeast-1.amazonaws.com",
+      "svhc5arco.s3.ap-southeast-1.amazonaws.com",
+      "ui920fht4m1.s3.mx-central-1.amazonaws.com",
+      "www.v17001.com",
+      "www.w17907.com",
+      "xcmtxc1oam1.s3.ap-south-1.amazonaws.com"
+     ],
+     "ipv4": [],
+     "ipv6": [],
+     "email": [],
+     "md5": [],
+     "sha1": [],
+     "sha256": []
+    },
+    "ttprism-raw": {
+     "url": [
+      "http://xcmtxc1oam1.s3.ap-south-1.amazonaws.com",
+      "https://api.telegram.org/file/bot8331125434:AAEsxWq7_xZWUjN0IFLO3fTU54ZCBnZS4YI/documents/file_22526.apk",
+      "https://api.telegram.org/file/bot8978201863:AAG4vnsJVOAbABfF6dXhhM8YJ14pd5LaxVw/documents/file_1389.apk",
+      "https://cctvv2.com/panel",
+      "https://ejjsi5fbl.s3.ap-southeast-1.amazonaws.com/",
+      "https://g8688808.com",
+      "https://github.com/Zimperium/IOC/tree/master/2026-08-ToxicPanda",
+      "https://googleplaydown.com/dUyFpz0Ai7Sp",
+      "https://osy4u8pmu.s3.ap-southeast-1.amazonaws.com/",
+      "https://svhc5arco.s3.ap-southeast-1.amazonaws.com/",
+      "https://ui920fht4m1.s3.mx-central-1.amazonaws.com/",
+      "https://www.v17001.com/panel",
+      "https://www.w17907.com/panel"
+     ],
+     "domain": [
+      "api.telegram.org",
+      "cctvv2.com",
+      "cycraft.ai",
+      "ejjsi5fbl.s3.ap-southeast-1.amazonaws.com",
+      "g8688808.com",
+      "github.com",
+      "googleplaydown.com",
+      "osy4u8pmu.s3.ap-southeast-1.amazonaws.com",
+      "svhc5arco.s3.ap-southeast-1.amazonaws.com",
+      "ui920fht4m1.s3.mx-central-1.amazonaws.com",
+      "www.v17001.com",
+      "www.w17907.com",
+      "xcmtxc1oam1.s3.ap-south-1.amazonaws.com"
+     ],
+     "ipv4": [
+      "127.0.0.1"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [],
+     "sha1": [],
+     "sha256": []
+    },
+    "iocextract": {
+     "url": [
+      "http://xcmtxc1oam1.s3.ap-south-1.amazonaws.com",
+      "https://api.telegram.org/file/bot8331125434:AAEsxWq7_xZWUjN0IFLO3fTU54ZCBnZS4YI/documents/file_22526.apk",
+      "https://api.telegram.org/file/bot8978201863:AAG4vnsJVOAbABfF6dXhhM8YJ14pd5LaxVw/documents/file_1389.apk",
+      "https://cctvv2.com/panel",
+      "https://ejjsi5fbl.s3.ap-southeast-1.amazonaws.com/",
+      "https://g8688808.com",
+      "https://github.com/Zimperium/IOC/tree/master/2026-08-ToxicPanda",
+      "https://googleplaydown.com/dUyFpz0Ai7Sp",
+      "https://osy4u8pmu.s3.ap-southeast-1.amazonaws.com/",
+      "https://svhc5arco.s3.ap-southeast-1.amazonaws.com/",
+      "https://ui920fht4m1.s3.mx-central-1.amazonaws.com/",
+      "https://www.v17001.com/panel",
+      "https://www.w17907.com/panel"
+     ],
+     "domain": [],
+     "ipv4": [
+      "127.0.0.1"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [],
+     "sha1": [],
+     "sha256": []
+    },
+    "ioc-finder": {
+     "url": [
+      "http://xcmtxc1oam1.s3.ap-south-1.amazonaws.com",
+      "https://api.telegram.org/file/bot8331125434:AAEsxWq7_xZWUjN0IFLO3fTU54ZCBnZS4YI/documents/file_22526.apk",
+      "https://api.telegram.org/file/bot8978201863:AAG4vnsJVOAbABfF6dXhhM8YJ14pd5LaxVw/documents/file_1389.apk",
+      "https://cctvv2.com/panel",
+      "https://ejjsi5fbl.s3.ap-southeast-1.amazonaws.com/",
+      "https://g8688808.com",
+      "https://github.com/Zimperium/IOC/tree/master/2026-08-ToxicPanda",
+      "https://googleplaydown.com/dUyFpz0Ai7Sp",
+      "https://osy4u8pmu.s3.ap-southeast-1.amazonaws.com/",
+      "https://svhc5arco.s3.ap-southeast-1.amazonaws.com/",
+      "https://ui920fht4m1.s3.mx-central-1.amazonaws.com/",
+      "https://www.v17001.com/panel",
+      "https://www.w17907.com/panel"
+     ],
+     "domain": [
+      "api.telegram.org",
+      "cctvv2.com",
+      "cycraft.ai",
+      "ejjsi5fbl.s3.ap-southeast-1.amazonaws.com",
+      "g8688808.com",
+      "github.com",
+      "googleplaydown.com",
+      "osy4u8pmu.s3.ap-southeast-1.amazonaws.com",
+      "svhc5arco.s3.ap-southeast-1.amazonaws.com",
+      "ui920fht4m1.s3.mx-central-1.amazonaws.com",
+      "www.v17001.com",
+      "www.w17907.com",
+      "xcmtxc1oam1.s3.ap-south-1.amazonaws.com"
+     ],
+     "ipv4": [
+      "127.0.0.1"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [],
+     "sha1": [],
+     "sha256": []
+    }
+   },
+   "line_wrap_fragments": [],
+   "recall": {
+    "ttprism-default": {
+     "url": [
+      13,
+      13
+     ],
+     "domain": [
+      12,
+      12
+     ],
+     "url-host": [
+      12,
+      12
+     ]
+    },
+    "ttprism-raw": {
+     "url": [
+      13,
+      13
+     ],
+     "domain": [
+      12,
+      12
+     ],
+     "url-host": [
+      12,
+      12
+     ]
+    },
+    "iocextract": {
+     "url": [
+      13,
+      13
+     ],
+     "domain": [
+      12,
+      12
+     ],
+     "url-host": [
+      12,
+      12
+     ]
+    },
+    "ioc-finder": {
+     "url": [
+      13,
+      13
+     ],
+     "domain": [
+      12,
+      12
+     ],
+     "url-host": [
+      12,
+      12
+     ]
+    }
+   },
+   "recall_by_class": {
+    "ttprism-default": {
+     "plain": [
+      25,
+      25
+     ]
+    },
+    "ttprism-raw": {
+     "plain": [
+      25,
+      25
+     ]
+    },
+    "iocextract": {
+     "plain": [
+      25,
+      25
+     ]
+    },
+    "ioc-finder": {
+     "plain": [
+      25,
+      25
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 24,
+     "a": 0,
+     "b": 1,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 25,
+     "a": 0,
+     "b": 2,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 13,
+     "a": 0,
+     "b": 1,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 25,
+     "a": 0,
+     "b": 2,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    }
+   },
+   "unjudged_by_tool": {},
+   "lost_by_default_filtering": {},
+   "writing": {
+    "fullwidth_cjk_indicators_in_appendix": 0,
+    "fullwidth_cjk_indicators_in_body": 0,
+    "fullwidth_cjk_in_any_value": 0,
+    "uses_fullwidth_cjk": false
+   }
+  },
+  {
+   "id": "tw03-twcert-kev-2026",
+   "original_url": "https://www.twcert.org.tw/tw/cp-168-11269-a2e25-1.html",
+   "format": "html",
+   "source_sha256": "40f066368ea31e23b7a240210975f52a05372fb07d66fa2d3fb3ca66dd647c94",
+   "text_sha256": "42fa7929c686faaa47380e3f8e2d870cef7728b40fe5181b6970f24612082cc1",
+   "conversion": {
+    "format": "html",
+    "python": "3.11.17 (main, Oct  1 2026, 15:41:07) [GCC 13.3.0]",
+    "html_parser_sha256": {
+     "html/parser.py": "3a02c73b41c1095a7cddb8b824387ffb875b19f37e0e6f591753d7a88a2fe52a",
+     "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
+     "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
+    },
+    "evaluate_sha256": "84edeb1c5e812aa558e00438c2e3b04004979e6a9d781e684a62cf0294ac8d14",
+    "conversion_inputs_sha256": "8398bb849905ce4a402ccf81b086a018a9561053d25de4676c1fb45746c99216",
+    "commit": "9b665f5f113fd3ce2ae7aeb9928fed56a099af27",
+    "decoding": {
+     "encoding": "utf-8",
+     "chosen_by": "valid UTF-8",
+     "declared": {
+      "http": "utf-8",
+      "meta": "utf-8"
+     },
+     "mismatch": []
+    },
+    "method": "evaluate.py decode_html and HtmlText (Python standard library html.parser); rules in their docstrings",
+    "hidden_characters_kept": 0,
+    "soft_hyphens_deleted": 0,
+    "replacement_characters": 0,
+    "unclosed_dropped_elements": [],
+    "parts": [
+     {
+      "format": "html",
+      "file": "html/tw03-twcert-kev-2026.html",
+      "start": 0,
+      "end": 2848
+     }
+    ]
+   },
+   "draft_sha256": "233027a850b28441fefc1a02b64d0b4de90825d8aca0e4a32f74507a4f0bf861",
+   "review_sha256": "c1ecbb60dc4b5c8d40496009d886b926a0a25ae54b3aa3f9dafe6aadcf3fc3a3",
+   "truth_counts": {
+    "url": 15,
+    "domain": 10
+   },
+   "truth_classes": {
+    "plain": 25,
+    "ascii-defang": 0,
+    "fullwidth-cjk-defang": 0
+   },
+   "left_out": {
+    "masked": {},
+    "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {
+      "allowlisted": 7
+     }
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {}
+    }
+   },
+   "errors": {},
+   "unparseable_urls": {
+    "ioc-finder": [
+     "lists.opensuse.org/message/WE6YZRG5UVXMGQ7IVDRYBPIWV4M6UUGM/"
+    ]
+   },
+   "outputs": {
+    "ttprism-default": {
+     "url": [
+      "http://www.proftpd.org/",
+      "https://access.redhat.com/errata/RHSA-2015:1513.html",
+      "https://cwiki.apache.org/confluence/display/WW/S2-032",
+      "https://github.com/ONLYOFFICE/DocumentServer/blob/903fe5ab7a275bd69c3c3346af2d21cf87ebeabf/CHANGELOG.md#563",
+      "https://github.com/strapi/strapi/releases",
+      "https://kb.isc.org/article/AA-01272",
+      "https://lists.debian.org/debian-security-announce/2015/msg00154.html",
+      "https://lists.opensuse.org/archives/list/updates@lists.opensuse.org/message/WE6YZRG5UVXMGQ7IVDRYBPIWV4M6UUGM/",
+      "https://strapi.io/blog/security-disclosure-of-vulnerabilities-cve",
+      "https://supportportal.juniper.net/s/article/2016-01-Security-Bulletin-Junos-Vulnerability-in-ISC-BIND-named-CVE-2015-5477",
+      "https://web.archive.org/web/20150729014733/https://kb.isc.org/article/AA-01272",
+      "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+      "https://www.cisa.gov/news-events/directives/bod-26-04-implementation-guidance-prioritizing-security-",
+      "https://www.cisa.gov/news-events/directives/bod-26-04-prioritizing-security-updates-based-risk"
+     ],
+     "domain": [
+      "access.redhat.com",
+      "cwiki.apache.org",
+      "kb.isc.org",
+      "lists.debian.org",
+      "lists.opensuse.org",
+      "strapi.io",
+      "supportportal.juniper.net",
+      "web.archive.org",
+      "www.cisa.gov",
+      "www.proftpd.org"
+     ],
+     "ipv4": [],
+     "ipv6": [],
+     "email": [
+      "cert_service@cert.org.tw",
+      "cve@cert.org.tw",
+      "int_report@cert.org.tw",
+      "updates@lists.opensuse.org"
+     ],
+     "md5": [],
+     "sha1": [
+      "903fe5ab7a275bd69c3c3346af2d21cf87ebeabf"
+     ],
+     "sha256": []
+    },
+    "ttprism-raw": {
+     "url": [
+      "http://www.proftpd.org/",
+      "https://access.redhat.com/errata/RHSA-2015:1513.html",
+      "https://cwiki.apache.org/confluence/display/WW/S2-032",
+      "https://github.com/ONLYOFFICE/DocumentServer/blob/903fe5ab7a275bd69c3c3346af2d21cf87ebeabf/CHANGELOG.md#563",
+      "https://github.com/strapi/strapi/releases",
+      "https://kb.isc.org/article/AA-01272",
+      "https://lists.debian.org/debian-security-announce/2015/msg00154.html",
+      "https://lists.opensuse.org/archives/list/updates@lists.opensuse.org/message/WE6YZRG5UVXMGQ7IVDRYBPIWV4M6UUGM/",
+      "https://nvd.nist.gov/vuln/detail/CVE-2015-3306",
+      "https://nvd.nist.gov/vuln/detail/CVE-2015-5477",
+      "https://nvd.nist.gov/vuln/detail/CVE-2016-3081",
+      "https://nvd.nist.gov/vuln/detail/CVE-2021-3199",
+      "https://nvd.nist.gov/vuln/detail/CVE-2023-22894",
+      "https://strapi.io/blog/security-disclosure-of-vulnerabilities-cve",
+      "https://supportportal.juniper.net/s/article/2016-01-Security-Bulletin-Junos-Vulnerability-in-ISC-BIND-named-CVE-2015-5477",
+      "https://web.archive.org/web/20150729014733/https://kb.isc.org/article/AA-01272",
+      "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+      "https://www.cisa.gov/news-events/directives/bod-26-04-implementation-guidance-prioritizing-security-",
+      "https://www.cisa.gov/news-events/directives/bod-26-04-prioritizing-security-updates-based-risk"
+     ],
+     "domain": [
+      "access.redhat.com",
+      "cwiki.apache.org",
+      "github.com",
+      "kb.isc.org",
+      "lists.debian.org",
+      "lists.opensuse.org",
+      "nvd.nist.gov",
+      "strapi.io",
+      "supportportal.juniper.net",
+      "web.archive.org",
+      "www.cisa.gov",
+      "www.proftpd.org"
+     ],
+     "ipv4": [],
+     "ipv6": [],
+     "email": [
+      "cert_service@cert.org.tw",
+      "cve@cert.org.tw",
+      "int_report@cert.org.tw",
+      "updates@lists.opensuse.org"
+     ],
+     "md5": [],
+     "sha1": [
+      "903fe5ab7a275bd69c3c3346af2d21cf87ebeabf"
+     ],
+     "sha256": []
+    },
+    "iocextract": {
+     "url": [
+      "http://www.proftpd.org/",
+      "https://access.redhat.com/errata/RHSA-2015:1513.html",
+      "https://cwiki.apache.org/confluence/display/WW/S2-032",
+      "https://github.com/ONLYOFFICE/DocumentServer/blob/903fe5ab7a275bd69c3c3346af2d21cf87ebeabf/CHANGELOG.md#563",
+      "https://github.com/strapi/strapi/releases",
+      "https://lists.debian.org/debian-security-announce/2015/msg00154.html",
+      "https://lists.opensuse.org/archives/list/updates@lists.opensuse.org/message/WE6YZRG5UVXMGQ7IVDRYBPIWV4M6UUGM/",
+      "https://nvd.nist.gov/vuln/detail/CVE-2015-3306",
+      "https://nvd.nist.gov/vuln/detail/CVE-2015-5477",
+      "https://nvd.nist.gov/vuln/detail/CVE-2016-3081",
+      "https://nvd.nist.gov/vuln/detail/CVE-2021-3199",
+      "https://nvd.nist.gov/vuln/detail/CVE-2023-22894",
+      "https://strapi.io/blog/security-disclosure-of-vulnerabilities-cve",
+      "https://supportportal.juniper.net/s/article/2016-01-Security-Bulletin-Junos-Vulnerability-in-ISC-BIND-named-CVE-2015-5477",
+      "https://web.archive.org/web/20150729014733/https://kb.isc.org/article/AA-01272",
+      "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+      "https://www.cisa.gov/news-events/directives/bod-26-04-implementation-guidance-prioritizing-security-",
+      "https://www.cisa.gov/news-events/directives/bod-26-04-prioritizing-security-updates-based-risk"
+     ],
+     "domain": [],
+     "ipv4": [],
+     "ipv6": [],
+     "email": [
+      "cert_service@cert.org.tw",
+      "cve@cert.org.tw",
+      "int_report@cert.org.tw"
+     ],
+     "md5": [],
+     "sha1": [
+      "903fe5ab7a275bd69c3c3346af2d21cf87ebeabf"
+     ],
+     "sha256": []
+    },
+    "ioc-finder": {
+     "url": [
+      "http://www.proftpd.org/",
+      "https://access.redhat.com/errata/RHSA-2015:1513.html",
+      "https://cwiki.apache.org/confluence/display/WW/S2-032",
+      "https://github.com/ONLYOFFICE/DocumentServer/blob/903fe5ab7a275bd69c3c3346af2d21cf87ebeabf/CHANGELOG.md#563",
+      "https://github.com/strapi/strapi/releases",
+      "https://lists.debian.org/debian-security-announce/2015/msg00154.html",
+      "https://lists.opensuse.org/archives/list/updates",
+      "https://nvd.nist.gov/vuln/detail/CVE-2015-3306",
+      "https://nvd.nist.gov/vuln/detail/CVE-2015-5477",
+      "https://nvd.nist.gov/vuln/detail/CVE-2016-3081",
+      "https://nvd.nist.gov/vuln/detail/CVE-2021-3199",
+      "https://nvd.nist.gov/vuln/detail/CVE-2023-22894",
+      "https://strapi.io/blog/security-disclosure-of-vulnerabilities-cve",
+      "https://supportportal.juniper.net/s/article/2016-01-Security-Bulletin-Junos-Vulnerability-in-ISC-BIND-named-CVE-2015-5477",
+      "https://web.archive.org/web/20150729014733/https://kb.isc.org/article/AA-01272",
+      "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+      "https://www.cisa.gov/news-events/directives/bod-26-04-implementation-guidance-prioritizing-security-",
+      "https://www.cisa.gov/news-events/directives/bod-26-04-prioritizing-security-updates-based-risk",
+      "lists.opensuse.org/message/WE6YZRG5UVXMGQ7IVDRYBPIWV4M6UUGM/"
+     ],
+     "domain": [
+      "access.redhat.com",
+      "cert.org.tw",
+      "changelog.md",
+      "cwiki.apache.org",
+      "github.com",
+      "kb.isc.org",
+      "lists.debian.org",
+      "lists.opensuse.org",
+      "nvd.nist.gov",
+      "strapi.io",
+      "supportportal.juniper.net",
+      "web.archive.org",
+      "www.cisa.gov",
+      "www.proftpd.org"
+     ],
+     "ipv4": [],
+     "ipv6": [],
+     "email": [
+      "cert_service@cert.org.tw",
+      "cve@cert.org.tw",
+      "int_report@cert.org.tw",
+      "updates@lists.opensuse.org"
+     ],
+     "md5": [],
+     "sha1": [
+      "903fe5ab7a275bd69c3c3346af2d21cf87ebeabf"
+     ],
+     "sha256": []
+    }
+   },
+   "line_wrap_fragments": [],
+   "recall": {
+    "ttprism-default": {
+     "url": [
+      10,
+      15
+     ],
+     "domain": [
+      9,
+      10
+     ],
+     "url-host": [
+      9,
+      10
+     ]
+    },
+    "ttprism-raw": {
+     "url": [
+      15,
+      15
+     ],
+     "domain": [
+      10,
+      10
+     ],
+     "url-host": [
+      10,
+      10
+     ]
+    },
+    "iocextract": {
+     "url": [
+      15,
+      15
+     ],
+     "domain": [
+      10,
+      10
+     ],
+     "url-host": [
+      10,
+      10
+     ]
+    },
+    "ioc-finder": {
+     "url": [
+      14,
+      15
+     ],
+     "domain": [
+      10,
+      10
+     ],
+     "url-host": [
+      10,
+      10
+     ]
+    }
+   },
+   "recall_by_class": {
+    "ttprism-default": {
+     "plain": [
+      19,
+      25
+     ]
+    },
+    "ttprism-raw": {
+     "plain": [
+      25,
+      25
+     ]
+    },
+    "iocextract": {
+     "plain": [
+      25,
+      25
+     ]
+    },
+    "ioc-finder": {
+     "plain": [
+      24,
+      25
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 18,
+     "a": 0,
+     "b": 11,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 25,
+     "a": 0,
+     "b": 11,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 15,
+     "a": 0,
+     "b": 7,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 24,
+     "a": 0,
+     "b": 11,
+     "c": 3,
+     "masked": 0,
+     "ambiguous": 0
+    }
+   },
+   "unjudged_by_tool": {},
+   "lost_by_default_filtering": {
+    "url": [
+     "https://nvd.nist.gov/vuln/detail/CVE-2015-3306",
+     "https://nvd.nist.gov/vuln/detail/CVE-2015-5477",
+     "https://nvd.nist.gov/vuln/detail/CVE-2016-3081",
+     "https://nvd.nist.gov/vuln/detail/CVE-2021-3199",
+     "https://nvd.nist.gov/vuln/detail/CVE-2023-22894"
+    ],
+    "domain": [
+     "nvd.nist.gov"
+    ],
+    "url-host": [
+     "nvd.nist.gov"
+    ]
+   },
+   "writing": {
+    "fullwidth_cjk_indicators_in_appendix": 0,
+    "fullwidth_cjk_indicators_in_body": 0,
+    "fullwidth_cjk_in_any_value": 0,
+    "uses_fullwidth_cjk": false
+   }
+  },
+  {
+   "id": "tw04-nics-policy-151-2026",
+   "original_url": "https://www.nics.nat.gov.tw/core_business/information_security_information_sharing/International_Cybersecurity_Policy_Observation/9ba43507-d4aa-436d-add8-01a663b55129",
+   "format": "html",
+   "source_sha256": "59babb709557dcf67efc36b446505e6f5c9cc075ea1520e345404dc2e3cf7b76",
+   "text_sha256": "af58b0096f9866d1f833d66b8af196aef418c3cb0cb8d46c6d2330be07dd77a6",
+   "conversion": {
+    "format": "html",
+    "python": "3.11.17 (main, Oct  1 2026, 15:41:07) [GCC 13.3.0]",
+    "html_parser_sha256": {
+     "html/parser.py": "3a02c73b41c1095a7cddb8b824387ffb875b19f37e0e6f591753d7a88a2fe52a",
+     "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
+     "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
+    },
+    "evaluate_sha256": "84edeb1c5e812aa558e00438c2e3b04004979e6a9d781e684a62cf0294ac8d14",
+    "conversion_inputs_sha256": "d2b6ac6fd6dc59226be187e39847c2a14c39fa5155ce492af20fa0a865cb6628",
+    "commit": "9b665f5f113fd3ce2ae7aeb9928fed56a099af27",
+    "decoding": {
+     "encoding": "utf-8",
+     "chosen_by": "valid UTF-8",
+     "declared": {
+      "http": null,
+      "meta": "utf-8"
+     },
+     "mismatch": []
+    },
+    "method": "evaluate.py decode_html and HtmlText (Python standard library html.parser); rules in their docstrings",
+    "hidden_characters_kept": 417,
+    "soft_hyphens_deleted": 0,
+    "replacement_characters": 0,
+    "unclosed_dropped_elements": [],
+    "parts": [
+     {
+      "format": "html",
+      "file": "html/tw04-nics-policy-151-2026.html",
+      "start": 0,
+      "end": 29530
+     }
+    ]
+   },
+   "draft_sha256": "9cdaac8357fa04b25e54eb49cd28753beacd0bd9b34ce5cf7b65f4d566c6a561",
+   "review_sha256": "54f58ca26ebf2dfa45fe1c590b45c2be30b3182c16a3dfd50130c6aee2a72bf3",
+   "truth_counts": {
+    "url": 70,
+    "domain": 44
+   },
+   "truth_classes": {
+    "plain": 114,
+    "ascii-defang": 0,
+    "fullwidth-cjk-defang": 0
+   },
+   "left_out": {
+    "masked": {},
+    "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {
+      "allowlisted": 7
+     }
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {}
+    }
+   },
+   "errors": {},
+   "unparseable_urls": {},
+   "outputs": {
+    "ttprism-default": {
+     "url": [
+      "https://ago.nebraska.gov/attorney-general-hilgers-files-suit-against-tp-link-part-ongoing-fight-protect-nebraskans",
+      "https://ago.nebraska.gov/attorney-general-hilgers-leads-multi-state-coalition-raising-concerns-over-tp-links-china-ties",
+      "https://ago.nebraska.gov/sites/default/files/doc/Complaint_11.pdf",
+      "https://cyberscoop.com/federal-contractors-cui-cybersecurity-rules/",
+      "https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act",
+      "https://doi.org/10.6028/NIST.SP.800-185r1.ipd",
+      "https://dojmt.gov/attorney-general-knudsen-files-lawsuit-against-china-founded-tech-company-tp-link/",
+      "https://eur-lex.europa.eu/eli/reg/2024/2847/oj",
+      "https://files.gao.gov/reports/GAO-27-108740/index.html",
+      "https://github.com/UKGovernmentBEIS/inspect_ai/issues/4318",
+      "https://metr.org/blog/2026-10-06-ai-systems-could-cover-up-misbehavior/",
+      "https://moda.gov.tw/ADI/news/latest-news/20962",
+      "https://moda.gov.tw/press/press-releases/20734",
+      "https://mydata.nat.gov.tw/",
+      "https://obamawhitehouse.archives.gov/the-press-office/2010/11/04/executive-order-13556-controlled-unclassified-information",
+      "https://openssf.org/blog/2026/08/26/case-study-conquering-the-eu-cyber-resilience-act-cra-with-1400-upstream-security-fixes/",
+      "https://openssf.org/press-release/2026/10/06/openssf-shares-expanded-membership-and-new-global-policy-resources-during-community-day-europe/",
+      "https://openssf.org/wp-content/uploads/2026/09/user-journey_cra-readiness.pdf",
+      "https://web.moda.gov.tw/press/press-releases/20954",
+      "https://www.aisi.gov.uk/blog/building-a-more-secure-environment-for-evaluating-dangerous-capabilities",
+      "https://www.aisi.gov.uk/blog/incident-report-unsanctioned-agent-behaviour-during-cyber-testing",
+      "https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-281a",
+      "https://www.digitaleoverheid.nl/nieuws/abro-beveiligingseisen-voor-overheidsopdrachten/",
+      "https://www.federalregister.gov/documents/2024/04/04/2024-06526/cyber-incident-reporting-for-critical-infrastructure-act-circia-reporting-requirements",
+      "https://www.federalregister.gov/documents/2025/01/15/2024-30437/federal-acquisition-regulation-controlled-unclassified-information",
+      "https://www.federalregister.gov/documents/2026/06/23/2026-12559/federal-acquisition-regulation-revolutionary-federal-acquisition-regulation-overhaul-parts-1-2-4-33",
+      "https://www.fedramp.gov/2026/changelog/",
+      "https://www.fedramp.gov/2026/definitions/#certification-class",
+      "https://www.fedramp.gov/2026/rules/",
+      "https://www.fedramp.gov/2026/timeline/",
+      "https://www.gao.gov/assets/gao-27-108740.pdf",
+      "https://www.gao.gov/products/gao-27-108740",
+      "https://www.govinfo.gov/content/pkg/BILLS-119s3315es/html/BILLS-119s3315es.htm",
+      "https://www.govinfo.gov/content/pkg/BILLS-119s3315is/html/BILLS-119s3315is.htm",
+      "https://www.govinfo.gov/content/pkg/BILLS-119s3315rs/pdf/BILLS-119s3315rs.pdf",
+      "https://www.govinfo.gov/content/pkg/FR-2026-06-23/pdf/2026-12559.pdf",
+      "https://www.help.senate.gov/download/s-3315-section-by-sectionpdf",
+      "https://www.help.senate.gov/rep/newsroom/press/senate-passes-chairman-cassidys-legislation-to-strengthen-cybersecurity",
+      "https://www.ic3.gov/CSA/2026/261008.pdf",
+      "https://www.integritytech.com.cn/html/about/Contact-us/",
+      "https://www.iowaattorneygeneral.gov/newsroom/attorney-general-brenna-bird-sues-tp-link-systems-for-violating-iowa-consumer-fraud-act-and-allowing",
+      "https://www.ipa.go.jp/security/guide/vuln/ug65p90000019by0-att/partnership_guideline.pdf",
+      "https://www.jpcert.or.jp/vh/partnership_guideline2026.pdf",
+      "https://www.jpcert.or.jp/wr/2026/wr261007.html#14",
+      "https://www.myfloridalegal.com/sites/default/files/258584264-complaint.pdf",
+      "https://www.nsa.gov/Press-Room/Press-Releases-Statements/Press-Release-View/Article/4615285/nsa-announces-post-quantum-cryptography-measures-to-safeguard-national-security/",
+      "https://www.oii.ox.ac.uk/are-governments-ready-for-ai-agents/",
+      "https://www.ppc.go.jp/files/pdf/261007_houdou.pdf",
+      "https://www.ppc.go.jp/news/press/2026/261007_houdou/",
+      "https://www.ppc.go.jp/personalinfo/legal/guidelines_tsusoku/",
+      "https://www.rand.org/content/dam/rand/pubs/research_reports/RRA4700/RRA4767-3/RAND_RRA4767-3.pdf",
+      "https://www.rand.org/pubs/research_reports/RRA4767-3.html",
+      "https://www.reginfo.gov/public/do/eAgendaViewRule?RIN=9000-AO86&pubId=202510",
+      "https://www.reginfo.gov/public/do/eAgendaViewRule?pubId=202510&RIN=1670-AA04",
+      "https://www.reginfo.gov/public/do/eoDetails?rrid=1550967",
+      "https://www.securityweek.com/tp-link-faces-state-lawsuits-and-new-scrutiny-over-isp-router-flaws/",
+      "https://www.shugiin.go.jp/internet/itdb_housei.nsf/html/housei/21720250523042.htm",
+      "https://www.soumu.go.jp/main_content/000376396.pdf",
+      "https://www.soumu.go.jp/main_content/000575399.pdf",
+      "https://www.soumu.go.jp/main_content/001094643.pdf",
+      "https://www.soumu.go.jp/main_content/001094644.pdf",
+      "https://www.soumu.go.jp/menu_news/s-news/01cyber01_02000001_00305.html",
+      "https://www.tp-link.com/us/press/news/22570/",
+      "https://www.tp-link.com/us/support/faq/5239/",
+      "https://www.tweedekamer.nl/downloads/document?id=2025D49048",
+      "https://www.whitehouse.gov/wp-content/uploads/2026/06/eo-14412.pdf",
+      "https://zoek.officielebekendmakingen.nl/stcrt-2025-39538.pdf"
+     ],
+     "domain": [
+      "ago.nebraska.gov",
+      "cyberscoop.com",
+      "digital-strategy.ec.europa.eu",
+      "doi.org",
+      "dojmt.gov",
+      "eur-lex.europa.eu",
+      "files.gao.gov",
+      "metr.org",
+      "moda.gov.tw",
+      "mydata.nat.gov.tw",
+      "obamawhitehouse.archives.gov",
+      "openssf.org",
+      "reginfo.gov",
+      "web.moda.gov.tw",
+      "www.aisi.gov.uk",
+      "www.cisa.gov",
+      "www.digitaleoverheid.nl",
+      "www.federalregister.gov",
+      "www.fedramp.gov",
+      "www.gao.gov",
+      "www.govinfo.gov",
+      "www.help.senate.gov",
+      "www.ic3.gov",
+      "www.integritytech.com.cn",
+      "www.iowaattorneygeneral.gov",
+      "www.ipa.go.jp",
+      "www.jpcert.or.jp",
+      "www.myfloridalegal.com",
+      "www.nsa.gov",
+      "www.oii.ox.ac.uk",
+      "www.ppc.go.jp",
+      "www.rand.org",
+      "www.reginfo.gov",
+      "www.securityweek.com",
+      "www.shugiin.go.jp",
+      "www.soumu.go.jp",
+      "www.tp-link.com",
+      "www.tweedekamer.nl",
+      "www.whitehouse.gov",
+      "zoek.officielebekendmakingen.nl"
+     ],
+     "ipv4": [],
+     "ipv6": [],
+     "email": [],
+     "md5": [],
+     "sha1": [],
+     "sha256": []
+    },
+    "ttprism-raw": {
+     "url": [
+      "https://ago.nebraska.gov/attorney-general-hilgers-files-suit-against-tp-link-part-ongoing-fight-protect-nebraskans",
+      "https://ago.nebraska.gov/attorney-general-hilgers-leads-multi-state-coalition-raising-concerns-over-tp-links-china-ties",
+      "https://ago.nebraska.gov/sites/default/files/doc/Complaint_11.pdf",
+      "https://csrc.nist.gov/pubs/sp/800/185/r1/ipd",
+      "https://cyberscoop.com/federal-contractors-cui-cybersecurity-rules/",
+      "https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act",
+      "https://doi.org/10.6028/NIST.SP.800-185r1.ipd",
+      "https://dojmt.gov/attorney-general-knudsen-files-lawsuit-against-china-founded-tech-company-tp-link/",
+      "https://eur-lex.europa.eu/eli/reg/2024/2847/oj",
+      "https://files.gao.gov/reports/GAO-27-108740/index.html",
+      "https://github.com/UKGovernmentBEIS/inspect_ai/issues/4318",
+      "https://metr.org/blog/2026-10-06-ai-systems-could-cover-up-misbehavior/",
+      "https://moda.gov.tw/ADI/news/latest-news/20962",
+      "https://moda.gov.tw/press/press-releases/20734",
+      "https://mydata.nat.gov.tw/",
+      "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.1800-45.pdf",
+      "https://obamawhitehouse.archives.gov/the-press-office/2010/11/04/executive-order-13556-controlled-unclassified-information",
+      "https://openssf.org/blog/2026/08/26/case-study-conquering-the-eu-cyber-resilience-act-cra-with-1400-upstream-security-fixes/",
+      "https://openssf.org/press-release/2026/10/06/openssf-shares-expanded-membership-and-new-global-policy-resources-during-community-day-europe/",
+      "https://openssf.org/wp-content/uploads/2026/09/user-journey_cra-readiness.pdf",
+      "https://web.moda.gov.tw/press/press-releases/20954",
+      "https://www.aisi.gov.uk/blog/building-a-more-secure-environment-for-evaluating-dangerous-capabilities",
+      "https://www.aisi.gov.uk/blog/incident-report-unsanctioned-agent-behaviour-during-cyber-testing",
+      "https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-281a",
+      "https://www.digitaleoverheid.nl/nieuws/abro-beveiligingseisen-voor-overheidsopdrachten/",
+      "https://www.federalregister.gov/documents/2024/04/04/2024-06526/cyber-incident-reporting-for-critical-infrastructure-act-circia-reporting-requirements",
+      "https://www.federalregister.gov/documents/2025/01/15/2024-30437/federal-acquisition-regulation-controlled-unclassified-information",
+      "https://www.federalregister.gov/documents/2026/06/23/2026-12559/federal-acquisition-regulation-revolutionary-federal-acquisition-regulation-overhaul-parts-1-2-4-33",
+      "https://www.fedramp.gov/2026/changelog/",
+      "https://www.fedramp.gov/2026/definitions/#certification-class",
+      "https://www.fedramp.gov/2026/rules/",
+      "https://www.fedramp.gov/2026/timeline/",
+      "https://www.gao.gov/assets/gao-27-108740.pdf",
+      "https://www.gao.gov/products/gao-27-108740",
+      "https://www.govinfo.gov/content/pkg/BILLS-119s3315es/html/BILLS-119s3315es.htm",
+      "https://www.govinfo.gov/content/pkg/BILLS-119s3315is/html/BILLS-119s3315is.htm",
+      "https://www.govinfo.gov/content/pkg/BILLS-119s3315rs/pdf/BILLS-119s3315rs.pdf",
+      "https://www.govinfo.gov/content/pkg/FR-2026-06-23/pdf/2026-12559.pdf",
+      "https://www.help.senate.gov/download/s-3315-section-by-sectionpdf",
+      "https://www.help.senate.gov/rep/newsroom/press/senate-passes-chairman-cassidys-legislation-to-strengthen-cybersecurity",
+      "https://www.ic3.gov/CSA/2026/261008.pdf",
+      "https://www.integritytech.com.cn/html/about/Contact-us/",
+      "https://www.iowaattorneygeneral.gov/newsroom/attorney-general-brenna-bird-sues-tp-link-systems-for-violating-iowa-consumer-fraud-act-and-allowing",
+      "https://www.ipa.go.jp/security/guide/vuln/ug65p90000019by0-att/partnership_guideline.pdf",
+      "https://www.jpcert.or.jp/vh/partnership_guideline2026.pdf",
+      "https://www.jpcert.or.jp/wr/2026/wr261007.html#14",
+      "https://www.myfloridalegal.com/sites/default/files/258584264-complaint.pdf",
+      "https://www.nist.gov/blogs/cybersecurity-insights/securing-water-and-wastewater-operational-technology-environments",
+      "https://www.nsa.gov/Press-Room/Press-Releases-Statements/Press-Release-View/Article/4615285/nsa-announces-post-quantum-cryptography-measures-to-safeguard-national-security/",
+      "https://www.oii.ox.ac.uk/are-governments-ready-for-ai-agents/",
+      "https://www.ppc.go.jp/files/pdf/261007_houdou.pdf",
+      "https://www.ppc.go.jp/news/press/2026/261007_houdou/",
+      "https://www.ppc.go.jp/personalinfo/legal/guidelines_tsusoku/",
+      "https://www.rand.org/content/dam/rand/pubs/research_reports/RRA4700/RRA4767-3/RAND_RRA4767-3.pdf",
+      "https://www.rand.org/pubs/research_reports/RRA4767-3.html",
+      "https://www.reginfo.gov/public/do/eAgendaViewRule?RIN=9000-AO86&pubId=202510",
+      "https://www.reginfo.gov/public/do/eAgendaViewRule?pubId=202510&RIN=1670-AA04",
+      "https://www.reginfo.gov/public/do/eoDetails?rrid=1550967",
+      "https://www.securityweek.com/tp-link-faces-state-lawsuits-and-new-scrutiny-over-isp-router-flaws/",
+      "https://www.shugiin.go.jp/internet/itdb_housei.nsf/html/housei/21720250523042.htm",
+      "https://www.soumu.go.jp/main_content/000376396.pdf",
+      "https://www.soumu.go.jp/main_content/000575399.pdf",
+      "https://www.soumu.go.jp/main_content/001094643.pdf",
+      "https://www.soumu.go.jp/main_content/001094644.pdf",
+      "https://www.soumu.go.jp/menu_news/s-news/01cyber01_02000001_00305.html",
+      "https://www.tp-link.com/us/press/news/22570/",
+      "https://www.tp-link.com/us/support/faq/5239/",
+      "https://www.tweedekamer.nl/downloads/document?id=2025D49048",
+      "https://www.whitehouse.gov/wp-content/uploads/2026/06/eo-14412.pdf",
+      "https://zoek.officielebekendmakingen.nl/stcrt-2025-39538.pdf"
+     ],
+     "domain": [
+      "ago.nebraska.gov",
+      "csrc.nist.gov",
+      "cyberscoop.com",
+      "digital-strategy.ec.europa.eu",
+      "doi.org",
+      "dojmt.gov",
+      "eur-lex.europa.eu",
+      "files.gao.gov",
+      "github.com",
+      "metr.org",
+      "moda.gov.tw",
+      "mydata.nat.gov.tw",
+      "nvlpubs.nist.gov",
+      "obamawhitehouse.archives.gov",
+      "openssf.org",
+      "reginfo.gov",
+      "web.moda.gov.tw",
+      "www.aisi.gov.uk",
+      "www.cisa.gov",
+      "www.digitaleoverheid.nl",
+      "www.federalregister.gov",
+      "www.fedramp.gov",
+      "www.gao.gov",
+      "www.govinfo.gov",
+      "www.help.senate.gov",
+      "www.ic3.gov",
+      "www.integritytech.com.cn",
+      "www.iowaattorneygeneral.gov",
+      "www.ipa.go.jp",
+      "www.jpcert.or.jp",
+      "www.myfloridalegal.com",
+      "www.nist.gov",
+      "www.nsa.gov",
+      "www.oii.ox.ac.uk",
+      "www.ppc.go.jp",
+      "www.rand.org",
+      "www.reginfo.gov",
+      "www.securityweek.com",
+      "www.shugiin.go.jp",
+      "www.soumu.go.jp",
+      "www.tp-link.com",
+      "www.tweedekamer.nl",
+      "www.whitehouse.gov",
+      "zoek.officielebekendmakingen.nl"
+     ],
+     "ipv4": [],
+     "ipv6": [],
+     "email": [],
+     "md5": [],
+     "sha1": [],
+     "sha256": []
+    },
+    "iocextract": {
+     "url": [
+      "https://ago.nebraska.gov/attorney-general-hilgers-files-suit-against-tp-link-part-ongoing-fight-protect-nebraskans",
+      "https://ago.nebraska.gov/attorney-general-hilgers-leads-multi-state-coalition-raising-concerns-over-tp-links-china-ties",
+      "https://ago.nebraska.gov/sites/default/files/doc/Complaint_11.pdf",
+      "https://csrc.nist.gov/pubs/sp/800/185/r1/ipd",
+      "https://cyberscoop.com/federal-contractors-cui-cybersecurity-rules/",
+      "https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act",
+      "https://doi.org/10.6028/NIST.SP.800-185r1.ipd",
+      "https://dojmt.gov/attorney-general-knudsen-files-lawsuit-against-china-founded-tech-company-tp-link/",
+      "https://eur-lex.europa.eu/eli/reg/2024/2847/oj",
+      "https://files.gao.gov/reports/GAO-27-108740/index.html",
+      "https://github.com/UKGovernmentBEIS/inspect_ai/issues/4318",
+      "https://metr.org/blog/2026-10-06-ai-systems-could-cover-up-misbehavior/",
+      "https://moda.gov.tw/ADI/news/latest-news/20962",
+      "https://moda.gov.tw/press/press-releases/20734",
+      "https://mydata.nat.gov.tw/",
+      "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.1800-45.pdf",
+      "https://obamawhitehouse.archives.gov/the-press-office/2010/11/04/executive-order-13556-controlled-unclassified-information",
+      "https://openssf.org/blog/2026/08/26/case-study-conquering-the-eu-cyber-resilience-act-cra-with-1400-upstream-security-fixes/",
+      "https://openssf.org/press-release/2026/10/06/openssf-shares-expanded-membership-and-new-global-policy-resources-during-community-day-europe/",
+      "https://openssf.org/wp-content/uploads/2026/09/user-journey_cra-readiness.pdf",
+      "https://web.moda.gov.tw/press/press-releases/20954",
+      "https://www.aisi.gov.uk/blog/building-a-more-secure-environment-for-evaluating-dangerous-capabilities",
+      "https://www.aisi.gov.uk/blog/incident-report-unsanctioned-agent-behaviour-during-cyber-testing",
+      "https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-281a",
+      "https://www.digitaleoverheid.nl/nieuws/abro-beveiligingseisen-voor-overheidsopdrachten/",
+      "https://www.federalregister.gov/documents/2024/04/04/2024-06526/cyber-incident-reporting-for-critical-infrastructure-act-circia-reporting-requirements",
+      "https://www.federalregister.gov/documents/2025/01/15/2024-30437/federal-acquisition-regulation-controlled-unclassified-information",
+      "https://www.federalregister.gov/documents/2026/06/23/2026-12559/federal-acquisition-regulation-revolutionary-federal-acquisition-regulation-overhaul-parts-1-2-4-33",
+      "https://www.fedramp.gov/2026/changelog/",
+      "https://www.fedramp.gov/2026/definitions/#certification-class",
+      "https://www.fedramp.gov/2026/rules/",
+      "https://www.fedramp.gov/2026/timeline/",
+      "https://www.gao.gov/assets/gao-27-108740.pdf",
+      "https://www.gao.gov/products/gao-27-108740",
+      "https://www.govinfo.gov/content/pkg/BILLS-119s3315es/html/BILLS-119s3315es.htm",
+      "https://www.govinfo.gov/content/pkg/BILLS-119s3315is/html/BILLS-119s3315is.htm",
+      "https://www.govinfo.gov/content/pkg/BILLS-119s3315rs/pdf/BILLS-119s3315rs.pdf",
+      "https://www.govinfo.gov/content/pkg/FR-2026-06-23/pdf/2026-12559.pdf",
+      "https://www.help.senate.gov/download/s-3315-section-by-sectionpdf",
+      "https://www.help.senate.gov/rep/newsroom/press/senate-passes-chairman-cassidys-legislation-to-strengthen-cybersecurity",
+      "https://www.ic3.gov/CSA/2026/261008.pdf",
+      "https://www.integritytech.com.cn/html/about/Contact-us/",
+      "https://www.iowaattorneygeneral.gov/newsroom/attorney-general-brenna-bird-sues-tp-link-systems-for-violating-iowa-consumer-fraud-act-and-allowing",
+      "https://www.ipa.go.jp/security/guide/vuln/ug65p90000019by0-att/partnership_guideline.pdf",
+      "https://www.jpcert.or.jp/vh/partnership_guideline2026.pdf",
+      "https://www.jpcert.or.jp/wr/2026/wr261007.html#14",
+      "https://www.myfloridalegal.com/sites/default/files/258584264-complaint.pdf",
+      "https://www.nist.gov/blogs/cybersecurity-insights/securing-water-and-wastewater-operational-technology-environments",
+      "https://www.nsa.gov/Press-Room/Press-Releases-Statements/Press-Release-View/Article/4615285/nsa-announces-post-quantum-cryptography-measures-to-safeguard-national-security/",
+      "https://www.oii.ox.ac.uk/are-governments-ready-for-ai-agents/",
+      "https://www.ppc.go.jp/files/pdf/261007_houdou.pdf",
+      "https://www.ppc.go.jp/news/press/2026/261007_houdou/",
+      "https://www.ppc.go.jp/personalinfo/legal/guidelines_tsusoku/",
+      "https://www.rand.org/content/dam/rand/pubs/research_reports/RRA4700/RRA4767-3/RAND_RRA4767-3.pdf",
+      "https://www.rand.org/pubs/research_reports/RRA4767-3.html",
+      "https://www.reginfo.gov/public/do/eAgendaViewRule?RIN=9000-AO86&pubId=202510",
+      "https://www.reginfo.gov/public/do/eAgendaViewRule?pubId=202510&RIN=1670-AA04",
+      "https://www.reginfo.gov/public/do/eoDetails?rrid=1550967",
+      "https://www.securityweek.com/tp-link-faces-state-lawsuits-and-new-scrutiny-over-isp-router-flaws/",
+      "https://www.shugiin.go.jp/internet/itdb_housei.nsf/html/housei/21720250523042.htm",
+      "https://www.soumu.go.jp/main_content/000376396.pdf",
+      "https://www.soumu.go.jp/main_content/000575399.pdf",
+      "https://www.soumu.go.jp/main_content/001094643.pdf",
+      "https://www.soumu.go.jp/main_content/001094644.pdf",
+      "https://www.soumu.go.jp/menu_news/s-news/01cyber01_02000001_00305.html",
+      "https://www.tp-link.com/us/press/news/22570/",
+      "https://www.tp-link.com/us/support/faq/5239/",
+      "https://www.tweedekamer.nl/downloads/document?id=2025D49048",
+      "https://www.whitehouse.gov/wp-content/uploads/2026/06/eo-14412.pdf",
+      "https://zoek.officielebekendmakingen.nl/stcrt-2025-39538.pdf"
+     ],
+     "domain": [],
+     "ipv4": [],
+     "ipv6": [
+      "04:20:17"
+     ],
+     "email": [],
+     "md5": [],
+     "sha1": [],
+     "sha256": []
+    },
+    "ioc-finder": {
+     "url": [
+      "https://ago.nebraska.gov/attorney-general-hilgers-files-suit-against-tp-link-part-ongoing-fight-protect-nebraskans",
+      "https://ago.nebraska.gov/attorney-general-hilgers-leads-multi-state-coalition-raising-concerns-over-tp-links-china-ties",
+      "https://ago.nebraska.gov/sites/default/files/doc/Complaint_11.pdf",
+      "https://csrc.nist.gov/pubs/sp/800/185/r1/ipd",
+      "https://cyberscoop.com/federal-contractors-cui-cybersecurity-rules/",
+      "https://digital-strategy.ec.europa.eu/en/policies/cyber-resilience-act",
+      "https://doi.org/10.6028/NIST.SP.800-185r1.ipd",
+      "https://dojmt.gov/attorney-general-knudsen-files-lawsuit-against-china-founded-tech-company-tp-link/",
+      "https://eur-lex.europa.eu/eli/reg/2024/2847/oj",
+      "https://files.gao.gov/reports/GAO-27-108740/index.html",
+      "https://github.com/UKGovernmentBEIS/inspect_ai/issues/4318",
+      "https://metr.org/blog/2026-10-06-ai-systems-could-cover-up-misbehavior/",
+      "https://moda.gov.tw/ADI/news/latest-news/20962",
+      "https://moda.gov.tw/press/press-releases/20734",
+      "https://mydata.nat.gov.tw/",
+      "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.1800-45.pdf",
+      "https://obamawhitehouse.archives.gov/the-press-office/2010/11/04/executive-order-13556-controlled-unclassified-information",
+      "https://openssf.org/blog/2026/08/26/case-study-conquering-the-eu-cyber-resilience-act-cra-with-1400-upstream-security-fixes/",
+      "https://openssf.org/press-release/2026/10/06/openssf-shares-expanded-membership-and-new-global-policy-resources-during-community-day-europe/",
+      "https://openssf.org/wp-content/uploads/2026/09/user-journey_cra-readiness.pdf",
+      "https://web.moda.gov.tw/press/press-releases/20954",
+      "https://www.aisi.gov.uk/blog/building-a-more-secure-environment-for-evaluating-dangerous-capabilities",
+      "https://www.aisi.gov.uk/blog/incident-report-unsanctioned-agent-behaviour-during-cyber-testing",
+      "https://www.cisa.gov/news-events/cybersecurity-advisories/aa26-281a",
+      "https://www.digitaleoverheid.nl/nieuws/abro-beveiligingseisen-voor-overheidsopdrachten/",
+      "https://www.federalregister.gov/documents/2024/04/04/2024-06526/cyber-incident-reporting-for-critical-infrastructure-act-circia-reporting-requirements",
+      "https://www.federalregister.gov/documents/2025/01/15/2024-30437/federal-acquisition-regulation-controlled-unclassified-information",
+      "https://www.federalregister.gov/documents/2026/06/23/2026-12559/federal-acquisition-regulation-revolutionary-federal-acquisition-regulation-overhaul-parts-1-2-4-33",
+      "https://www.fedramp.gov/2026/changelog/",
+      "https://www.fedramp.gov/2026/definitions/#certification-class",
+      "https://www.fedramp.gov/2026/rules/",
+      "https://www.fedramp.gov/2026/timeline/",
+      "https://www.gao.gov/assets/gao-27-108740.pdf",
+      "https://www.gao.gov/products/gao-27-108740",
+      "https://www.govinfo.gov/content/pkg/BILLS-119s3315es/html/BILLS-119s3315es.htm",
+      "https://www.govinfo.gov/content/pkg/BILLS-119s3315is/html/BILLS-119s3315is.htm",
+      "https://www.govinfo.gov/content/pkg/BILLS-119s3315rs/pdf/BILLS-119s3315rs.pdf",
+      "https://www.govinfo.gov/content/pkg/FR-2026-06-23/pdf/2026-12559.pdf",
+      "https://www.help.senate.gov/download/s-3315-section-by-sectionpdf",
+      "https://www.help.senate.gov/rep/newsroom/press/senate-passes-chairman-cassidys-legislation-to-strengthen-cybersecurity",
+      "https://www.ic3.gov/CSA/2026/261008.pdf",
+      "https://www.integritytech.com.cn/html/about/Contact-us/",
+      "https://www.iowaattorneygeneral.gov/newsroom/attorney-general-brenna-bird-sues-tp-link-systems-for-violating-iowa-consumer-fraud-act-and-allowing",
+      "https://www.ipa.go.jp/security/guide/vuln/ug65p90000019by0-att/partnership_guideline.pdf",
+      "https://www.jpcert.or.jp/vh/partnership_guideline2026.pdf",
+      "https://www.jpcert.or.jp/wr/2026/wr261007.html#14",
+      "https://www.myfloridalegal.com/sites/default/files/258584264-complaint.pdf",
+      "https://www.nist.gov/blogs/cybersecurity-insights/securing-water-and-wastewater-operational-technology-environments",
+      "https://www.nsa.gov/Press-Room/Press-Releases-Statements/Press-Release-View/Article/4615285/nsa-announces-post-quantum-cryptography-measures-to-safeguard-national-security/",
+      "https://www.oii.ox.ac.uk/are-governments-ready-for-ai-agents/",
+      "https://www.ppc.go.jp/files/pdf/261007_houdou.pdf",
+      "https://www.ppc.go.jp/news/press/2026/261007_houdou/",
+      "https://www.ppc.go.jp/personalinfo/legal/guidelines_tsusoku/",
+      "https://www.rand.org/content/dam/rand/pubs/research_reports/RRA4700/RRA4767-3/RAND_RRA4767-3.pdf",
+      "https://www.rand.org/pubs/research_reports/RRA4767-3.html",
+      "https://www.reginfo.gov/public/do/eAgendaViewRule?RIN=9000-AO86&pubId=202510",
+      "https://www.reginfo.gov/public/do/eAgendaViewRule?pubId=202510&RIN=1670-AA04",
+      "https://www.reginfo.gov/public/do/eoDetails?rrid=1550967",
+      "https://www.securityweek.com/tp-link-faces-state-lawsuits-and-new-scrutiny-over-isp-router-flaws/",
+      "https://www.shugiin.go.jp/internet/itdb_housei.nsf/html/housei/21720250523042.htm",
+      "https://www.soumu.go.jp/main_content/000376396.pdf",
+      "https://www.soumu.go.jp/main_content/000575399.pdf",
+      "https://www.soumu.go.jp/main_content/001094643.pdf",
+      "https://www.soumu.go.jp/main_content/001094644.pdf",
+      "https://www.soumu.go.jp/menu_news/s-news/01cyber01_02000001_00305.html",
+      "https://www.tp-link.com/us/press/news/22570/",
+      "https://www.tp-link.com/us/support/faq/5239/",
+      "https://www.tweedekamer.nl/downloads/document?id=2025D49048",
+      "https://www.whitehouse.gov/wp-content/uploads/2026/06/eo-14412.pdf",
+      "https://zoek.officielebekendmakingen.nl/stcrt-2025-39538.pdf"
+     ],
+     "domain": [
+      "ago.nebraska.gov",
+      "csrc.nist.gov",
+      "cyberscoop.com",
+      "digital-strategy.ec.europa.eu",
+      "doi.org",
+      "dojmt.gov",
+      "eur-lex.europa.eu",
+      "files.gao.gov",
+      "github.com",
+      "metr.org",
+      "moda.gov.tw",
+      "mydata.nat.gov.tw",
+      "nvlpubs.nist.gov",
+      "obamawhitehouse.archives.gov",
+      "openssf.org",
+      "reginfo.gov",
+      "web.moda.gov.tw",
+      "www.aisi.gov.uk",
+      "www.cisa.gov",
+      "www.digitaleoverheid.nl",
+      "www.federalregister.gov",
+      "www.fedramp.gov",
+      "www.gao.gov",
+      "www.govinfo.gov",
+      "www.help.senate.gov",
+      "www.ic3.gov",
+      "www.integritytech.com.cn",
+      "www.iowaattorneygeneral.gov",
+      "www.ipa.go.jp",
+      "www.jpcert.or.jp",
+      "www.myfloridalegal.com",
+      "www.nist.gov",
+      "www.nsa.gov",
+      "www.oii.ox.ac.uk",
+      "www.ppc.go.jp",
+      "www.rand.org",
+      "www.reginfo.gov",
+      "www.securityweek.com",
+      "www.shugiin.go.jp",
+      "www.soumu.go.jp",
+      "www.tp-link.com",
+      "www.tweedekamer.nl",
+      "www.whitehouse.gov",
+      "zoek.officielebekendmakingen.nl"
+     ],
+     "ipv4": [],
+     "ipv6": [],
+     "email": [],
+     "md5": [],
+     "sha1": [],
+     "sha256": []
+    }
+   },
+   "line_wrap_fragments": [],
+   "recall": {
+    "ttprism-default": {
+     "url": [
+      67,
+      70
+     ],
+     "domain": [
+      41,
+      44
+     ],
+     "url-host": [
+      40,
+      43
+     ]
+    },
+    "ttprism-raw": {
+     "url": [
+      70,
+      70
+     ],
+     "domain": [
+      44,
+      44
+     ],
+     "url-host": [
+      43,
+      43
+     ]
+    },
+    "iocextract": {
+     "url": [
+      70,
+      70
+     ],
+     "domain": [
+      43,
+      44
+     ],
+     "url-host": [
+      43,
+      43
+     ]
+    },
+    "ioc-finder": {
+     "url": [
+      70,
+      70
+     ],
+     "domain": [
+      44,
+      44
+     ],
+     "url-host": [
+      43,
+      43
+     ]
+    }
+   },
+   "recall_by_class": {
+    "ttprism-default": {
+     "plain": [
+      108,
+      114
+     ]
+    },
+    "ttprism-raw": {
+     "plain": [
+      114,
+      114
+     ]
+    },
+    "iocextract": {
+     "plain": [
+      113,
+      114
+     ]
+    },
+    "ioc-finder": {
+     "plain": [
+      114,
+      114
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 107,
+     "a": 0,
+     "b": 0,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 114,
+     "a": 0,
+     "b": 0,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 70,
+     "a": 0,
+     "b": 0,
+     "c": 1,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 114,
+     "a": 0,
+     "b": 0,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    }
+   },
+   "unjudged_by_tool": {},
+   "lost_by_default_filtering": {
+    "url": [
+     "https://csrc.nist.gov/pubs/sp/800/185/r1/ipd",
+     "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.1800-45.pdf",
+     "https://www.nist.gov/blogs/cybersecurity-insights/securing-water-and-wastewater-operational-technology-environments"
+    ],
+    "domain": [
+     "csrc.nist.gov",
+     "nvlpubs.nist.gov",
+     "www.nist.gov"
+    ],
+    "url-host": [
+     "csrc.nist.gov",
+     "nvlpubs.nist.gov",
+     "www.nist.gov"
+    ]
+   },
+   "writing": {
+    "fullwidth_cjk_indicators_in_appendix": 0,
+    "fullwidth_cjk_indicators_in_body": 0,
+    "fullwidth_cjk_in_any_value": 0,
+    "uses_fullwidth_cjk": false
+   }
+  }
+ ],
+ "status": "final",
+ "judgements_sha256": "838bacf8ba5174e83380c39f22d2e7db17e4de63c7d61d07fffd05d0f1084e39",
+ "totals": {
+  "ttprism-default": {
+   "recall": {
+    "domain": [
+     66,
+     71,
+     0.9296
+    ],
+    "sha256": [
+     3,
+     3,
+     1.0
+    ],
+    "url": [
+     94,
+     103,
+     0.9126
+    ],
+    "url-host": [
+     65,
+     70,
+     0.9286
+    ]
+   },
+   "recall_by_class": {
+    "plain": [
+     163,
+     177,
+     0.9209
+    ]
+   },
+   "precision": {
+    "truth": 159,
+    "a": 2,
+    "b": 12,
+    "c": 0,
+    "masked": 0,
+    "ambiguous": 0,
+    "judged_total": 173,
+    "strict": 0.9306,
+    "lenient": 1.0
+   },
+   "errors": 0,
+   "unjudged": 0,
+   "status": "final"
+  },
+  "ttprism-raw": {
+   "recall": {
+    "domain": [
+     71,
+     71,
+     1.0
+    ],
+    "sha256": [
+     3,
+     3,
+     1.0
+    ],
+    "url": [
+     103,
+     103,
+     1.0
+    ],
+    "url-host": [
+     70,
+     70,
+     1.0
+    ]
+   },
+   "recall_by_class": {
+    "plain": [
+     177,
+     177,
+     1.0
+    ]
+   },
+   "precision": {
+    "truth": 177,
+    "a": 2,
+    "b": 13,
+    "c": 0,
+    "masked": 0,
+    "ambiguous": 0,
+    "judged_total": 192,
+    "strict": 0.9323,
+    "lenient": 1.0
+   },
+   "errors": 0,
+   "unjudged": 0,
+   "status": "final"
+  },
+  "iocextract": {
+   "recall": {
+    "domain": [
+     70,
+     71,
+     0.9859
+    ],
+    "sha256": [
+     3,
+     3,
+     1.0
+    ],
+    "url": [
+     103,
+     103,
+     1.0
+    ],
+    "url-host": [
+     70,
+     70,
+     1.0
+    ]
+   },
+   "recall_by_class": {
+    "plain": [
+     176,
+     177,
+     0.9944
+    ]
+   },
+   "precision": {
+    "truth": 106,
+    "a": 0,
+    "b": 8,
+    "c": 5,
+    "masked": 0,
+    "ambiguous": 0,
+    "judged_total": 119,
+    "strict": 0.8908,
+    "lenient": 0.958
+   },
+   "errors": 0,
+   "unjudged": 0,
+   "status": "final"
+  },
+  "ioc-finder": {
+   "recall": {
+    "domain": [
+     71,
+     71,
+     1.0
+    ],
+    "sha256": [
+     3,
+     3,
+     1.0
+    ],
+    "url": [
+     102,
+     103,
+     0.9903
+    ],
+    "url-host": [
+     70,
+     70,
+     1.0
+    ]
+   },
+   "recall_by_class": {
+    "plain": [
+     176,
+     177,
+     0.9944
+    ]
+   },
+   "precision": {
+    "truth": 176,
+    "a": 2,
+    "b": 13,
+    "c": 8,
+    "masked": 0,
+    "ambiguous": 0,
+    "judged_total": 199,
+    "strict": 0.8945,
+    "lenient": 0.9598
+   },
+   "errors": 0,
+   "unjudged": 0,
+   "status": "final"
+  }
+ },
+ "totals_by_format": {
+  "html": {
+   "ttprism-default": {
+    "recall": {
+     "domain": [
+      66,
+      71,
+      0.9296
+     ],
+     "sha256": [
+      3,
+      3,
+      1.0
+     ],
+     "url": [
+      94,
+      103,
+      0.9126
+     ],
+     "url-host": [
+      65,
+      70,
+      0.9286
+     ]
+    },
+    "recall_by_class": {
+     "plain": [
+      163,
+      177,
+      0.9209
+     ]
+    },
+    "precision": {
+     "truth": 159,
+     "a": 2,
+     "b": 12,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0,
+     "judged_total": 173,
+     "strict": 0.9306,
+     "lenient": 1.0
+    },
+    "errors": 0,
+    "unjudged": 0,
+    "status": "final"
+   },
+   "ttprism-raw": {
+    "recall": {
+     "domain": [
+      71,
+      71,
+      1.0
+     ],
+     "sha256": [
+      3,
+      3,
+      1.0
+     ],
+     "url": [
+      103,
+      103,
+      1.0
+     ],
+     "url-host": [
+      70,
+      70,
+      1.0
+     ]
+    },
+    "recall_by_class": {
+     "plain": [
+      177,
+      177,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 177,
+     "a": 2,
+     "b": 13,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0,
+     "judged_total": 192,
+     "strict": 0.9323,
+     "lenient": 1.0
+    },
+    "errors": 0,
+    "unjudged": 0,
+    "status": "final"
+   },
+   "iocextract": {
+    "recall": {
+     "domain": [
+      70,
+      71,
+      0.9859
+     ],
+     "sha256": [
+      3,
+      3,
+      1.0
+     ],
+     "url": [
+      103,
+      103,
+      1.0
+     ],
+     "url-host": [
+      70,
+      70,
+      1.0
+     ]
+    },
+    "recall_by_class": {
+     "plain": [
+      176,
+      177,
+      0.9944
+     ]
+    },
+    "precision": {
+     "truth": 106,
+     "a": 0,
+     "b": 8,
+     "c": 5,
+     "masked": 0,
+     "ambiguous": 0,
+     "judged_total": 119,
+     "strict": 0.8908,
+     "lenient": 0.958
+    },
+    "errors": 0,
+    "unjudged": 0,
+    "status": "final"
+   },
+   "ioc-finder": {
+    "recall": {
+     "domain": [
+      71,
+      71,
+      1.0
+     ],
+     "sha256": [
+      3,
+      3,
+      1.0
+     ],
+     "url": [
+      102,
+      103,
+      0.9903
+     ],
+     "url-host": [
+      70,
+      70,
+      1.0
+     ]
+    },
+    "recall_by_class": {
+     "plain": [
+      176,
+      177,
+      0.9944
+     ]
+    },
+    "precision": {
+     "truth": 176,
+     "a": 2,
+     "b": 13,
+     "c": 8,
+     "masked": 0,
+     "ambiguous": 0,
+     "judged_total": 199,
+     "strict": 0.8945,
+     "lenient": 0.9598
+    },
+    "errors": 0,
+    "unjudged": 0,
+    "status": "final"
+   }
+  }
+ },
+ "reports_using_fullwidth_cjk": [],
+ "lost_by_default_filtering": {
+  "tw01-teamt5-activemq-2026": {
+   "url": [
+    "https://nvd.nist.gov/vuln/detail/cve-2024-32114"
+   ],
+   "domain": [
+    "nvd.nist.gov"
+   ],
+   "url-host": [
+    "nvd.nist.gov"
+   ]
+  },
+  "tw03-twcert-kev-2026": {
+   "url": [
+    "https://nvd.nist.gov/vuln/detail/CVE-2015-3306",
+    "https://nvd.nist.gov/vuln/detail/CVE-2015-5477",
+    "https://nvd.nist.gov/vuln/detail/CVE-2016-3081",
+    "https://nvd.nist.gov/vuln/detail/CVE-2021-3199",
+    "https://nvd.nist.gov/vuln/detail/CVE-2023-22894"
+   ],
+   "domain": [
+    "nvd.nist.gov"
+   ],
+   "url-host": [
+    "nvd.nist.gov"
+   ]
+  },
+  "tw04-nics-policy-151-2026": {
+   "url": [
+    "https://csrc.nist.gov/pubs/sp/800/185/r1/ipd",
+    "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.1800-45.pdf",
+    "https://www.nist.gov/blogs/cybersecurity-insights/securing-water-and-wastewater-operational-technology-environments"
+   ],
+   "domain": [
+    "csrc.nist.gov",
+    "nvlpubs.nist.gov",
+    "www.nist.gov"
+   ],
+   "url-host": [
+    "csrc.nist.gov",
+    "nvlpubs.nist.gov",
+    "www.nist.gov"
+   ]
+  }
+ },
+ "unjudged": {}
+}

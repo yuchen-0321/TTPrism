@@ -1,0 +1,491 @@
+# Map CAPE sandbox signature names to current ATT&CK techniques.
+#
+# CAPE signatures carry their own TTP lists, but many of them still point at
+# technique IDs that ATT&CK has since revoked or deprecated (T1086, T1089,
+# T1045, ...). TTPrism normalises those automatically; these rules add mappings
+# written against the current ATT&CK release.
+#
+# Signature names were checked against https://github.com/kevoreilly/community
+# (modules/signatures, commit af2e503, 2026-10-08).
+
+attack_version: "19.2"
+
+rules:
+  # --- Process injection -----------------------------------------------------
+  - id: cape.injection
+    technique: T1055
+    confidence: medium
+    description: CAPE observed code being written into or run in another process.
+    references:
+      - https://attack.mitre.org/techniques/T1055/
+    match:
+      signatures:
+        - injection_createremotethread
+        - injection_explorer
+        - injection_write_process
+        - injection_write_exe_process
+        - injection_module_stomping_probing
+
+  - id: cape.injection-runpe
+    technique: T1055.012
+    confidence: high
+    description: RunPE-style injection (unmap, write, set thread context, resume).
+    references:
+      - https://attack.mitre.org/techniques/T1055/012/
+    match:
+      signatures: [injection_runpe]
+
+  # --- Sandbox and debugger evasion -------------------------------------------
+  - id: cape.antivm
+    technique: T1497.001
+    confidence: medium
+    description: Checks for virtual machine or sandbox artefacts (files, registry, devices, hardware).
+    references:
+      - https://attack.mitre.org/techniques/T1497/001/
+    match:
+      signatures:
+        # Not "antivm_*": antivm_recentdocs is a user-activity check (cape.user-activity-checks).
+        - "antivm_generic_*"
+        - "antivm_*_keys"
+        - "antivm_vbox_*"
+        - "antivm_vmware_*"
+        - "antivm_vpc_*"
+        - antivm_checks_available_memory
+        - antivm_directory_objects
+        - antivm_display
+        - antivm_network_adapters
+        - antivm_wmi
+        - "antisandbox_*_files"
+        - "antisandbox_*_libs"
+        - "antisandbox_sboxie_*"
+        - antisandbox_check_userdomain
+        - antisandbox_windows_activation
+        - antisandbox_system_parameters_info
+
+  - id: cape.user-activity-checks
+    technique: T1497.002
+    confidence: medium
+    description: Looks for signs of a real user (recent documents, mouse movement or hooks, window focus).
+    references:
+      - https://attack.mitre.org/techniques/T1497/002/
+    match:
+      signatures:
+        - antivm_recentdocs
+        - antisandbox_mouse_hook
+        - mouse_movement_detect
+        - antisandbox_foregroundwindows
+
+  - id: cape.antisandbox-timing
+    technique: T1497.003
+    confidence: medium
+    description: Delays or timing checks intended to outlast or detect the sandbox.
+    references:
+      - https://attack.mitre.org/techniques/T1497/003/
+    match:
+      signatures:
+        - antisandbox_sleep
+        - antisandbox_script_timer
+        - antidebug_gettickcount
+        - stealth_timeout
+
+  - id: cape.antidebug
+    technique: T1622
+    confidence: medium
+    description: Debugger detection or anti-debugging tricks.
+    references:
+      - https://attack.mitre.org/techniques/T1622/
+    match:
+      signatures: ["antidebug_*"]
+
+  # --- Obfuscation -------------------------------------------------------------
+  - id: cape.packer-known
+    technique: T1027.002
+    confidence: high
+    description: A known packer or protector was identified.
+    references:
+      - https://attack.mitre.org/techniques/T1027/002/
+    match:
+      signatures:
+        - "packer_armadillo_*"
+        - packer_aspack
+        - packer_aspirecrypt
+        - packer_bedsprotector
+        - packer_confuser
+        - packer_enigma
+        - packer_mpress
+        - packer_nate
+        - packer_nspack
+        - packer_smartassembly
+        - packer_spices
+        - packer_themida
+        - packer_titan
+        - packer_upx
+        - packer_vmprotect
+        - packer_yoda
+
+  - id: cape.packer-generic
+    technique: T1027.002
+    confidence: low
+    description: High entropy or unusual PE sections suggest packing.
+    references:
+      - https://attack.mitre.org/techniques/T1027/002/
+    match:
+      signatures: [packer_entropy, packer_unknown_pe_section_name]
+
+  - id: cape.command-obfuscation
+    technique: T1027.010
+    confidence: medium
+    description: Obfuscated command lines or PowerShell.
+    references:
+      - https://attack.mitre.org/techniques/T1027/010/
+    match:
+      signatures:
+        - cmdline_obfuscation
+        - cmdline_reversed_http_link
+        - powershell_reversed
+        - powershell_variable_obfuscation
+
+  # --- Execution ---------------------------------------------------------------
+  - id: cape.powershell
+    technique: T1059.001
+    confidence: high
+    description: PowerShell activity flagged by CAPE.
+    references:
+      - https://attack.mitre.org/techniques/T1059/001/
+    match:
+      signatures: ["powershell_*"]
+
+  - id: cape.powershell-download
+    technique: T1105
+    confidence: medium
+    description: PowerShell used to download content.
+    references:
+      - https://attack.mitre.org/techniques/T1105/
+    match:
+      signatures: [powershell_download]
+
+  # --- Persistence and privilege escalation -------------------------------------
+  - id: cape.persistence-autorun
+    technique: T1547.001
+    confidence: medium
+    description: >-
+      Autostart entry written. Besides Run keys and the Startup folder, the signature also fires on
+      Winlogon, IFEO debuggers, AppInit_DLLs, Active Setup and auto-start services, which the reg.*,
+      api.* and cmd.* rules map to their own techniques.
+    references:
+      - https://attack.mitre.org/techniques/T1547/001/
+    match:
+      signatures: [persistence_autorun]
+
+  - id: cape.persistence-scheduled-task
+    technique: T1053.005
+    confidence: low
+    description: >-
+      Auto-start service, SharedTaskScheduler entry or legacy task file in \Windows\Tasks created.
+      Only the last is a scheduled task; service creation is mapped by api.service-create.
+    references:
+      - https://attack.mitre.org/techniques/T1053/005/
+    match:
+      signatures: [persistence_autorun_tasks]
+
+  - id: cape.persistence-service
+    technique: T1543.003
+    confidence: high
+    description: Windows service created for persistence.
+    references:
+      - https://attack.mitre.org/techniques/T1543/003/
+    match:
+      signatures: [persistence_service]
+
+  - id: cape.persistence-ifeo
+    technique: T1546.012
+    confidence: high
+    description: Image File Execution Options or SilentProcessExit abused.
+    references:
+      - https://attack.mitre.org/techniques/T1546/012/
+    match:
+      signatures: [persistence_ifeo, persistence_silent_process_exit]
+
+  - id: cape.persistence-shim
+    technique: T1546.011
+    confidence: high
+    description: Application shim database installed.
+    references:
+      - https://attack.mitre.org/techniques/T1546/011/
+    match:
+      signatures: [persistence_shim_database]
+
+  - id: cape.uac-bypass
+    technique: T1548.002
+    confidence: high
+    description: User Account Control bypass or weakening.
+    references:
+      - https://attack.mitre.org/techniques/T1548/002/
+    match:
+      signatures: ["uac_bypass_*", disables_uac, modify_uac_prompt]
+
+  # --- Defense impairment and stealth -------------------------------------------
+  - id: cape.disable-security-tools
+    technique: T1685
+    confidence: medium
+    description: Security products disabled, stopped or reconfigured.
+    references:
+      - https://attack.mitre.org/techniques/T1685/
+    match:
+      signatures:
+        - "disables_windows_defender*"
+        - "removes_windows_defender_*"
+        - disables_security
+        - antiav_srp
+
+  - id: cape.service-stop
+    technique: T1489
+    confidence: medium
+    description: Services stopped through the Service Control Manager API (any service, not only security tools).
+    references:
+      - https://attack.mitre.org/techniques/T1489/
+    match:
+      signatures: [antiav_servicestop]
+
+  - id: cape.disable-firewall
+    technique: T1686
+    confidence: high
+    description: Windows Firewall disabled or bypassed.
+    references:
+      - https://attack.mitre.org/techniques/T1686/
+    match:
+      signatures: [disables_winfirewall, bypass_firewall]
+
+  - id: cape.disable-event-logging
+    technique: T1685.001
+    confidence: medium
+    description: Windows event logging disabled.
+    references:
+      - https://attack.mitre.org/techniques/T1685/001/
+    match:
+      signatures: [disables_event_logging]
+
+  - id: cape.clear-event-logs
+    technique: T1685.005
+    confidence: medium
+    description: Windows event logs cleared.
+    references:
+      - https://attack.mitre.org/techniques/T1685/005/
+    match:
+      signatures: [clears_logs]
+
+  - id: cape.self-deletion
+    technique: T1070.004
+    confidence: high
+    description: The sample deleted itself or files it executed.
+    references:
+      - https://attack.mitre.org/techniques/T1070/004/
+    match:
+      signatures: [deletes_self, deletes_executed_files]
+
+  - id: cape.clear-command-history
+    technique: T1070.003
+    confidence: high
+    description: Console or PowerShell history deleted.
+    references:
+      - https://attack.mitre.org/techniques/T1070/003/
+    match:
+      signatures: [deletes_consolehost_history]
+
+  - id: cape.hidden-files
+    technique: T1564.001
+    confidence: medium
+    description: Files or registry values hidden from the user.
+    references:
+      - https://attack.mitre.org/techniques/T1564/001/
+    match:
+      signatures: [stealth_file]
+
+  - id: cape.hidden-window
+    technique: T1564.003
+    confidence: medium
+    description: Process windows hidden from the user.
+    references:
+      - https://attack.mitre.org/techniques/T1564/003/
+    match:
+      signatures: [stealth_window]
+
+  - id: cape.ntfs-ads
+    technique: T1564.004
+    confidence: medium
+    description: Data hidden in NTFS alternate data streams.
+    references:
+      - https://attack.mitre.org/techniques/T1564/004/
+    match:
+      signatures: [persistence_ads]
+
+  - id: cape.hide-file-extensions
+    technique: T1112
+    confidence: medium
+    description: Explorer's HideFileExt setting written so file extensions stay hidden (aids double-extension lures).
+    references:
+      - https://attack.mitre.org/techniques/T1112/
+    match:
+      signatures: [stealth_hidden_extension]
+
+  - id: cape.masquerade-system-name
+    technique: T1036.005
+    confidence: medium
+    description: Process runs under the name of a Windows system process.
+    references:
+      - https://attack.mitre.org/techniques/T1036/005/
+    match:
+      signatures: [stealth_system_procname]
+
+  - id: cape.motw-bypass
+    technique: T1553.005
+    confidence: medium
+    description: Zone.Identifier (Mark-of-the-Web) stream removed.
+    references:
+      - https://attack.mitre.org/techniques/T1553/005/
+    match:
+      signatures: [removes_zoneid_ads, modify_zoneid_ads]
+
+  # --- Credential access ----------------------------------------------------------
+  - id: cape.browser-credentials
+    technique: T1555.003
+    confidence: high
+    description: Browser credential stores accessed.
+    references:
+      - https://attack.mitre.org/techniques/T1555/003/
+    match:
+      signatures: [infostealer_browser, infostealer_browser_password, browser_credential_theft_headless]
+
+  - id: cape.browser-cookies
+    technique: T1539
+    confidence: high
+    description: Browser cookies stolen.
+    references:
+      - https://attack.mitre.org/techniques/T1539/
+    match:
+      signatures: [infostealer_cookies]
+
+  - id: cape.password-stores
+    technique: T1555
+    confidence: medium
+    description: Mail, FTP or messaging client credential stores accessed.
+    references:
+      - https://attack.mitre.org/techniques/T1555/
+    match:
+      signatures: [infostealer_mail, infostealer_ftp, infostealer_im]
+
+  - id: cape.keylogging
+    technique: T1056.001
+    confidence: medium
+    description: Keylogging behaviour.
+    references:
+      - https://attack.mitre.org/techniques/T1056/001/
+    match:
+      signatures: [infostealer_keylog]
+
+  # --- Discovery ------------------------------------------------------------------
+  - id: cape.system-info
+    technique: T1082
+    confidence: medium
+    description: System information gathered for fingerprinting.
+    references:
+      - https://attack.mitre.org/techniques/T1082/
+    match:
+      signatures: [recon_systeminfo, recon_fingerprint]
+
+  - id: cape.software-discovery
+    technique: T1518
+    confidence: medium
+    description: Installed software enumerated.
+    references:
+      - https://attack.mitre.org/techniques/T1518/
+    match:
+      signatures: [recon_programs]
+
+  - id: cape.external-ip-check
+    technique: T1016.001
+    confidence: medium
+    description: External IP or connectivity lookup.
+    references:
+      - https://attack.mitre.org/techniques/T1016/001/
+    match:
+      signatures: [recon_checkip]
+
+  # --- Command and control ------------------------------------------------------
+  - id: cape.tor
+    technique: T1090.003
+    confidence: high
+    description: Tor used for communication.
+    references:
+      - https://attack.mitre.org/techniques/T1090/003/
+    match:
+      signatures: [network_tor, network_torgateway, network_tor_service]
+
+  - id: cape.dga
+    technique: T1568.002
+    confidence: medium
+    description: Domain names that look algorithmically generated.
+    references:
+      - https://attack.mitre.org/techniques/T1568/002/
+    match:
+      signatures: ["network_dga*"]
+
+  # --- Lateral movement ---------------------------------------------------------
+  - id: cape.autorun-inf
+    technique: T1091
+    confidence: high
+    description: autorun.inf written for removable-media spreading.
+    references:
+      - https://attack.mitre.org/techniques/T1091/
+    match:
+      signatures: [spreading_autoruninf]
+
+  # --- Impact -------------------------------------------------------------------
+  - id: cape.ransomware
+    technique: T1486
+    confidence: high
+    description: Ransomware file encryption behaviour.
+    references:
+      - https://attack.mitre.org/techniques/T1486/
+    match:
+      signatures:
+        - ransomware_attribute_stripping
+        - ransomware_extension_hijack
+        - ransomware_extensions_generic
+        - ransomware_extensions_known
+        - ransomware_file_modifications
+        - ransomware_files
+        - ransomware_iocp_asynchronous_encryption
+        - ransomware_message
+        - ransomware_revil_regkey
+
+  - id: cape.inhibit-recovery
+    technique: T1490
+    confidence: high
+    description: Shadow copies, backups or system restore removed or disabled.
+    references:
+      - https://attack.mitre.org/techniques/T1490/
+    match:
+      signatures:
+        - deletes_shadow_copies
+        - deletes_system_state_backup
+        - disables_system_restore
+        - disables_backups
+
+  - id: cape.wiper
+    technique: T1485
+    confidence: high
+    description: Disk or file wiping behaviour.
+    references:
+      - https://attack.mitre.org/techniques/T1485/
+    match:
+      signatures: ["wiper_*", ransomware_recyclebin]
+
+  - id: cape.defacement
+    technique: T1491.001
+    confidence: medium
+    description: Desktop wallpaper changed (typical ransom note display).
+    references:
+      - https://attack.mitre.org/techniques/T1491/001/
+    match:
+      signatures: [modify_desktop_wallpaper]

@@ -1,0 +1,29 @@
+name: Bug report
+description: Something does not work as documented (not a security issue and not detection quality).
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If crafted input makes TTPrism crash, hang, use excessive memory, or read or write unexpected
+        files, please report it **privately** instead: see SECURITY.md.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Command line and a minimal input (TLP:CLEAR only, no live malware).
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: TTPrism version and platform
+      description: "e.g. ttprism 0.1.0, Python 3.12, Windows 11"
+    validations:
+      required: true

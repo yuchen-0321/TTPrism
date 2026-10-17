@@ -1,0 +1,89 @@
+# Map Windows API calls recorded by the sandbox to ATT&CK techniques.
+#
+# Rules only use APIs that CAPE's monitor actually hooks (checked against
+# https://github.com/kevoreilly/capemon hooks.c, commit f366a9c, 2026-10-08).
+# An API listed here that the monitor never logs simply never matches.
+#
+# API names alone say nothing about arguments (which process was written to,
+# which hook type was installed), so most of these rules are medium or low
+# confidence. "A|B" means either API; an apis_all group needs every entry.
+
+attack_version: "19.2"
+
+rules:
+  - id: api.process-hollowing
+    technique: T1055.012
+    confidence: medium
+    description: Unmap, write, set thread context and resume, the process hollowing sequence.
+    references:
+      - https://attack.mitre.org/techniques/T1055/012/
+    match:
+      apis_all:
+        - [NtUnmapViewOfSection, NtWriteVirtualMemory|WriteProcessMemory, NtSetContextThread, NtResumeThread]
+
+  - id: api.remote-thread-injection
+    technique: T1055
+    confidence: medium
+    description: Memory written into a process and a remote thread started.
+    references:
+      - https://attack.mitre.org/techniques/T1055/
+    match:
+      apis_all:
+        - [NtWriteVirtualMemory|WriteProcessMemory, CreateRemoteThread|CreateRemoteThreadEx|RtlCreateUserThread]
+
+  - id: api.apc-injection
+    technique: T1055.004
+    confidence: low
+    description: Memory written into a process and an APC queued.
+    references:
+      - https://attack.mitre.org/techniques/T1055/004/
+    match:
+      apis_all:
+        - [NtWriteVirtualMemory|WriteProcessMemory, NtQueueApcThread|NtQueueApcThreadEx]
+
+  - id: api.download-to-file
+    technique: T1105
+    confidence: medium
+    description: URLDownloadToFile used to fetch a file.
+    references:
+      - https://attack.mitre.org/techniques/T1105/
+    match:
+      apis: [URLDownloadToFileW]
+
+  - id: api.service-create
+    technique: T1543.003
+    confidence: medium
+    description: Windows service created through the Service Control Manager API.
+    references:
+      - https://attack.mitre.org/techniques/T1543/003/
+    match:
+      apis: [CreateServiceA|CreateServiceW]
+
+  - id: api.create-process-with-token
+    technique: T1134.002
+    confidence: medium
+    description: Process started with another user's token.
+    references:
+      - https://attack.mitre.org/techniques/T1134/002/
+    match:
+      apis: [CreateProcessWithTokenW]
+
+  - id: api.keyboard-polling
+    technique: T1056.001
+    confidence: low
+    description: Keyboard state polled or a Windows hook installed (keyloggers do both).
+    references:
+      - https://attack.mitre.org/techniques/T1056/001/
+    match:
+      apis_all:
+        - [GetAsyncKeyState, SetWindowsHookExA|SetWindowsHookExW]
+
+  - id: api.process-enumeration
+    technique: T1057
+    confidence: low
+    description: Running processes enumerated with the Toolhelp API.
+    references:
+      - https://attack.mitre.org/techniques/T1057/
+    match:
+      apis_all:
+        - [CreateToolhelp32Snapshot, Process32FirstW, Process32NextW]

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability (private)
+    url: https://github.com/yuchen-0321/TTPrism/security/advisories/new
+    about: Crashes, hangs or file access triggered by crafted input go here, not in public issues. See SECURITY.md.

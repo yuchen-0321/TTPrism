@@ -1,0 +1,4608 @@
+{
+ "meta": {
+  "set": "zh-cn",
+  "label": "after",
+  "date": "2026-10-10",
+  "ttprism_commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
+  "ttprism": {
+   "version": "0.1.0.dev0",
+   "path": "src/ttprism/__init__.py"
+  },
+  "versions": {
+   "ttprism": "0.1.0.dev0",
+   "iocextract": "1.16.1",
+   "ioc-finder": "9.4.1",
+   "pypdf": "6.20.0"
+  },
+  "python": "3.11.17 (main, Oct  1 2026, 15:41:07) [GCC 13.3.0]",
+  "html_parser_sha256": {
+   "html/parser.py": "3a02c73b41c1095a7cddb8b824387ffb875b19f37e0e6f591753d7a88a2fe52a",
+   "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
+   "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
+  },
+  "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
+  "installed": [
+   "PyYAML==6.0.3",
+   "Pygments==2.21.0",
+   "certifi==2026.7.22",
+   "charset-normalizer==3.5.2",
+   "click==8.5.0",
+   "hypothesis==6.168.5",
+   "idna==3.20",
+   "iniconfig==2.3.1",
+   "ioc_fanger==5.1.1",
+   "ioc_finder==9.4.1",
+   "iocextract==1.16.1",
+   "packaging==26.3",
+   "pluggy==1.6.0",
+   "pyparsing==3.3.3",
+   "pypdf==6.20.0",
+   "pytest==9.1.1",
+   "regex==2026.9.29",
+   "requests==2.34.2",
+   "sortedcontainers==2.4.0",
+   "ttprism==0.1.0.dev0",
+   "urllib3==2.8.0"
+  ],
+  "ttprism_settings": {
+   "ttprism-default": "(defaults)",
+   "ttprism-raw": "--include-reserved --no-default-allowlist"
+  }
+ },
+ "reports": [
+  {
+   "id": "cn01-tencent-oceanlotus-2018",
+   "original_url": "https://s.tencent.com/research/report/471.html",
+   "format": "pdf",
+   "source_sha256": "193c1198515cc1982f8e74c55c00044f258764a7078311f8b8e1abc860ec8b32",
+   "text_sha256": "27a876d7036f1716b879f45b982dc4904dc43280186a43fd69c3623343295826",
+   "conversion": {
+    "format": "pdf",
+    "python": "3.11.17 (main, Oct  1 2026, 15:41:07) [GCC 13.3.0]",
+    "html_parser_sha256": {
+     "html/parser.py": "3a02c73b41c1095a7cddb8b824387ffb875b19f37e0e6f591753d7a88a2fe52a",
+     "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
+     "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
+    },
+    "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
+    "conversion_inputs_sha256": "6e671e8a46ad2437aa884d77d5f290bd451639adc6a2d91bcb8173d8eb7b4734",
+    "commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
+    "pages": 11,
+    "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
+    "parts": [
+     {
+      "format": "pdf",
+      "start": 0,
+      "end": 5066
+     }
+    ]
+   },
+   "truth_counts": {
+    "domain": 6,
+    "ipv4": 3,
+    "md5": 9
+   },
+   "left_out": {
+    "masked": {},
+    "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [
+      "2 extracted value(s) would differ if the soft hyphens (U+00AD) were deleted instead of read as hyphens. Text taken from a PDF has a soft hyphen where the page shows a hyphen; text copied from a web page (&shy;) has them as invisible break hints, which would make KB-Auto read KBAuto."
+     ],
+     "suppressed": {}
+    },
+    "ttprism-raw": {
+     "warnings": [
+      "2 extracted value(s) would differ if the soft hyphens (U+00AD) were deleted instead of read as hyphens. Text taken from a PDF has a soft hyphen where the page shows a hyphen; text copied from a web page (&shy;) has them as invisible break hints, which would make KB-Auto read KBAuto."
+     ],
+     "suppressed": {}
+    }
+   },
+   "outputs": {
+    "ttprism-default": {
+     "url": [],
+     "domain": [
+      "andreagahuvrauvin.com",
+      "byronorenstein.com",
+      "christienoll.xyz",
+      "dieordaunt.com",
+      "illagedrivestralia.xyz",
+      "orinneamoure.com",
+      "straliaenollma.xyz"
+     ],
+     "ipv4": [
+      "154.16.138.89",
+      "154.16.47.41",
+      "154.16.99.85"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "02ae075da4fb2a6d38ce06f8f40e397e",
+      "2559738d1bd4a999126f900c7357b759",
+      "2dfaedd9265642e430e6635f210fabb4",
+      "72a5ad375401f33a5079caee18884c9d",
+      "79d06dd20768fd8cd4a043833c1f2d4b",
+      "b10f93cdbcdf43d4c5c5770872e239f4",
+      "d7c172d4a88573b7e373f2b666c011ac",
+      "ec505565e4cb5a22bfd3f63e4ad83ff3",
+      "f775cc387a55831386e44dd00ef9723e"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "ttprism-raw": {
+     "url": [],
+     "domain": [
+      "andreagahuvrauvin.com",
+      "byronorenstein.com",
+      "christienoll.xyz",
+      "dieordaunt.com",
+      "illagedrivestralia.xyz",
+      "orinneamoure.com",
+      "straliaenollma.xyz"
+     ],
+     "ipv4": [
+      "154.16.138.89",
+      "154.16.47.41",
+      "154.16.99.85"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "02ae075da4fb2a6d38ce06f8f40e397e",
+      "2559738d1bd4a999126f900c7357b759",
+      "2dfaedd9265642e430e6635f210fabb4",
+      "72a5ad375401f33a5079caee18884c9d",
+      "79d06dd20768fd8cd4a043833c1f2d4b",
+      "b10f93cdbcdf43d4c5c5770872e239f4",
+      "d7c172d4a88573b7e373f2b666c011ac",
+      "ec505565e4cb5a22bfd3f63e4ad83ff3",
+      "f775cc387a55831386e44dd00ef9723e"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "iocextract": {
+     "url": [],
+     "domain": [],
+     "ipv4": [
+      "154.16.138.89",
+      "154.16.47.41",
+      "154.16.99.85"
+     ],
+     "ipv6": [
+      "15:47:32"
+     ],
+     "email": [],
+     "md5": [
+      "02ae075da4fb2a6d38ce06f8f40e397e",
+      "2559738d1bd4a999126f900c7357b759",
+      "2dfaedd9265642e430e6635f210fabb4",
+      "72a5ad375401f33a5079caee18884c9d",
+      "79d06dd20768fd8cd4a043833c1f2d4b",
+      "b10f93cdbcdf43d4c5c5770872e239f4",
+      "bf13d4ea2945444d8b13e2121cb6b663",
+      "d7c172d4a88573b7e373f2b666c011ac",
+      "ec505565e4cb5a22bfd3f63e4ad83ff3",
+      "f775cc387a55831386e44dd00ef9723e"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "ioc-finder": {
+     "url": [],
+     "domain": [
+      "andreagahuvrauvin.com",
+      "byronorenstein.com",
+      "christienoll.xyz",
+      "dieordaunt.com",
+      "illagedrivestralia.xyz",
+      "orinneamoure.com",
+      "straliaenollma.xyz"
+     ],
+     "ipv4": [
+      "154.16.138.89",
+      "154.16.47.41",
+      "154.16.99.85"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "02ae075da4fb2a6d38ce06f8f40e397e",
+      "2dfaedd9265642e430e6635f210fabb4",
+      "72a5ad375401f33a5079caee18884c9d",
+      "79d06dd20768fd8cd4a043833c1f2d4b",
+      "b10f93cdbcdf43d4c5c5770872e239f4",
+      "bf13d4ea2945444d8b13e2121cb6b663",
+      "d7c172d4a88573b7e373f2b666c011ac",
+      "f775cc387a55831386e44dd00ef9723e"
+     ],
+     "sha1": [],
+     "sha256": []
+    }
+   },
+   "recall": {
+    "ttprism-default": {
+     "domain": [
+      6,
+      6
+     ],
+     "ipv4": [
+      3,
+      3
+     ],
+     "md5": [
+      9,
+      9
+     ]
+    },
+    "ttprism-raw": {
+     "domain": [
+      6,
+      6
+     ],
+     "ipv4": [
+      3,
+      3
+     ],
+     "md5": [
+      9,
+      9
+     ]
+    },
+    "iocextract": {
+     "domain": [
+      0,
+      6
+     ],
+     "ipv4": [
+      3,
+      3
+     ],
+     "md5": [
+      9,
+      9
+     ]
+    },
+    "ioc-finder": {
+     "domain": [
+      6,
+      6
+     ],
+     "ipv4": [
+      3,
+      3
+     ],
+     "md5": [
+      7,
+      9
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 18,
+     "a": 1,
+     "b": 0,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 18,
+     "a": 1,
+     "b": 0,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 12,
+     "a": 0,
+     "b": 0,
+     "c": 2,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 16,
+     "a": 1,
+     "b": 0,
+     "c": 1,
+     "masked": 0,
+     "ambiguous": 0
+    }
+   },
+   "lost_by_default_filtering": {}
+  },
+  {
+   "id": "cn02-360-apt-c-01-2018",
+   "original_url": "https://ti.360.net/uploads/2018/09/20/6f8ad451646c9eda1f75c5d31f39f668.pdf",
+   "format": "pdf",
+   "source_sha256": "c69e30de5d0d5b158632d614a56d0a22e5b245bee4672e3574e3c00356270e81",
+   "text_sha256": "cf8698b5194d2d635d006de3147fa3676609ddc2fe0d4b8b5ae1dbb927ceeea0",
+   "conversion": {
+    "format": "pdf",
+    "python": "3.11.17 (main, Oct  1 2026, 15:41:07) [GCC 13.3.0]",
+    "html_parser_sha256": {
+     "html/parser.py": "3a02c73b41c1095a7cddb8b824387ffb875b19f37e0e6f591753d7a88a2fe52a",
+     "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
+     "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
+    },
+    "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
+    "conversion_inputs_sha256": "6e671e8a46ad2437aa884d77d5f290bd451639adc6a2d91bcb8173d8eb7b4734",
+    "commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
+    "pages": 78,
+    "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
+    "parts": [
+     {
+      "format": "pdf",
+      "start": 0,
+      "end": 38501
+     }
+    ]
+   },
+   "truth_counts": {
+    "url": 1,
+    "domain": 78,
+    "ipv4": 10,
+    "md5": 84
+   },
+   "left_out": {
+    "masked": {},
+    "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {
+      "allowlisted": 8,
+      "detection_name": 1,
+      "filename_like_domain": 2
+     }
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {
+      "detection_name": 1,
+      "filename_like_domain": 2
+     }
+    }
+   },
+   "outputs": {
+    "ttprism-default": {
+     "url": [
+      "http://annie165.zyns.com/zxcvb.hta",
+      "http://blogs.cisco.com/security/talos/opening-zxshell",
+      "http://code.google.com/a/apache-extras.org/p/phpmailer/",
+      "http://en.wikipedia.org/wiki/Unicode_character_property",
+      "http://news.xinhuanet.com/world/2014-05/18/c_1110741502.htm",
+      "http://updateinfo.servegame.org",
+      "http://updateinfo.servegame.org/tiny1detvghrt.tmp",
+      "http://www.isightpartners.com/2014/10/cve-2014-4114/",
+      "http://www.trendmicro.com/cloud-content/us/pdfs/security-intelligence/white-papers/wp-spear-phishing-email-most-favored-apt-attack-bait.pdf",
+      "https://api-upload.kanbox.com/0/upload/%s/%s?bearer_token=%s",
+      "https://auth.kanbox.com/0/token",
+      "https://technet.microsoft.com/zh-cn/library/security/3010060.aspx",
+      "https://technet.microsoft.com/zh-cn/library/security/ms12-027.aspx",
+      "https://technet.microsoft.com/zh-cn/library/security/ms14-060.aspx",
+      "https://technet.microsoft.com/zh-cn/library/security/ms14-064.aspx",
+      "https://ti.360.net/",
+      "https://ti.360.net/blog/articles/analysis-of-apt-c-01/",
+      "https://www.fireeye.com/resources/pdfs/fireeye-poison-ivy-report.pdf"
+     ],
+     "domain": [
+      "126mailserver.serveftp.com",
+      "access.webplurk.com",
+      "aliago.dyndns.dk",
+      "annie165.zyns.com",
+      "api-upload.kanbox.com",
+      "as1688.webhop.org",
+      "auth.kanbox.com",
+      "babana.wikaba.com",
+      "backaaa.beijingdasihei.com",
+      "bearingonly.rebatesrule.net",
+      "blogs.cisco.com",
+      "bt0116.servebbs.net",
+      "canberk.gecekodu.com",
+      "ceepitbj.servepics.com",
+      "check.blogdns.com",
+      "china.serveblog.net",
+      "chinamil.lflink.com",
+      "cluster.safe360.dns05.com",
+      "cnwww.m-music.net",
+      "code.google.com",
+      "comehigh.mefound.com",
+      "emailser163.serveusers.com",
+      "en.wikipedia.org",
+      "fevupdate.ocry.com",
+      "fff.dynamic-dns.net",
+      "gaewaa.upgrinfo.com",
+      "gaewaaa.upgrinfo.com",
+      "geiwoaaa.qpoe.com",
+      "givemea.ygto.com",
+      "givemeaaa.upgrinfo.com",
+      "goldlion.mefound.com",
+      "gugupd.008.net",
+      "guliu2008.9966.org",
+      "hy-zhqopin.mynumber.org",
+      "hyssjc.securitytactics.com",
+      "jason.zyns.com",
+      "javainfo.upgrinfo.com",
+      "jerry.jkub.com",
+      "kav2011.mooo.com",
+      "kouwel.zapto.org",
+      "l63service.serveuser.com",
+      "laizaow.mefound.com",
+      "localhosts.ddns.us",
+      "mail.sends.sendsmtp.com",
+      "mail163.mypop3.net",
+      "mailsends.sendsmtp.com",
+      "mediatvset.no-ip.org",
+      "microsoftword.serveuser.com",
+      "moneyaaa.beijingdasihei.com",
+      "motices.ourhobby.com",
+      "mp3.dnset.com",
+      "netlink.vizvaz.com",
+      "news.xinhuanet.com",
+      "office.go.dyndns.org",
+      "officepatch.dnset.com",
+      "operater.solaris.nu",
+      "pouhui.diskstation.org",
+      "pps.longmusic.com",
+      "ps1688.webhop.org",
+      "rising.linkpc.net",
+      "safe360.dns05.com",
+      "sandy.ourhobby.com",
+      "soagov.sytes.net",
+      "soagov.zapto.org",
+      "soasoa.sytes.net",
+      "ssy.ikwb.com",
+      "ssy.mynumber.org",
+      "svcsrset.ezua.com",
+      "teacat.https443.org",
+      "technet.microsoft.com",
+      "ti.360.net",
+      "tong.wikaba.com",
+      "updateinfo.servegame.org",
+      "updates.lflink.com",
+      "usa08.serveftp.net",
+      "uswebmail163.sendsmtp.com",
+      "waterfall.mynumber.org",
+      "webupdate.dnsrd.com",
+      "winsysupdate.dynamic-dns.net",
+      "wmiaprp.ezua.com",
+      "www.81.cn",
+      "www.chinamil.cn",
+      "www.chinamil.com",
+      "www.fireeye.com",
+      "www.isightpartners.com",
+      "www.safe360.dns05.com",
+      "www.service.justdied.com",
+      "www.soa.gov.cn",
+      "www.ssy.ikwb.com",
+      "www.tong.wikaba.com",
+      "www.trendmicro.com",
+      "www.xinhuanet.com",
+      "wwwdo.tyur.acmetoy.com",
+      "xinhua.redirectme.net",
+      "zxcv201789.dynssl.com"
+     ],
+     "ipv4": [
+      "131.213.66.10",
+      "146.0.32.168",
+      "165.227.220.223",
+      "188.166.67.36",
+      "199.101.133.169",
+      "45.32.8.137",
+      "45.76.125.176",
+      "45.76.228.61",
+      "45.76.9.206",
+      "45.77.171.209"
+     ],
+     "ipv6": [],
+     "email": [
+      "360zhuiri@360.cn"
+     ],
+     "md5": [
+      "03d762794a6fe96458d8228bb7561629",
+      "0595f5005f237967dcfda517b26497d6",
+      "07561810d818905851ce6ab2c1152871",
+      "0e80fca91103fe46766dcb0763c6f6af",
+      "0fb92524625fffda3425d08c94c014a1",
+      "1374e999e1cda9e406c19dfe99830ffc",
+      "1396cafb08ca09fac5d4bd2f12c65059",
+      "168365197031ffcdbe65ab13d71b64ec",
+      "19365fddc2fca8735d51def001704db3",
+      "19f967e27e21802fe92bc9705ae0a770",
+      "1ab54f5f0b847a1aaaf00237d3a9f0ba",
+      "1aca8cd40d9b84cab225d333b09f9ba5",
+      "1dc61f30feeb60995174692e8d864312",
+      "250c9ec3e77d1c6d999ce782c69fc21b",
+      "2579b715ea1b76a1979c415b139fdee7",
+      "26d7f7aa3135e99581119f40986a8ac3",
+      "27f683baed7b02927a591cdc0c850743",
+      "28e4545e9944eb53897ee9acf67b1969",
+      "2a96042e605146ead06b2ee4835baec3",
+      "2b5ddabf1c6fd8670137cade8b60a034",
+      "2c405d608b600655196a4aa13bdb3790",
+      "2fa75fdf4d57c182bc6c0438dd6cbf27",
+      "30866adc2976704bca0f051b5474a1ee",
+      "31c81459c10d3f001d2ccef830239c16",
+      "3484302809ac3df6ceec857cb4f75fb1",
+      "36c23c569205d6586984a2f6f8c3a39e",
+      "382132e601d7a4ae39a4e7d89457597f",
+      "3e12538b6eaf19ca163a47ea599cfa9b",
+      "41c7e09170037fafe95bb691df021a20",
+      "45e983ae2fca8dacfdebe1b1277102c9",
+      "4e57987d0897878eb2241f9d52303713",
+      "517c81b6d05bf285d095e0fd91cb6f03",
+      "5696bbee662d75f9be0e8a9ed8672755",
+      "5d0b4cadfb149695d9fbc71dd1b36bef",
+      "5e4c2fbcd0308a0b9af92bf87383604f",
+      "5ee2958b130f9cda8f5f3fc1dc5249cf",
+      "5f1a1ff9f272539904e25d300f2bfbcc",
+      "611cefaee48c5f096fb644073247621c",
+      "67d5f04fb0e00addc4085457f40900a2",
+      "6a37ce66d3003ebf04d249ab049acb22",
+      "6ca3a598492152eb08e36819ee56ab83",
+      "7639ed0f0c0f5ac48ec9a548a82e2f50",
+      "76782ecf9684595dbf86e5e37ba95cc8",
+      "785b24a55dd41c94060efe8b39dc6d4c",
+      "7c498b7ad4c12c38b1f4eb12044a9def",
+      "7deeb1b3cce6528add4f9489ce1ec5d6",
+      "81232f4c5c7810939b3486fa78d666c2",
+      "81e1332d15b29e8a19d0e97459d0a1de",
+      "8abb22771fd3ca34d6def30ba5c5081c",
+      "954f50f7ed8b4c11b59560769de0ec36",
+      "95f0b0e942081b4952e6daef2e373967",
+      "9b925250786571058dae5a7cbea71d28",
+      "9bcb41da619c289fcfdf3131bbf2be21",
+      "9f9a24b063018613f7f290cc057b8c40",
+      "9fb6866c2cdd49387a520f421a04b882",
+      "a5d9edaa1b6cf820d54c19b2c6bd246d",
+      "a73d3f749e42e2b614f89c4b3ce97fe1",
+      "a807486cfe05b30a43c109fdb6a95993",
+      "a8417d19c5e5183d45a38a2abf48e43e",
+      "aa57085e5544d923f576e9f86adf9dc0",
+      "acc598bf20fada204b5cfd4c3344f98a",
+      "accb53eb0faebfca9f190815d143e04b",
+      "adc3a4dfbdfe7640153ed0ea1c3cf125",
+      "ae004a5d4f1829594d830956c55d6ae4",
+      "b04d7fa1c7e3a8274ba81f48f06a5f4e",
+      "b0be3c5fe298fb2b894394e808d5ffaf",
+      "b244cced7c7f728bcc4d363f8260090d",
+      "b301cd0e42803b0373438e9d4ca01421",
+      "bd2272535c655aff1f1566b24a70ee97",
+      "bd4b579f889bbe681b9d3ab11768ca07",
+      "bfb9d13daf5a4232e5e45875e7e905d7",
+      "c31549489bf0478ab4c367c563916ada",
+      "c8755d732be4dc13eecd8e4c49cfab94",
+      "c8fd2748a82e336f934963a79313aaa1",
+      "ca663597299b1cecaf57c14c6579b23b",
+      "cbeebf063f914eb3b5eba8b37302189f",
+      "cda1961d63aaee991ff97845705e08b8",
+      "d12099237026ae7475c24b3dfb5d18bc",
+      "d61c583eba31f2670ae688af070c87fc",
+      "da807804fa5f53f7cbcaac82b901689c",
+      "dde2c03d6168089affdca3b5ec41f661",
+      "e07ca9f773bd772a41a6698c6fd6e551",
+      "e2e2cd911e099b005e0b2a80a34cfaac",
+      "e9a9c0485ee3e32e7db79247fee8bba6",
+      "ec7e11cfca01af40f4d96cbbacb41fed",
+      "eff88ecf0c3e719f584371e9150061d2",
+      "f0c29f89ffdb0f3f03e663ef415b9e4e",
+      "f1b6ed2624583c913392dcd7e3ea6ae1",
+      "f27a9cd7df897cf8d2e540b6530dceb3",
+      "f29abd84d6cdec8bb5ce8d51e85ddafc",
+      "f3ed0632cadd2d6beffb9d33db4188ed",
+      "fb427874a13f6ea5e0fd1a0aec6a095c",
+      "fbd0f2c62b14b576f087e92f60e7d132",
+      "fccb13c00df25d074a78f1eeeb04a0e7"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "ttprism-raw": {
+     "url": [
+      "http://annie165.zyns.com/zxcvb.hta",
+      "http://blogs.cisco.com/security/talos/opening-zxshell",
+      "http://code.google.com/a/apache-extras.org/p/phpmailer/",
+      "http://en.wikipedia.org/wiki/Unicode_character_property",
+      "http://news.xinhuanet.com/world/2014-05/18/c_1110741502.htm",
+      "http://updateinfo.servegame.org",
+      "http://updateinfo.servegame.org/tiny1detvghrt.tmp",
+      "http://www.cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2012-0158",
+      "http://www.cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2014-6352",
+      "http://www.isightpartners.com/2014/10/cve-2014-4114/",
+      "http://www.trendmicro.com/cloud-content/us/pdfs/security-intelligence/white-papers/wp-spear-phishing-email-most-favored-apt-attack-bait.pdf",
+      "https://api-upload.kanbox.com/0/upload/%s/%s?bearer_token=%s",
+      "https://auth.kanbox.com/0/token",
+      "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2014-4114",
+      "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-8759",
+      "https://technet.microsoft.com/zh-cn/library/security/3010060.aspx",
+      "https://technet.microsoft.com/zh-cn/library/security/ms12-027.aspx",
+      "https://technet.microsoft.com/zh-cn/library/security/ms14-060.aspx",
+      "https://technet.microsoft.com/zh-cn/library/security/ms14-064.aspx",
+      "https://ti.360.net/",
+      "https://ti.360.net/blog/articles/analysis-of-apt-c-01/",
+      "https://www.fireeye.com/resources/pdfs/fireeye-poison-ivy-report.pdf",
+      "https://www.virustotal.com/en/file/8cee670d7419d1fd0f8f0ac6a2bd981593c2c96ca0f6b801931"
+     ],
+     "domain": [
+      "126mailserver.serveftp.com",
+      "access.webplurk.com",
+      "aliago.dyndns.dk",
+      "annie165.zyns.com",
+      "api-upload.kanbox.com",
+      "as1688.webhop.org",
+      "auth.kanbox.com",
+      "babana.wikaba.com",
+      "backaaa.beijingdasihei.com",
+      "bearingonly.rebatesrule.net",
+      "blogs.cisco.com",
+      "bt0116.servebbs.net",
+      "canberk.gecekodu.com",
+      "ceepitbj.servepics.com",
+      "check.blogdns.com",
+      "china.serveblog.net",
+      "chinamil.lflink.com",
+      "cluster.safe360.dns05.com",
+      "cnwww.m-music.net",
+      "code.google.com",
+      "comehigh.mefound.com",
+      "cve.mitre.org",
+      "emailser163.serveusers.com",
+      "en.wikipedia.org",
+      "fevupdate.ocry.com",
+      "fff.dynamic-dns.net",
+      "gaewaa.upgrinfo.com",
+      "gaewaaa.upgrinfo.com",
+      "geiwoaaa.qpoe.com",
+      "givemea.ygto.com",
+      "givemeaaa.upgrinfo.com",
+      "goldlion.mefound.com",
+      "gugupd.008.net",
+      "guliu2008.9966.org",
+      "hy-zhqopin.mynumber.org",
+      "hyssjc.securitytactics.com",
+      "jason.zyns.com",
+      "javainfo.upgrinfo.com",
+      "jerry.jkub.com",
+      "kav2011.mooo.com",
+      "kouwel.zapto.org",
+      "l63service.serveuser.com",
+      "laizaow.mefound.com",
+      "localhosts.ddns.us",
+      "mail.sends.sendsmtp.com",
+      "mail163.mypop3.net",
+      "mailsends.sendsmtp.com",
+      "mediatvset.no-ip.org",
+      "microsoftword.serveuser.com",
+      "moneyaaa.beijingdasihei.com",
+      "motices.ourhobby.com",
+      "mp3.dnset.com",
+      "netlink.vizvaz.com",
+      "news.xinhuanet.com",
+      "office.go.dyndns.org",
+      "officepatch.dnset.com",
+      "operater.solaris.nu",
+      "pouhui.diskstation.org",
+      "pps.longmusic.com",
+      "ps1688.webhop.org",
+      "rising.linkpc.net",
+      "safe360.dns05.com",
+      "sandy.ourhobby.com",
+      "soagov.sytes.net",
+      "soagov.zapto.org",
+      "soasoa.sytes.net",
+      "ssy.ikwb.com",
+      "ssy.mynumber.org",
+      "svcsrset.ezua.com",
+      "teacat.https443.org",
+      "technet.microsoft.com",
+      "ti.360.net",
+      "tong.wikaba.com",
+      "updateinfo.servegame.org",
+      "updates.lflink.com",
+      "usa08.serveftp.net",
+      "uswebmail163.sendsmtp.com",
+      "waterfall.mynumber.org",
+      "webupdate.dnsrd.com",
+      "winsysupdate.dynamic-dns.net",
+      "wmiaprp.ezua.com",
+      "www.81.cn",
+      "www.chinamil.cn",
+      "www.chinamil.com",
+      "www.cve.mitre.org",
+      "www.fireeye.com",
+      "www.isightpartners.com",
+      "www.safe360.dns05.com",
+      "www.service.justdied.com",
+      "www.soa.gov.cn",
+      "www.ssy.ikwb.com",
+      "www.tong.wikaba.com",
+      "www.trendmicro.com",
+      "www.virustotal.com",
+      "www.xinhuanet.com",
+      "wwwdo.tyur.acmetoy.com",
+      "xinhua.redirectme.net",
+      "zxcv201789.dynssl.com"
+     ],
+     "ipv4": [
+      "131.213.66.10",
+      "146.0.32.168",
+      "165.227.220.223",
+      "188.166.67.36",
+      "199.101.133.169",
+      "45.32.8.137",
+      "45.76.125.176",
+      "45.76.228.61",
+      "45.76.9.206",
+      "45.77.171.209"
+     ],
+     "ipv6": [],
+     "email": [
+      "360zhuiri@360.cn"
+     ],
+     "md5": [
+      "03d762794a6fe96458d8228bb7561629",
+      "0595f5005f237967dcfda517b26497d6",
+      "07561810d818905851ce6ab2c1152871",
+      "0e80fca91103fe46766dcb0763c6f6af",
+      "0fb92524625fffda3425d08c94c014a1",
+      "1374e999e1cda9e406c19dfe99830ffc",
+      "1396cafb08ca09fac5d4bd2f12c65059",
+      "168365197031ffcdbe65ab13d71b64ec",
+      "19365fddc2fca8735d51def001704db3",
+      "19f967e27e21802fe92bc9705ae0a770",
+      "1ab54f5f0b847a1aaaf00237d3a9f0ba",
+      "1aca8cd40d9b84cab225d333b09f9ba5",
+      "1dc61f30feeb60995174692e8d864312",
+      "250c9ec3e77d1c6d999ce782c69fc21b",
+      "2579b715ea1b76a1979c415b139fdee7",
+      "26d7f7aa3135e99581119f40986a8ac3",
+      "27f683baed7b02927a591cdc0c850743",
+      "28e4545e9944eb53897ee9acf67b1969",
+      "2a96042e605146ead06b2ee4835baec3",
+      "2b5ddabf1c6fd8670137cade8b60a034",
+      "2c405d608b600655196a4aa13bdb3790",
+      "2fa75fdf4d57c182bc6c0438dd6cbf27",
+      "30866adc2976704bca0f051b5474a1ee",
+      "31c81459c10d3f001d2ccef830239c16",
+      "3484302809ac3df6ceec857cb4f75fb1",
+      "36c23c569205d6586984a2f6f8c3a39e",
+      "382132e601d7a4ae39a4e7d89457597f",
+      "3e12538b6eaf19ca163a47ea599cfa9b",
+      "41c7e09170037fafe95bb691df021a20",
+      "45e983ae2fca8dacfdebe1b1277102c9",
+      "4e57987d0897878eb2241f9d52303713",
+      "517c81b6d05bf285d095e0fd91cb6f03",
+      "5696bbee662d75f9be0e8a9ed8672755",
+      "5d0b4cadfb149695d9fbc71dd1b36bef",
+      "5e4c2fbcd0308a0b9af92bf87383604f",
+      "5ee2958b130f9cda8f5f3fc1dc5249cf",
+      "5f1a1ff9f272539904e25d300f2bfbcc",
+      "611cefaee48c5f096fb644073247621c",
+      "67d5f04fb0e00addc4085457f40900a2",
+      "6a37ce66d3003ebf04d249ab049acb22",
+      "6ca3a598492152eb08e36819ee56ab83",
+      "7639ed0f0c0f5ac48ec9a548a82e2f50",
+      "76782ecf9684595dbf86e5e37ba95cc8",
+      "785b24a55dd41c94060efe8b39dc6d4c",
+      "7c498b7ad4c12c38b1f4eb12044a9def",
+      "7deeb1b3cce6528add4f9489ce1ec5d6",
+      "81232f4c5c7810939b3486fa78d666c2",
+      "81e1332d15b29e8a19d0e97459d0a1de",
+      "8abb22771fd3ca34d6def30ba5c5081c",
+      "954f50f7ed8b4c11b59560769de0ec36",
+      "95f0b0e942081b4952e6daef2e373967",
+      "9b925250786571058dae5a7cbea71d28",
+      "9bcb41da619c289fcfdf3131bbf2be21",
+      "9f9a24b063018613f7f290cc057b8c40",
+      "9fb6866c2cdd49387a520f421a04b882",
+      "a5d9edaa1b6cf820d54c19b2c6bd246d",
+      "a73d3f749e42e2b614f89c4b3ce97fe1",
+      "a807486cfe05b30a43c109fdb6a95993",
+      "a8417d19c5e5183d45a38a2abf48e43e",
+      "aa57085e5544d923f576e9f86adf9dc0",
+      "acc598bf20fada204b5cfd4c3344f98a",
+      "accb53eb0faebfca9f190815d143e04b",
+      "adc3a4dfbdfe7640153ed0ea1c3cf125",
+      "ae004a5d4f1829594d830956c55d6ae4",
+      "b04d7fa1c7e3a8274ba81f48f06a5f4e",
+      "b0be3c5fe298fb2b894394e808d5ffaf",
+      "b244cced7c7f728bcc4d363f8260090d",
+      "b301cd0e42803b0373438e9d4ca01421",
+      "bd2272535c655aff1f1566b24a70ee97",
+      "bd4b579f889bbe681b9d3ab11768ca07",
+      "bfb9d13daf5a4232e5e45875e7e905d7",
+      "c31549489bf0478ab4c367c563916ada",
+      "c8755d732be4dc13eecd8e4c49cfab94",
+      "c8fd2748a82e336f934963a79313aaa1",
+      "ca663597299b1cecaf57c14c6579b23b",
+      "cbeebf063f914eb3b5eba8b37302189f",
+      "cda1961d63aaee991ff97845705e08b8",
+      "d12099237026ae7475c24b3dfb5d18bc",
+      "d61c583eba31f2670ae688af070c87fc",
+      "da807804fa5f53f7cbcaac82b901689c",
+      "dde2c03d6168089affdca3b5ec41f661",
+      "e07ca9f773bd772a41a6698c6fd6e551",
+      "e2e2cd911e099b005e0b2a80a34cfaac",
+      "e9a9c0485ee3e32e7db79247fee8bba6",
+      "ec7e11cfca01af40f4d96cbbacb41fed",
+      "eff88ecf0c3e719f584371e9150061d2",
+      "f0c29f89ffdb0f3f03e663ef415b9e4e",
+      "f1b6ed2624583c913392dcd7e3ea6ae1",
+      "f27a9cd7df897cf8d2e540b6530dceb3",
+      "f29abd84d6cdec8bb5ce8d51e85ddafc",
+      "f3ed0632cadd2d6beffb9d33db4188ed",
+      "fb427874a13f6ea5e0fd1a0aec6a095c",
+      "fbd0f2c62b14b576f087e92f60e7d132",
+      "fccb13c00df25d074a78f1eeeb04a0e7"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "iocextract": {
+     "url": [
+      "http://annie165.zyns.com/zxcvb.hta",
+      "http://blog.xecure-lab.com/2014/10/cve-2014-4114-pptx-apt-xecure-lab.html",
+      "http://blogs.cisco.com/security/talos/opening-zxshell",
+      "http://code.google.com/a/apache-extras.org/p/phpmailer/",
+      "http://en.wikipedia.org/wiki/Unicode_character_property",
+      "http://news.xinhuanet.com/world/2014-05/18/c_1110741502.htm",
+      "http://updateinfo.servegame.org",
+      "http://updateinfo.servegame.org/tiny1detvghrt.tmp",
+      "http://www.cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2012-0158",
+      "http://www.cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2014-6352",
+      "http://www.isightpartners.com/2014/10/cve-2014-4114/",
+      "http://www.trendmicro.com/cloud-content/us/pdfs/security-intelligence/white-papers/wp-spear-phishing-email-",
+      "http://如.doc.ppt.xls.wps",
+      "https://api-upload.kanbox.com/0/upload/%s/%s?bearer_token=%s",
+      "https://auth.kanbox.com/0/token",
+      "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2014-4114",
+      "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-8759",
+      "https://kanbox.com/",
+      "https://technet.microsoft.com/zh-cn/library/security/3010060.aspx",
+      "https://technet.microsoft.com/zh-cn/library/security/ms12-027.aspx",
+      "https://technet.microsoft.com/zh-cn/library/security/ms14-060.aspx",
+      "https://technet.microsoft.com/zh-cn/library/security/ms14-064.aspx",
+      "https://ti.360.net/",
+      "https://ti.360.net/blog/articles/analysis-of-apt-c-01/",
+      "https://www.fireeye.com/resources/pdfs/fireeye-poison-ivy-report.pdf",
+      "https://www.virustotal.com/en/file/8cee670d7419d1fd0f8f0ac6a2bd981593c2c96ca0f6b801931"
+     ],
+     "domain": [],
+     "ipv4": [
+      "131.213.66.10",
+      "146.0.32.168",
+      "165.227.220.223",
+      "188.166.67.36",
+      "199.101.133.169",
+      "45.32.8.137",
+      "45.76.125.176",
+      "45.76.228.61",
+      "45.76.9.206",
+      "45.77.171.209"
+     ],
+     "ipv6": [
+      "16:48:12",
+      "20:48:26",
+      "22:08:18",
+      "23:17:57",
+      "8:21:01"
+     ],
+     "email": [
+      "360zhuiri@360.cn"
+     ],
+     "md5": [
+      "03d762794a6fe96458d8228bb7561629",
+      "0595f5005f237967dcfda517b26497d6",
+      "07561810d818905851ce6ab2c1152871",
+      "0e80fca91103fe46766dcb0763c6f6af",
+      "0fb92524625fffda3425d08c94c014a1",
+      "1374e999e1cda9e406c19dfe99830ffc",
+      "1396cafb08ca09fac5d4bd2f12c65059",
+      "168365197031ffcdbe65ab13d71b64ec",
+      "19365fddc2fca8735d51def001704db3",
+      "19f967e27e21802fe92bc9705ae0a770",
+      "1ab54f5f0b847a1aaaf00237d3a9f0ba",
+      "1aca8cd40d9b84cab225d333b09f9ba5",
+      "1dc61f30feeb60995174692e8d864312",
+      "250c9ec3e77d1c6d999ce782c69fc21b",
+      "2579b715ea1b76a1979c415b139fdee7",
+      "26d7f7aa3135e99581119f40986a8ac3",
+      "27f683baed7b02927a591cdc0c850743",
+      "28e4545e9944eb53897ee9acf67b1969",
+      "2a96042e605146ead06b2ee4835baec3",
+      "2b5ddabf1c6fd8670137cade8b60a034",
+      "2c405d608b600655196a4aa13bdb3790",
+      "2fa75fdf4d57c182bc6c0438dd6cbf27",
+      "30866adc2976704bca0f051b5474a1ee",
+      "31c81459c10d3f001d2ccef830239c16",
+      "3484302809ac3df6ceec857cb4f75fb1",
+      "36c23c569205d6586984a2f6f8c3a39e",
+      "382132e601d7a4ae39a4e7d89457597f",
+      "3e12538b6eaf19ca163a47ea599cfa9b",
+      "41c7e09170037fafe95bb691df021a20",
+      "45e983ae2fca8dacfdebe1b1277102c9",
+      "4e57987d0897878eb2241f9d52303713",
+      "517c81b6d05bf285d095e0fd91cb6f03",
+      "5696bbee662d75f9be0e8a9ed8672755",
+      "5d0b4cadfb149695d9fbc71dd1b36bef",
+      "5e4c2fbcd0308a0b9af92bf87383604f",
+      "5ee2958b130f9cda8f5f3fc1dc5249cf",
+      "5f1a1ff9f272539904e25d300f2bfbcc",
+      "611cefaee48c5f096fb644073247621c",
+      "67d5f04fb0e00addc4085457f40900a2",
+      "6a37ce66d3003ebf04d249ab049acb22",
+      "6ca3a598492152eb08e36819ee56ab83",
+      "7639ed0f0c0f5ac48ec9a548a82e2f50",
+      "76782ecf9684595dbf86e5e37ba95cc8",
+      "785b24a55dd41c94060efe8b39dc6d4c",
+      "7c498b7ad4c12c38b1f4eb12044a9def",
+      "7deeb1b3cce6528add4f9489ce1ec5d6",
+      "81232f4c5c7810939b3486fa78d666c2",
+      "81e1332d15b29e8a19d0e97459d0a1de",
+      "8abb22771fd3ca34d6def30ba5c5081c",
+      "954f50f7ed8b4c11b59560769de0ec36",
+      "95f0b0e942081b4952e6daef2e373967",
+      "9b925250786571058dae5a7cbea71d28",
+      "9bcb41da619c289fcfdf3131bbf2be21",
+      "9f9a24b063018613f7f290cc057b8c40",
+      "9fb6866c2cdd49387a520f421a04b882",
+      "a5d9edaa1b6cf820d54c19b2c6bd246d",
+      "a73d3f749e42e2b614f89c4b3ce97fe1",
+      "a807486cfe05b30a43c109fdb6a95993",
+      "a8417d19c5e5183d45a38a2abf48e43e",
+      "aa57085e5544d923f576e9f86adf9dc0",
+      "acc598bf20fada204b5cfd4c3344f98a",
+      "accb53eb0faebfca9f190815d143e04b",
+      "adc3a4dfbdfe7640153ed0ea1c3cf125",
+      "ae004a5d4f1829594d830956c55d6ae4",
+      "b04d7fa1c7e3a8274ba81f48f06a5f4e",
+      "b0be3c5fe298fb2b894394e808d5ffaf",
+      "b244cced7c7f728bcc4d363f8260090d",
+      "b301cd0e42803b0373438e9d4ca01421",
+      "bd2272535c655aff1f1566b24a70ee97",
+      "bd4b579f889bbe681b9d3ab11768ca07",
+      "bfb9d13daf5a4232e5e45875e7e905d7",
+      "c31549489bf0478ab4c367c563916ada",
+      "c8755d732be4dc13eecd8e4c49cfab94",
+      "c8fd2748a82e336f934963a79313aaa1",
+      "ca663597299b1cecaf57c14c6579b23b",
+      "cbeebf063f914eb3b5eba8b37302189f",
+      "cda1961d63aaee991ff97845705e08b8",
+      "d12099237026ae7475c24b3dfb5d18bc",
+      "d61c583eba31f2670ae688af070c87fc",
+      "da807804fa5f53f7cbcaac82b901689c",
+      "dde2c03d6168089affdca3b5ec41f661",
+      "e07ca9f773bd772a41a6698c6fd6e551",
+      "e2e2cd911e099b005e0b2a80a34cfaac",
+      "e9a9c0485ee3e32e7db79247fee8bba6",
+      "ec7e11cfca01af40f4d96cbbacb41fed",
+      "eff88ecf0c3e719f584371e9150061d2",
+      "f0c29f89ffdb0f3f03e663ef415b9e4e",
+      "f1b6ed2624583c913392dcd7e3ea6ae1",
+      "f27a9cd7df897cf8d2e540b6530dceb3",
+      "f29abd84d6cdec8bb5ce8d51e85ddafc",
+      "f3ed0632cadd2d6beffb9d33db4188ed",
+      "fb427874a13f6ea5e0fd1a0aec6a095c",
+      "fbd0f2c62b14b576f087e92f60e7d132",
+      "fccb13c00df25d074a78f1eeeb04a0e7"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "ioc-finder": {
+     "url": [
+      "blog.xecure-lab.com/2014/10/cve-2014-4114-pptx-apt-xecure-lab.html",
+      "http://annie165.zyns.com/zxcvb.hta",
+      "http://blogs.cisco.com/security/talos/opening-zxshell",
+      "http://code.google.com/a/apache-extras.org/p/phpmailer/",
+      "http://en.wikipedia.org/wiki/Unicode_character_property",
+      "http://news.xinhuanet.com/world/2014-05/18/c_1110741502.htm",
+      "http://updateinfo.servegame.org",
+      "http://updateinfo.servegame.org/tiny1detvghrt.tmp",
+      "http://www.cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2012-0158",
+      "http://www.cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2014-6352",
+      "http://www.isightpartners.com/2014/10/cve-2014-4114/",
+      "http://www.trendmicro.com/cloud-content/us/pdfs/security-intelligence/white-papers/wp-spear-phishing-email-",
+      "https://api-upload.kanbox.com/0/upload/%s/%s?bearer_token=%s",
+      "https://auth.kanbox.com/0/token",
+      "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2014-4114",
+      "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-8759",
+      "https://technet.microsoft.com/zh-cn/library/security/3010060.aspx",
+      "https://technet.microsoft.com/zh-cn/library/security/ms12-027.aspx",
+      "https://technet.microsoft.com/zh-cn/library/security/ms14-060.aspx",
+      "https://technet.microsoft.com/zh-cn/library/security/ms14-064.aspx",
+      "https://ti.360.net/",
+      "https://ti.360.net/blog/articles/analysis-of-apt-c-01/",
+      "https://www.fireeye.com/resources/pdfs/fireeye-poison-ivy-report.pdf",
+      "https://www.virustotal.com/en/file/8cee670d7419d1fd0f8f0ac6a2bd981593c2c96ca0f6b801931",
+      "kanbox.com/"
+     ],
+     "domain": [
+      "126mailserver.serveftp.com",
+      "360.cn",
+      "access.webplurk.com",
+      "aliago.dyndns.dk",
+      "annie165.zyns.com",
+      "apache-extras.org",
+      "api-upload.kanbox.com",
+      "as1688.webhop.org",
+      "auth.kanbox.com",
+      "babana.wikaba.com",
+      "backaaa.beijingdasihei.com",
+      "backdoor.win32.ht",
+      "bearingonly.rebatesrule.net",
+      "blog.xecure-lab.com",
+      "blogs.cisco.com",
+      "bt0116.servebbs.net",
+      "canberk.gecekodu.com",
+      "ceepitbj.servepics.com",
+      "check.blogdns.com",
+      "china.serveblog.net",
+      "chinamil.lflink.com",
+      "cluster.safe360.dns05.com",
+      "cnwww.m-music.net",
+      "code.google.com",
+      "comehigh.mefound.com",
+      "cve.mitre.org",
+      "emailser163.serveusers.com",
+      "en.wikipedia.org",
+      "fevupdate.ocry.com",
+      "fff.dynamic-dns.net",
+      "gaewaa.upgrinfo.com",
+      "gaewaaa.upgrinfo.com",
+      "geiwoaaa.qpoe.com",
+      "givemea.ygto.com",
+      "givemeaaa.upgrinfo.com",
+      "goldlion.mefound.com",
+      "gugupd.008.net",
+      "guliu2008.9966.org",
+      "hy-zhqopin.mynumber.org",
+      "hyssjc.securitytactics.com",
+      "jason.zyns.com",
+      "javainfo.upgrinfo.com",
+      "jerry.jkub.com",
+      "kanbox.com",
+      "kav2011.mooo.com",
+      "kouwel.zapto.org",
+      "l63service.serveuser.com",
+      "laizaow.mefound.com",
+      "localhosts.ddns.us",
+      "mail.sends.sendsmtp.com",
+      "mail163.mypop3.net",
+      "mailsends.sendsmtp.com",
+      "mediatvset.no-ip.org",
+      "microsoftword.serveuser.com",
+      "moneyaaa.beijingdasihei.com",
+      "motices.ourhobby.com",
+      "mp3.dnset.com",
+      "netlink.vizvaz.com",
+      "news.xinhuanet.com",
+      "office.go.dyndns.org",
+      "officepatch.dnset.com",
+      "operater.solaris.nu",
+      "pouhui.diskstation.org",
+      "pps.longmusic.com",
+      "ps1688.webhop.org",
+      "rising.linkpc.net",
+      "safe360.dns05.com",
+      "sandy.ourhobby.com",
+      "soagov.sytes.net",
+      "soagov.zapto.org",
+      "soasoa.sytes.net",
+      "ssy.ikwb.com",
+      "ssy.mynumber.org",
+      "svcsrset.ezua.com",
+      "teacat.https443.org",
+      "technet.microsoft.com",
+      "ti.360.net",
+      "tmp.zip",
+      "tong.wikaba.com",
+      "updateinfo.servegame.org",
+      "updates.lflink.com",
+      "usa08.serveftp.net",
+      "uswebmail163.sendsmtp.com",
+      "waterfall.mynumber.org",
+      "webupdate.dnsrd.com",
+      "winsysupdate.dynamic-dns.net",
+      "wmiaprp.ezua.com",
+      "www.81.cn",
+      "www.chinamil.cn",
+      "www.chinamil.com",
+      "www.cve.mitre.org",
+      "www.fireeye.com",
+      "www.isightpartners.com",
+      "www.safe360.dns05.com",
+      "www.service.justdied.com",
+      "www.soa.gov.cn",
+      "www.ssy.ikwb.com",
+      "www.tong.wikaba.com",
+      "www.trendmicro.com",
+      "www.virustotal.com",
+      "www.xinhuanet.com",
+      "wwwdo.tyur.acmetoy.com",
+      "xinhua.redirectme.net",
+      "zxcv201789.dynssl.com"
+     ],
+     "ipv4": [
+      "131.213.66.10",
+      "146.0.32.168",
+      "165.227.220.223",
+      "188.166.67.36",
+      "199.101.133.169",
+      "45.32.8.137",
+      "45.76.125.176",
+      "45.76.228.61",
+      "45.76.9.206",
+      "45.77.171.209"
+     ],
+     "ipv6": [],
+     "email": [
+      "360zhuiri@360.cn"
+     ],
+     "md5": [
+      "03d762794a6fe96458d8228bb7561629",
+      "0595f5005f237967dcfda517b26497d6",
+      "07561810d818905851ce6ab2c1152871",
+      "0e80fca91103fe46766dcb0763c6f6af",
+      "0fb92524625fffda3425d08c94c014a1",
+      "1374e999e1cda9e406c19dfe99830ffc",
+      "1396cafb08ca09fac5d4bd2f12c65059",
+      "168365197031ffcdbe65ab13d71b64ec",
+      "19365fddc2fca8735d51def001704db3",
+      "19f967e27e21802fe92bc9705ae0a770",
+      "1ab54f5f0b847a1aaaf00237d3a9f0ba",
+      "1aca8cd40d9b84cab225d333b09f9ba5",
+      "1dc61f30feeb60995174692e8d864312",
+      "250c9ec3e77d1c6d999ce782c69fc21b",
+      "2579b715ea1b76a1979c415b139fdee7",
+      "26d7f7aa3135e99581119f40986a8ac3",
+      "27f683baed7b02927a591cdc0c850743",
+      "28e4545e9944eb53897ee9acf67b1969",
+      "2a96042e605146ead06b2ee4835baec3",
+      "2b5ddabf1c6fd8670137cade8b60a034",
+      "2c405d608b600655196a4aa13bdb3790",
+      "2fa75fdf4d57c182bc6c0438dd6cbf27",
+      "30866adc2976704bca0f051b5474a1ee",
+      "31c81459c10d3f001d2ccef830239c16",
+      "3484302809ac3df6ceec857cb4f75fb1",
+      "36c23c569205d6586984a2f6f8c3a39e",
+      "382132e601d7a4ae39a4e7d89457597f",
+      "3e12538b6eaf19ca163a47ea599cfa9b",
+      "41c7e09170037fafe95bb691df021a20",
+      "45e983ae2fca8dacfdebe1b1277102c9",
+      "4e57987d0897878eb2241f9d52303713",
+      "517c81b6d05bf285d095e0fd91cb6f03",
+      "5696bbee662d75f9be0e8a9ed8672755",
+      "5d0b4cadfb149695d9fbc71dd1b36bef",
+      "5e4c2fbcd0308a0b9af92bf87383604f",
+      "5ee2958b130f9cda8f5f3fc1dc5249cf",
+      "5f1a1ff9f272539904e25d300f2bfbcc",
+      "611cefaee48c5f096fb644073247621c",
+      "67d5f04fb0e00addc4085457f40900a2",
+      "6a37ce66d3003ebf04d249ab049acb22",
+      "6ca3a598492152eb08e36819ee56ab83",
+      "7639ed0f0c0f5ac48ec9a548a82e2f50",
+      "76782ecf9684595dbf86e5e37ba95cc8",
+      "785b24a55dd41c94060efe8b39dc6d4c",
+      "7c498b7ad4c12c38b1f4eb12044a9def",
+      "7deeb1b3cce6528add4f9489ce1ec5d6",
+      "81232f4c5c7810939b3486fa78d666c2",
+      "81e1332d15b29e8a19d0e97459d0a1de",
+      "8abb22771fd3ca34d6def30ba5c5081c",
+      "954f50f7ed8b4c11b59560769de0ec36",
+      "95f0b0e942081b4952e6daef2e373967",
+      "9b925250786571058dae5a7cbea71d28",
+      "9bcb41da619c289fcfdf3131bbf2be21",
+      "9f9a24b063018613f7f290cc057b8c40",
+      "9fb6866c2cdd49387a520f421a04b882",
+      "a5d9edaa1b6cf820d54c19b2c6bd246d",
+      "a73d3f749e42e2b614f89c4b3ce97fe1",
+      "a807486cfe05b30a43c109fdb6a95993",
+      "a8417d19c5e5183d45a38a2abf48e43e",
+      "aa57085e5544d923f576e9f86adf9dc0",
+      "acc598bf20fada204b5cfd4c3344f98a",
+      "accb53eb0faebfca9f190815d143e04b",
+      "adc3a4dfbdfe7640153ed0ea1c3cf125",
+      "ae004a5d4f1829594d830956c55d6ae4",
+      "b04d7fa1c7e3a8274ba81f48f06a5f4e",
+      "b0be3c5fe298fb2b894394e808d5ffaf",
+      "b244cced7c7f728bcc4d363f8260090d",
+      "b301cd0e42803b0373438e9d4ca01421",
+      "bd2272535c655aff1f1566b24a70ee97",
+      "bd4b579f889bbe681b9d3ab11768ca07",
+      "bfb9d13daf5a4232e5e45875e7e905d7",
+      "c31549489bf0478ab4c367c563916ada",
+      "c8755d732be4dc13eecd8e4c49cfab94",
+      "c8fd2748a82e336f934963a79313aaa1",
+      "ca663597299b1cecaf57c14c6579b23b",
+      "cbeebf063f914eb3b5eba8b37302189f",
+      "cda1961d63aaee991ff97845705e08b8",
+      "d12099237026ae7475c24b3dfb5d18bc",
+      "d61c583eba31f2670ae688af070c87fc",
+      "da807804fa5f53f7cbcaac82b901689c",
+      "dde2c03d6168089affdca3b5ec41f661",
+      "e07ca9f773bd772a41a6698c6fd6e551",
+      "e2e2cd911e099b005e0b2a80a34cfaac",
+      "e9a9c0485ee3e32e7db79247fee8bba6",
+      "ec7e11cfca01af40f4d96cbbacb41fed",
+      "eff88ecf0c3e719f584371e9150061d2",
+      "f0c29f89ffdb0f3f03e663ef415b9e4e",
+      "f1b6ed2624583c913392dcd7e3ea6ae1",
+      "f27a9cd7df897cf8d2e540b6530dceb3",
+      "f29abd84d6cdec8bb5ce8d51e85ddafc",
+      "f3ed0632cadd2d6beffb9d33db4188ed",
+      "fb427874a13f6ea5e0fd1a0aec6a095c",
+      "fbd0f2c62b14b576f087e92f60e7d132",
+      "fccb13c00df25d074a78f1eeeb04a0e7"
+     ],
+     "sha1": [],
+     "sha256": []
+    }
+   },
+   "recall": {
+    "ttprism-default": {
+     "url": [
+      1,
+      1
+     ],
+     "domain": [
+      78,
+      78
+     ],
+     "ipv4": [
+      10,
+      10
+     ],
+     "md5": [
+      84,
+      84
+     ],
+     "url-host": [
+      1,
+      1
+     ]
+    },
+    "ttprism-raw": {
+     "url": [
+      1,
+      1
+     ],
+     "domain": [
+      78,
+      78
+     ],
+     "ipv4": [
+      10,
+      10
+     ],
+     "md5": [
+      84,
+      84
+     ],
+     "url-host": [
+      1,
+      1
+     ]
+    },
+    "iocextract": {
+     "url": [
+      1,
+      1
+     ],
+     "domain": [
+      2,
+      78
+     ],
+     "ipv4": [
+      10,
+      10
+     ],
+     "md5": [
+      84,
+      84
+     ],
+     "url-host": [
+      1,
+      1
+     ]
+    },
+    "ioc-finder": {
+     "url": [
+      1,
+      1
+     ],
+     "domain": [
+      78,
+      78
+     ],
+     "ipv4": [
+      10,
+      10
+     ],
+     "md5": [
+      84,
+      84
+     ],
+     "url-host": [
+      1,
+      1
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 173,
+     "a": 13,
+     "b": 32,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 173,
+     "a": 13,
+     "b": 39,
+     "c": 1,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 95,
+     "a": 12,
+     "b": 20,
+     "c": 9,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 173,
+     "a": 13,
+     "b": 43,
+     "c": 5,
+     "masked": 0,
+     "ambiguous": 0
+    }
+   },
+   "lost_by_default_filtering": {}
+  },
+  {
+   "id": "cn03-360-apt-c-38-2019",
+   "original_url": "http://blogs.360.cn/post/analysis-of-APT-C-38.html",
+   "format": "pdf",
+   "source_sha256": "bc8eb5b97b7d3a5925083176a6a675209890922520dde8c44adf106ac24afd03",
+   "text_sha256": "70aeabd07d9eaef4cf43e3dc3473a7d6a32dc32a153b76a62e7cd66093a157bb",
+   "conversion": {
+    "format": "pdf",
+    "python": "3.11.17 (main, Oct  1 2026, 15:41:07) [GCC 13.3.0]",
+    "html_parser_sha256": {
+     "html/parser.py": "3a02c73b41c1095a7cddb8b824387ffb875b19f37e0e6f591753d7a88a2fe52a",
+     "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
+     "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
+    },
+    "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
+    "conversion_inputs_sha256": "6e671e8a46ad2437aa884d77d5f290bd451639adc6a2d91bcb8173d8eb7b4734",
+    "commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
+    "pages": 12,
+    "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
+    "parts": [
+     {
+      "format": "pdf",
+      "start": 0,
+      "end": 9095
+     }
+    ]
+   },
+   "truth_counts": {
+    "domain": 12,
+    "ipv4": 4,
+    "md5": 29
+   },
+   "left_out": {
+    "masked": {},
+    "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {
+      "line_wrap_fragment": 12
+     }
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {
+      "line_wrap_fragment": 12
+     }
+    }
+   },
+   "outputs": {
+    "ttprism-default": {
+     "url": [
+      "http://blogs.360.cn/post/analysis-of-APT-C-38.html"
+     ],
+     "domain": [
+      "adobeactiveupdate.com",
+      "adobeactiveupdates.com",
+      "adobeseupdater.com",
+      "ail.com",
+      "androidupdaters.com",
+      "blogs.360.cn",
+      "dlgmail.com",
+      "dlstube.com",
+      "dlstubes.com",
+      "entekhab10.xp3.biz",
+      "googleupdators.com",
+      "rhubarb2.com",
+      "rhubarb3.com",
+      "solar64.xp3.biz"
+     ],
+     "ipv4": [
+      "5.61.27.154",
+      "5.61.27.157",
+      "5.61.27.173",
+      "91.109.23.175"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "0745b0957aab92b6a09645e076b4f339",
+      "1874aa71c9b13eec5b587e8ed6a71606",
+      "191cc5d165472ae19e665821be71c282",
+      "232bd3dde6914db0a3dbfc21ed178887",
+      "2d91f7d1eb0d32ece0a8b1715a70b4cd",
+      "31edb7591bfeeb72e0652c17781640af",
+      "345c2325dd633099f29b6d7141a4703d",
+      "451ff729eaa1cf26943a812cd37eb4ac",
+      "4d8ddec9243bc6ac0419c561fe413cfc",
+      "519018ecfc50c0cf6cd0c88cc41b2a69",
+      "58cc3935fbfdb2990304b99fbb919dad",
+      "5ad36f6dd060e52771a8e4a1dd90c50c",
+      "5b0431bbebdc48d2fa37882f7343b011",
+      "5efddd7f0fc2125e78a2ca18b68464ec",
+      "699a7eedd244f402303bcffdee1f0ed1",
+      "6a388edbce88bb0331ae875ceeb2f319",
+      "73b0a3cae8510dd2efeca7d22f730706",
+      "7b530999847bbf43e7d6cbb76da684ae",
+      "7d7ad116e6a42d4e518378e2313e9392",
+      "848193568a48f5742135667e9842890a",
+      "a7d00c8629079f944b61c4dd5c77c8fb",
+      "a856f9de281cadad7142828dda3843b4",
+      "ac4402e04de0949d7beed975db84e594",
+      "b44b91b14f176fbf93d998141931a4aa",
+      "b714b092d2f28fcf78ef8d02b46dbf9c",
+      "c7e4d75caa8e07847e47eadce229c288",
+      "cb67abd070ae188390fc040cbe60e677",
+      "e2f62b5acf3795a62e9d54e1301c4e7b",
+      "ec5a6f0e743f4b858aba9de96a33fb0c"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "ttprism-raw": {
+     "url": [
+      "http://blogs.360.cn/post/analysis-of-APT-C-38.html"
+     ],
+     "domain": [
+      "adobeactiveupdate.com",
+      "adobeactiveupdates.com",
+      "adobeseupdater.com",
+      "ail.com",
+      "androidupdaters.com",
+      "blogs.360.cn",
+      "dlgmail.com",
+      "dlstube.com",
+      "dlstubes.com",
+      "entekhab10.xp3.biz",
+      "googleupdators.com",
+      "rhubarb2.com",
+      "rhubarb3.com",
+      "solar64.xp3.biz"
+     ],
+     "ipv4": [
+      "5.61.27.154",
+      "5.61.27.157",
+      "5.61.27.173",
+      "91.109.23.175"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "0745b0957aab92b6a09645e076b4f339",
+      "1874aa71c9b13eec5b587e8ed6a71606",
+      "191cc5d165472ae19e665821be71c282",
+      "232bd3dde6914db0a3dbfc21ed178887",
+      "2d91f7d1eb0d32ece0a8b1715a70b4cd",
+      "31edb7591bfeeb72e0652c17781640af",
+      "345c2325dd633099f29b6d7141a4703d",
+      "451ff729eaa1cf26943a812cd37eb4ac",
+      "4d8ddec9243bc6ac0419c561fe413cfc",
+      "519018ecfc50c0cf6cd0c88cc41b2a69",
+      "58cc3935fbfdb2990304b99fbb919dad",
+      "5ad36f6dd060e52771a8e4a1dd90c50c",
+      "5b0431bbebdc48d2fa37882f7343b011",
+      "5efddd7f0fc2125e78a2ca18b68464ec",
+      "699a7eedd244f402303bcffdee1f0ed1",
+      "6a388edbce88bb0331ae875ceeb2f319",
+      "73b0a3cae8510dd2efeca7d22f730706",
+      "7b530999847bbf43e7d6cbb76da684ae",
+      "7d7ad116e6a42d4e518378e2313e9392",
+      "848193568a48f5742135667e9842890a",
+      "a7d00c8629079f944b61c4dd5c77c8fb",
+      "a856f9de281cadad7142828dda3843b4",
+      "ac4402e04de0949d7beed975db84e594",
+      "b44b91b14f176fbf93d998141931a4aa",
+      "b714b092d2f28fcf78ef8d02b46dbf9c",
+      "c7e4d75caa8e07847e47eadce229c288",
+      "cb67abd070ae188390fc040cbe60e677",
+      "e2f62b5acf3795a62e9d54e1301c4e7b",
+      "ec5a6f0e743f4b858aba9de96a33fb0c"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "iocextract": {
+     "url": [
+      "http://blogs.360.cn/post/analysis-of-APT-C-38.html"
+     ],
+     "domain": [],
+     "ipv4": [
+      "5.61.27.154",
+      "5.61.27.157",
+      "5.61.27.173",
+      "91.109.23.175"
+     ],
+     "ipv6": [
+      "10:15:30",
+      "11:04:14"
+     ],
+     "email": [],
+     "md5": [
+      "0745b0957aab92b6a09645e076b4f339",
+      "1874aa71c9b13eec5b587e8ed6a71606",
+      "191cc5d165472ae19e665821be71c282",
+      "232bd3dde6914db0a3dbfc21ed178887",
+      "2d91f7d1eb0d32ece0a8b1715a70b4cd",
+      "31edb7591bfeeb72e0652c17781640af",
+      "345c2325dd633099f29b6d7141a4703d",
+      "451ff729eaa1cf26943a812cd37eb4ac",
+      "4d8ddec9243bc6ac0419c561fe413cfc",
+      "519018ecfc50c0cf6cd0c88cc41b2a69",
+      "58cc3935fbfdb2990304b99fbb919dad",
+      "5ad36f6dd060e52771a8e4a1dd90c50c",
+      "5b0431bbebdc48d2fa37882f7343b011",
+      "5efddd7f0fc2125e78a2ca18b68464ec",
+      "699a7eedd244f402303bcffdee1f0ed1",
+      "6a388edbce88bb0331ae875ceeb2f319",
+      "73b0a3cae8510dd2efeca7d22f730706",
+      "7b530999847bbf43e7d6cbb76da684ae",
+      "7d7ad116e6a42d4e518378e2313e9392",
+      "848193568a48f5742135667e9842890a",
+      "a7d00c8629079f944b61c4dd5c77c8fb",
+      "a856f9de281cadad7142828dda3843b4",
+      "ac4402e04de0949d7beed975db84e594",
+      "b44b91b14f176fbf93d998141931a4aa",
+      "b714b092d2f28fcf78ef8d02b46dbf9c",
+      "c7e4d75caa8e07847e47eadce229c288",
+      "cb67abd070ae188390fc040cbe60e677",
+      "e2f62b5acf3795a62e9d54e1301c4e7b",
+      "ec5a6f0e743f4b858aba9de96a33fb0c"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "ioc-finder": {
+     "url": [
+      "blogs.360.cn/post/analysis-of-APT-C-38.html",
+      "http://blogs.360.cn/post/analysis-of-APT-C-38.html"
+     ],
+     "domain": [
+      "adobeactiveupdate.com",
+      "adobeactiveupdates.com",
+      "adobeseupdater.com",
+      "ail.com",
+      "androidupdaters.com",
+      "blogs.360.cn",
+      "dater.com",
+      "daters.com",
+      "dlgmail.com",
+      "dlstube.com",
+      "dlstubes.com",
+      "entekhab10.xp3.biz",
+      "googleupdators.com",
+      "hoo.com",
+      "rhubarb2.com",
+      "rhubarb3.com",
+      "solar64.xp3.biz",
+      "tors.com",
+      "update.com",
+      "updates.com"
+     ],
+     "ipv4": [
+      "5.61.27.154",
+      "5.61.27.157",
+      "5.61.27.173",
+      "91.109.23.175"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "0745b0957aab92b6a09645e076b4f339",
+      "1874aa71c9b13eec5b587e8ed6a71606",
+      "191cc5d165472ae19e665821be71c282",
+      "232bd3dde6914db0a3dbfc21ed178887",
+      "2d91f7d1eb0d32ece0a8b1715a70b4cd",
+      "31edb7591bfeeb72e0652c17781640af",
+      "345c2325dd633099f29b6d7141a4703d",
+      "451ff729eaa1cf26943a812cd37eb4ac",
+      "4d8ddec9243bc6ac0419c561fe413cfc",
+      "519018ecfc50c0cf6cd0c88cc41b2a69",
+      "58cc3935fbfdb2990304b99fbb919dad",
+      "5ad36f6dd060e52771a8e4a1dd90c50c",
+      "5b0431bbebdc48d2fa37882f7343b011",
+      "5efddd7f0fc2125e78a2ca18b68464ec",
+      "699a7eedd244f402303bcffdee1f0ed1",
+      "6a388edbce88bb0331ae875ceeb2f319",
+      "73b0a3cae8510dd2efeca7d22f730706",
+      "7b530999847bbf43e7d6cbb76da684ae",
+      "7d7ad116e6a42d4e518378e2313e9392",
+      "848193568a48f5742135667e9842890a",
+      "a7d00c8629079f944b61c4dd5c77c8fb",
+      "a856f9de281cadad7142828dda3843b4",
+      "ac4402e04de0949d7beed975db84e594",
+      "b44b91b14f176fbf93d998141931a4aa",
+      "b714b092d2f28fcf78ef8d02b46dbf9c",
+      "c7e4d75caa8e07847e47eadce229c288",
+      "cb67abd070ae188390fc040cbe60e677",
+      "e2f62b5acf3795a62e9d54e1301c4e7b",
+      "ec5a6f0e743f4b858aba9de96a33fb0c"
+     ],
+     "sha1": [],
+     "sha256": []
+    }
+   },
+   "recall": {
+    "ttprism-default": {
+     "domain": [
+      12,
+      12
+     ],
+     "ipv4": [
+      4,
+      4
+     ],
+     "md5": [
+      29,
+      29
+     ]
+    },
+    "ttprism-raw": {
+     "domain": [
+      12,
+      12
+     ],
+     "ipv4": [
+      4,
+      4
+     ],
+     "md5": [
+      29,
+      29
+     ]
+    },
+    "iocextract": {
+     "domain": [
+      0,
+      12
+     ],
+     "ipv4": [
+      4,
+      4
+     ],
+     "md5": [
+      29,
+      29
+     ]
+    },
+    "ioc-finder": {
+     "domain": [
+      12,
+      12
+     ],
+     "ipv4": [
+      4,
+      4
+     ],
+     "md5": [
+      29,
+      29
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 45,
+     "a": 0,
+     "b": 2,
+     "c": 1,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 45,
+     "a": 0,
+     "b": 2,
+     "c": 1,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 33,
+     "a": 0,
+     "b": 1,
+     "c": 2,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 45,
+     "a": 0,
+     "b": 3,
+     "c": 7,
+     "masked": 0,
+     "ambiguous": 0
+    }
+   },
+   "lost_by_default_filtering": {}
+  },
+  {
+   "id": "cn04-tencent-higaisa-2019",
+   "original_url": "https://s.tencent.com/research/report/836.html",
+   "format": "pdf",
+   "source_sha256": "c40fd5a94acd7c7868fa383ce15e3b8395df792aec89974fc9f634f31e53760f",
+   "text_sha256": "df30b4840b342249d2ceb1e3d53126d38893bbffe5a5039fe55825dd376d553b",
+   "conversion": {
+    "format": "pdf",
+    "python": "3.11.17 (main, Oct  1 2026, 15:41:07) [GCC 13.3.0]",
+    "html_parser_sha256": {
+     "html/parser.py": "3a02c73b41c1095a7cddb8b824387ffb875b19f37e0e6f591753d7a88a2fe52a",
+     "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
+     "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
+    },
+    "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
+    "conversion_inputs_sha256": "6e671e8a46ad2437aa884d77d5f290bd451639adc6a2d91bcb8173d8eb7b4734",
+    "commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
+    "pages": 73,
+    "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
+    "parts": [
+     {
+      "format": "pdf",
+      "start": 0,
+      "end": 20089
+     }
+    ]
+   },
+   "truth_counts": {
+    "domain": 6,
+    "ipv4": 3,
+    "md5": 77
+   },
+   "left_out": {
+    "masked": {
+     "domain": 1
+    },
+    "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {
+      "allowlisted": 1,
+      "masked_name": 2,
+      "public_suffix": 2
+     }
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {
+      "masked_name": 2,
+      "public_suffix": 2
+     }
+    }
+   },
+   "outputs": {
+    "ttprism-default": {
+     "url": [
+      "http://180.150.227.24/do/index.php?id=ssss",
+      "http://180.150.227.24/view/index.php?id=860016C5",
+      "http://info.hangro.net/file/start?session=[8",
+      "http://www.spo.go.kr/spo/index.jsp",
+      "https://github.com/0Fdemir/OutlookPasswordRecovery",
+      "https://malware.prevenity.com/2018/03/happy-new-year-wishes-from-china.ht",
+      "https://malware.prevenity.com/2018/03/happy-new-year-wishes-from-china.html",
+      "https://s.tencent.com/product/gjwxjc/index.html",
+      "https://s.tencent.com/research/report/762.html"
+     ],
+     "domain": [
+      "console.hangro.net",
+      "game.militaryfocus.net",
+      "info.hangro.net",
+      "malware.prevenity.com",
+      "naver.com",
+      "register.welehope.com",
+      "s.tencent.com",
+      "vachel.vicp.cc",
+      "www.phpvlan.com",
+      "www.spo.go.kr"
+     ],
+     "ipv4": [
+      "103.81.171.157",
+      "180.150.227.24",
+      "39.109.4.143",
+      "69.172.75.148"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "02475eba49942558a5e53e7904eb9cb0",
+      "059c639c9b4afa59267d2d7e5de9fd68",
+      "0796fb3436bb7727cb8d64a2f423f9be",
+      "08993d75bee06fc44c0396b4e643593c",
+      "0a11b8f93073833464134aa740a8d70f",
+      "0def22c282f8e154f290d3e97e774671",
+      "0e1ed07bae97d8b1cc4dcfe3d56ea3ee",
+      "109d252d24fa3b8b543f01d34b6cbf17",
+      "11a807c699c8e4cc438f9f20e524f61b",
+      "16dcd7e8c9773c8bef6a9eb78a634dd3",
+      "1bea784bdc479243dc9370b50c128c3d",
+      "1c120e481925c7abd968e20ab18e4785",
+      "1e769aa405d41eaeca6b61eb564b9eba",
+      "21fcdf439000b6eb03cc9d1ca6c8a76c",
+      "26e2a010b4cca084c7c3e9cdf8e05030",
+      "2b582e4159e079296f226233877ecd7c",
+      "2e8c34fd5d75a47061cd1e06b8d2a99e",
+      "3310304d41f99330c556ba5762c16294",
+      "342a0a6b527d3c56a1c248155ad3eef3",
+      "3e17165615e74ba0e937bbce42ed125b",
+      "3e1c1047d599bb579b11cc60f23a2cb2",
+      "40ac4ebac25af30ea0c8555ab861c4e0",
+      "43c130f57d329a1e29d452df08ad96e4",
+      "46c6e0c51391b07f5f2eafd983d8624e",
+      "48845bc47bcc337dfe40bebf930649b3",
+      "4996112daaec54fb53e5d4bbd1735af2",
+      "4b0bc7e723a7dff471aa15cba82f8136",
+      "50c86f1de6caeefce7c1d7e2ef39aa79",
+      "5fbd4d107c08a3e65804c0edee68a267",
+      "602658138ae185cc219f2a5c6028751e",
+      "63d3975b9a277730d7432e27ef77202b",
+      "65f0581d200935d0d1e969d87b6d1e6b",
+      "6633ac6507883244359add02032d15fd",
+      "6e95c5c01f94ef7154e30b4b23e81b36",
+      "6fb537011718106745d05236ab4fb42a",
+      "6febd1729c49f434b6b062edf8d3e7f3",
+      "714e6589d253c188209a579ff812f423",
+      "77100e638dd8ef8db4b3370d066984a9",
+      "7bcacd70639e70d8d803cca30c9d9744",
+      "7c94a0e412cc46db5904080980d993c3",
+      "7d6f2cd3b7984d112b26ac744af8428d",
+      "8662935003722d568e856fa054226a12",
+      "8b565dfd7581a72659f7990acbf36804",
+      "8b8c026dac2cfbaf2006316d888632cd",
+      "8c25a708ea0e142190e03f5117f046f2",
+      "8d3af3fea7cd5f93823562c1a62e598a",
+      "8ed4d39f4fd30e7f9fc91b571612bb43",
+      "901e131af1ee9e7fb618fc9f13e460a7",
+      "9127b5f9dacd0ca5a753083c50cc1225",
+      "91b7b9928d20054181caa24f5b9aa839",
+      "94b660301590764702c77fb2e5c44daf",
+      "982a0d301204dadf70428bf007d4258d",
+      "9837c85faf3385b5289a671851d5c14c",
+      "9e7b254df610aefbc5253a646220401e",
+      "a2054fff1fe1db66264f2f1a36ca19bb",
+      "a3f85e3784d3e544617cc60ab6b387b4",
+      "a512a23491611604e05b31c44845fe17",
+      "a5a0bc689c1ea4b1c1336c1cde9990a4",
+      "bdfc03e3c33e914c716b4e88b7b62015",
+      "c1c829690c0a96fbc683c012b05d0cae",
+      "c291c7a095c81929e0fff2319297cd84",
+      "c454d7902ba3959335b0ef8e074b50a2",
+      "c5f0336b18a1929d7bd17d09777bdc6c",
+      "c6e5b3a43192bccf9d108fe8783c20e0",
+      "c9ce24a7561dab524cb5413bf7fec81b",
+      "cad355de03dc1439be27896c8c378cb9",
+      "cc63f5420e61f2ee2e0d791e13e963f1",
+      "d3ff9d278e26450a02a3ac1a159da39f",
+      "dd954c34ac289118290d65fcb0549743",
+      "dd99d917eb17ddca2fb4460ecf6304b6",
+      "ea296441165b0c7f27f0ecac084df21a",
+      "ee76c2cf3f4124c69c2bf47104951c49",
+      "f443e24c183e188ef3b0d8024afd4423",
+      "f684cd4ba25a36a9331a0dbcc047d1cb",
+      "fa8c53431746d9ccc550f75f15b14b97",
+      "fbda493e248c1cfd6fb3ebaccce60887",
+      "fca3260cff04a9c89e6e5d23a318992c",
+      "fdce7fe4b333e3581ceda6a9ab7fb3be"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "ttprism-raw": {
+     "url": [
+      "http://180.150.227.24/do/index.php?id=ssss",
+      "http://180.150.227.24/view/index.php?id=860016C5",
+      "http://info.hangro.net/file/start?session=[8",
+      "http://www.spo.go.kr/spo/index.jsp",
+      "https://github.com/0Fdemir/OutlookPasswordRecovery",
+      "https://malware.prevenity.com/2018/03/happy-new-year-wishes-from-china.ht",
+      "https://malware.prevenity.com/2018/03/happy-new-year-wishes-from-china.html",
+      "https://s.tencent.com/product/gjwxjc/index.html",
+      "https://s.tencent.com/research/report/762.html"
+     ],
+     "domain": [
+      "console.hangro.net",
+      "game.militaryfocus.net",
+      "github.com",
+      "info.hangro.net",
+      "malware.prevenity.com",
+      "naver.com",
+      "register.welehope.com",
+      "s.tencent.com",
+      "vachel.vicp.cc",
+      "www.phpvlan.com",
+      "www.spo.go.kr"
+     ],
+     "ipv4": [
+      "103.81.171.157",
+      "180.150.227.24",
+      "39.109.4.143",
+      "69.172.75.148"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "02475eba49942558a5e53e7904eb9cb0",
+      "059c639c9b4afa59267d2d7e5de9fd68",
+      "0796fb3436bb7727cb8d64a2f423f9be",
+      "08993d75bee06fc44c0396b4e643593c",
+      "0a11b8f93073833464134aa740a8d70f",
+      "0def22c282f8e154f290d3e97e774671",
+      "0e1ed07bae97d8b1cc4dcfe3d56ea3ee",
+      "109d252d24fa3b8b543f01d34b6cbf17",
+      "11a807c699c8e4cc438f9f20e524f61b",
+      "16dcd7e8c9773c8bef6a9eb78a634dd3",
+      "1bea784bdc479243dc9370b50c128c3d",
+      "1c120e481925c7abd968e20ab18e4785",
+      "1e769aa405d41eaeca6b61eb564b9eba",
+      "21fcdf439000b6eb03cc9d1ca6c8a76c",
+      "26e2a010b4cca084c7c3e9cdf8e05030",
+      "2b582e4159e079296f226233877ecd7c",
+      "2e8c34fd5d75a47061cd1e06b8d2a99e",
+      "3310304d41f99330c556ba5762c16294",
+      "342a0a6b527d3c56a1c248155ad3eef3",
+      "3e17165615e74ba0e937bbce42ed125b",
+      "3e1c1047d599bb579b11cc60f23a2cb2",
+      "40ac4ebac25af30ea0c8555ab861c4e0",
+      "43c130f57d329a1e29d452df08ad96e4",
+      "46c6e0c51391b07f5f2eafd983d8624e",
+      "48845bc47bcc337dfe40bebf930649b3",
+      "4996112daaec54fb53e5d4bbd1735af2",
+      "4b0bc7e723a7dff471aa15cba82f8136",
+      "50c86f1de6caeefce7c1d7e2ef39aa79",
+      "5fbd4d107c08a3e65804c0edee68a267",
+      "602658138ae185cc219f2a5c6028751e",
+      "63d3975b9a277730d7432e27ef77202b",
+      "65f0581d200935d0d1e969d87b6d1e6b",
+      "6633ac6507883244359add02032d15fd",
+      "6e95c5c01f94ef7154e30b4b23e81b36",
+      "6fb537011718106745d05236ab4fb42a",
+      "6febd1729c49f434b6b062edf8d3e7f3",
+      "714e6589d253c188209a579ff812f423",
+      "77100e638dd8ef8db4b3370d066984a9",
+      "7bcacd70639e70d8d803cca30c9d9744",
+      "7c94a0e412cc46db5904080980d993c3",
+      "7d6f2cd3b7984d112b26ac744af8428d",
+      "8662935003722d568e856fa054226a12",
+      "8b565dfd7581a72659f7990acbf36804",
+      "8b8c026dac2cfbaf2006316d888632cd",
+      "8c25a708ea0e142190e03f5117f046f2",
+      "8d3af3fea7cd5f93823562c1a62e598a",
+      "8ed4d39f4fd30e7f9fc91b571612bb43",
+      "901e131af1ee9e7fb618fc9f13e460a7",
+      "9127b5f9dacd0ca5a753083c50cc1225",
+      "91b7b9928d20054181caa24f5b9aa839",
+      "94b660301590764702c77fb2e5c44daf",
+      "982a0d301204dadf70428bf007d4258d",
+      "9837c85faf3385b5289a671851d5c14c",
+      "9e7b254df610aefbc5253a646220401e",
+      "a2054fff1fe1db66264f2f1a36ca19bb",
+      "a3f85e3784d3e544617cc60ab6b387b4",
+      "a512a23491611604e05b31c44845fe17",
+      "a5a0bc689c1ea4b1c1336c1cde9990a4",
+      "bdfc03e3c33e914c716b4e88b7b62015",
+      "c1c829690c0a96fbc683c012b05d0cae",
+      "c291c7a095c81929e0fff2319297cd84",
+      "c454d7902ba3959335b0ef8e074b50a2",
+      "c5f0336b18a1929d7bd17d09777bdc6c",
+      "c6e5b3a43192bccf9d108fe8783c20e0",
+      "c9ce24a7561dab524cb5413bf7fec81b",
+      "cad355de03dc1439be27896c8c378cb9",
+      "cc63f5420e61f2ee2e0d791e13e963f1",
+      "d3ff9d278e26450a02a3ac1a159da39f",
+      "dd954c34ac289118290d65fcb0549743",
+      "dd99d917eb17ddca2fb4460ecf6304b6",
+      "ea296441165b0c7f27f0ecac084df21a",
+      "ee76c2cf3f4124c69c2bf47104951c49",
+      "f443e24c183e188ef3b0d8024afd4423",
+      "f684cd4ba25a36a9331a0dbcc047d1cb",
+      "fa8c53431746d9ccc550f75f15b14b97",
+      "fbda493e248c1cfd6fb3ebaccce60887",
+      "fca3260cff04a9c89e6e5d23a318992c",
+      "fdce7fe4b333e3581ceda6a9ab7fb3be"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "iocextract": {
+     "url": [
+      "http://180.150.227.24/do/index.php?id=ssss",
+      "http://180.150.227.24/view/index.php?id=860016C5",
+      "http://info.hangro.net/file/start?session=[8",
+      "http://www.spo.go.kr/spo/index.jsp",
+      "https://github.com/0Fdemir/OutlookPasswordRecovery",
+      "https://malware.prevenity.com/2018/03/happy-new-year-wishes-from-china.ht",
+      "https://malware.prevenity.com/2018/03/happy-new-year-wishes-from-china.html",
+      "https://s.tencent.com/product/gjwxjc/index.html",
+      "https://s.tencent.com/research/report/762.html"
+     ],
+     "domain": [],
+     "ipv4": [
+      "103.81.171.157",
+      "180.150.227.24",
+      "39.109.4.143",
+      "69.172.75.148"
+     ],
+     "ipv6": [
+      "00:39:04",
+      "01:51:12",
+      "03:52:32",
+      "09:39:45",
+      "12:13:18",
+      "13:23:02",
+      "13:49:30",
+      "14:18:10"
+     ],
+     "email": [],
+     "md5": [
+      "02475eba49942558a5e53e7904eb9cb0",
+      "059c639c9b4afa59267d2d7e5de9fd68",
+      "0796fb3436bb7727cb8d64a2f423f9be",
+      "08993d75bee06fc44c0396b4e643593c",
+      "0a11b8f93073833464134aa740a8d70f",
+      "0def22c282f8e154f290d3e97e774671",
+      "0e1ed07bae97d8b1cc4dcfe3d56ea3ee",
+      "109d252d24fa3b8b543f01d34b6cbf17",
+      "11a807c699c8e4cc438f9f20e524f61b",
+      "16dcd7e8c9773c8bef6a9eb78a634dd3",
+      "1bea784bdc479243dc9370b50c128c3d",
+      "1c120e481925c7abd968e20ab18e4785",
+      "1e769aa405d41eaeca6b61eb564b9eba",
+      "21fcdf439000b6eb03cc9d1ca6c8a76c",
+      "26e2a010b4cca084c7c3e9cdf8e05030",
+      "2b582e4159e079296f226233877ecd7c",
+      "2e8c34fd5d75a47061cd1e06b8d2a99e",
+      "3310304d41f99330c556ba5762c16294",
+      "342a0a6b527d3c56a1c248155ad3eef3",
+      "3e17165615e74ba0e937bbce42ed125b",
+      "3e1c1047d599bb579b11cc60f23a2cb2",
+      "40ac4ebac25af30ea0c8555ab861c4e0",
+      "43c130f57d329a1e29d452df08ad96e4",
+      "46c6e0c51391b07f5f2eafd983d8624e",
+      "48845bc47bcc337dfe40bebf930649b3",
+      "4996112daaec54fb53e5d4bbd1735af2",
+      "4b0bc7e723a7dff471aa15cba82f8136",
+      "50c86f1de6caeefce7c1d7e2ef39aa79",
+      "5fbd4d107c08a3e65804c0edee68a267",
+      "602658138ae185cc219f2a5c6028751e",
+      "63d3975b9a277730d7432e27ef77202b",
+      "65f0581d200935d0d1e969d87b6d1e6b",
+      "6633ac6507883244359add02032d15fd",
+      "6e95c5c01f94ef7154e30b4b23e81b36",
+      "6fb537011718106745d05236ab4fb42a",
+      "6febd1729c49f434b6b062edf8d3e7f3",
+      "714e6589d253c188209a579ff812f423",
+      "77100e638dd8ef8db4b3370d066984a9",
+      "7bcacd70639e70d8d803cca30c9d9744",
+      "7c94a0e412cc46db5904080980d993c3",
+      "7d6f2cd3b7984d112b26ac744af8428d",
+      "8662935003722d568e856fa054226a12",
+      "8b565dfd7581a72659f7990acbf36804",
+      "8b8c026dac2cfbaf2006316d888632cd",
+      "8c25a708ea0e142190e03f5117f046f2",
+      "8d3af3fea7cd5f93823562c1a62e598a",
+      "8ed4d39f4fd30e7f9fc91b571612bb43",
+      "901e131af1ee9e7fb618fc9f13e460a7",
+      "9127b5f9dacd0ca5a753083c50cc1225",
+      "91b7b9928d20054181caa24f5b9aa839",
+      "94b660301590764702c77fb2e5c44daf",
+      "982a0d301204dadf70428bf007d4258d",
+      "9837c85faf3385b5289a671851d5c14c",
+      "9e7b254df610aefbc5253a646220401e",
+      "a2054fff1fe1db66264f2f1a36ca19bb",
+      "a3f85e3784d3e544617cc60ab6b387b4",
+      "a512a23491611604e05b31c44845fe17",
+      "a5a0bc689c1ea4b1c1336c1cde9990a4",
+      "bdfc03e3c33e914c716b4e88b7b62015",
+      "c1c829690c0a96fbc683c012b05d0cae",
+      "c291c7a095c81929e0fff2319297cd84",
+      "c454d7902ba3959335b0ef8e074b50a2",
+      "c5f0336b18a1929d7bd17d09777bdc6c",
+      "c6e5b3a43192bccf9d108fe8783c20e0",
+      "c9ce24a7561dab524cb5413bf7fec81b",
+      "cad355de03dc1439be27896c8c378cb9",
+      "cc63f5420e61f2ee2e0d791e13e963f1",
+      "d3ff9d278e26450a02a3ac1a159da39f",
+      "dd954c34ac289118290d65fcb0549743",
+      "dd99d917eb17ddca2fb4460ecf6304b6",
+      "ea296441165b0c7f27f0ecac084df21a",
+      "ee76c2cf3f4124c69c2bf47104951c49",
+      "f443e24c183e188ef3b0d8024afd4423",
+      "f684cd4ba25a36a9331a0dbcc047d1cb",
+      "fa8c53431746d9ccc550f75f15b14b97",
+      "fbda493e248c1cfd6fb3ebaccce60887",
+      "fca3260cff04a9c89e6e5d23a318992c",
+      "fdce7fe4b333e3581ceda6a9ab7fb3be"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "ioc-finder": {
+     "url": [
+      "http://180.150.227.24/do/index.php?id=ssss",
+      "http://180.150.227.24/view/index.php?id=860016C5",
+      "http://info.hangro.net/file/start?session=[8",
+      "http://www.spo.go.kr/spo/index.jsp",
+      "https://github.com/0Fdemir/OutlookPasswordRecovery",
+      "https://malware.prevenity.com/2018/03/happy-new-year-wishes-from-china.ht",
+      "https://malware.prevenity.com/2018/03/happy-new-year-wishes-from-china.html",
+      "https://s.tencent.com/product/gjwxjc/index.html",
+      "https://s.tencent.com/research/report/762.html"
+     ],
+     "domain": [
+      "console.hangro.net",
+      "game.militaryfocus.net",
+      "github.com",
+      "gov.cn",
+      "happy-new-year-wishes-from-china.ht",
+      "info.hangro.net",
+      "malware.prevenity.com",
+      "naver.com",
+      "register.welehope.com",
+      "s.tencent.com",
+      "vachel.vicp.cc",
+      "wiki.xxxx.com",
+      "www.phpvlan.com",
+      "www.spo.go.kr"
+     ],
+     "ipv4": [
+      "103.81.171.157",
+      "180.150.227.24",
+      "39.109.4.143",
+      "69.172.75.148"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "02475eba49942558a5e53e7904eb9cb0",
+      "059c639c9b4afa59267d2d7e5de9fd68",
+      "0796fb3436bb7727cb8d64a2f423f9be",
+      "08993d75bee06fc44c0396b4e643593c",
+      "0a11b8f93073833464134aa740a8d70f",
+      "0def22c282f8e154f290d3e97e774671",
+      "0e1ed07bae97d8b1cc4dcfe3d56ea3ee",
+      "109d252d24fa3b8b543f01d34b6cbf17",
+      "11a807c699c8e4cc438f9f20e524f61b",
+      "16dcd7e8c9773c8bef6a9eb78a634dd3",
+      "1bea784bdc479243dc9370b50c128c3d",
+      "1c120e481925c7abd968e20ab18e4785",
+      "1e769aa405d41eaeca6b61eb564b9eba",
+      "21fcdf439000b6eb03cc9d1ca6c8a76c",
+      "26e2a010b4cca084c7c3e9cdf8e05030",
+      "2b582e4159e079296f226233877ecd7c",
+      "2e8c34fd5d75a47061cd1e06b8d2a99e",
+      "3310304d41f99330c556ba5762c16294",
+      "342a0a6b527d3c56a1c248155ad3eef3",
+      "3e17165615e74ba0e937bbce42ed125b",
+      "3e1c1047d599bb579b11cc60f23a2cb2",
+      "40ac4ebac25af30ea0c8555ab861c4e0",
+      "43c130f57d329a1e29d452df08ad96e4",
+      "46c6e0c51391b07f5f2eafd983d8624e",
+      "48845bc47bcc337dfe40bebf930649b3",
+      "4996112daaec54fb53e5d4bbd1735af2",
+      "4b0bc7e723a7dff471aa15cba82f8136",
+      "50c86f1de6caeefce7c1d7e2ef39aa79",
+      "5fbd4d107c08a3e65804c0edee68a267",
+      "602658138ae185cc219f2a5c6028751e",
+      "63d3975b9a277730d7432e27ef77202b",
+      "65f0581d200935d0d1e969d87b6d1e6b",
+      "6633ac6507883244359add02032d15fd",
+      "6e95c5c01f94ef7154e30b4b23e81b36",
+      "6fb537011718106745d05236ab4fb42a",
+      "6febd1729c49f434b6b062edf8d3e7f3",
+      "714e6589d253c188209a579ff812f423",
+      "77100e638dd8ef8db4b3370d066984a9",
+      "7bcacd70639e70d8d803cca30c9d9744",
+      "7c94a0e412cc46db5904080980d993c3",
+      "7d6f2cd3b7984d112b26ac744af8428d",
+      "8662935003722d568e856fa054226a12",
+      "8b565dfd7581a72659f7990acbf36804",
+      "8b8c026dac2cfbaf2006316d888632cd",
+      "8c25a708ea0e142190e03f5117f046f2",
+      "8d3af3fea7cd5f93823562c1a62e598a",
+      "8ed4d39f4fd30e7f9fc91b571612bb43",
+      "901e131af1ee9e7fb618fc9f13e460a7",
+      "9127b5f9dacd0ca5a753083c50cc1225",
+      "91b7b9928d20054181caa24f5b9aa839",
+      "94b660301590764702c77fb2e5c44daf",
+      "982a0d301204dadf70428bf007d4258d",
+      "9837c85faf3385b5289a671851d5c14c",
+      "9e7b254df610aefbc5253a646220401e",
+      "a2054fff1fe1db66264f2f1a36ca19bb",
+      "a3f85e3784d3e544617cc60ab6b387b4",
+      "a512a23491611604e05b31c44845fe17",
+      "a5a0bc689c1ea4b1c1336c1cde9990a4",
+      "bdfc03e3c33e914c716b4e88b7b62015",
+      "c1c829690c0a96fbc683c012b05d0cae",
+      "c291c7a095c81929e0fff2319297cd84",
+      "c454d7902ba3959335b0ef8e074b50a2",
+      "c5f0336b18a1929d7bd17d09777bdc6c",
+      "c6e5b3a43192bccf9d108fe8783c20e0",
+      "c9ce24a7561dab524cb5413bf7fec81b",
+      "cad355de03dc1439be27896c8c378cb9",
+      "cc63f5420e61f2ee2e0d791e13e963f1",
+      "d3ff9d278e26450a02a3ac1a159da39f",
+      "dd954c34ac289118290d65fcb0549743",
+      "dd99d917eb17ddca2fb4460ecf6304b6",
+      "ea296441165b0c7f27f0ecac084df21a",
+      "ee76c2cf3f4124c69c2bf47104951c49",
+      "f443e24c183e188ef3b0d8024afd4423",
+      "f684cd4ba25a36a9331a0dbcc047d1cb",
+      "fa8c53431746d9ccc550f75f15b14b97",
+      "fbda493e248c1cfd6fb3ebaccce60887",
+      "fca3260cff04a9c89e6e5d23a318992c",
+      "fdce7fe4b333e3581ceda6a9ab7fb3be"
+     ],
+     "sha1": [],
+     "sha256": []
+    }
+   },
+   "recall": {
+    "ttprism-default": {
+     "domain": [
+      6,
+      6
+     ],
+     "ipv4": [
+      3,
+      3
+     ],
+     "md5": [
+      77,
+      77
+     ]
+    },
+    "ttprism-raw": {
+     "domain": [
+      6,
+      6
+     ],
+     "ipv4": [
+      3,
+      3
+     ],
+     "md5": [
+      77,
+      77
+     ]
+    },
+    "iocextract": {
+     "domain": [
+      1,
+      6
+     ],
+     "ipv4": [
+      3,
+      3
+     ],
+     "md5": [
+      77,
+      77
+     ]
+    },
+    "ioc-finder": {
+     "domain": [
+      6,
+      6
+     ],
+     "ipv4": [
+      3,
+      3
+     ],
+     "md5": [
+      77,
+      77
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 86,
+     "a": 4,
+     "b": 9,
+     "c": 2,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 86,
+     "a": 4,
+     "b": 10,
+     "c": 2,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 80,
+     "a": 4,
+     "b": 5,
+     "c": 10,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 86,
+     "a": 4,
+     "b": 11,
+     "c": 3,
+     "masked": 1,
+     "ambiguous": 0
+    }
+   },
+   "lost_by_default_filtering": {}
+  },
+  {
+   "id": "cn05-qianxin-tibbar-2020",
+   "original_url": "https://ti.qianxin.com/uploads/2020/09/17/69da886eecc7087e9dac2d3ea4c66ba8.pdf",
+   "format": "pdf",
+   "source_sha256": "6f9ee8862ac1cb1d5ff2ee68e88000dbc166d0bff3356e33eec2d4805c8797fe",
+   "text_sha256": "19e3a4a9db235ef8db974692a0c9d6c3b7341359182e8c8fdba8952e9ee5abc7",
+   "conversion": {
+    "format": "pdf",
+    "python": "3.11.17 (main, Oct  1 2026, 15:41:07) [GCC 13.3.0]",
+    "html_parser_sha256": {
+     "html/parser.py": "3a02c73b41c1095a7cddb8b824387ffb875b19f37e0e6f591753d7a88a2fe52a",
+     "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
+     "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
+    },
+    "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
+    "conversion_inputs_sha256": "6e671e8a46ad2437aa884d77d5f290bd451639adc6a2d91bcb8173d8eb7b4734",
+    "commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
+    "pages": 47,
+    "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
+    "parts": [
+     {
+      "format": "pdf",
+      "start": 0,
+      "end": 17419
+     }
+    ]
+   },
+   "truth_counts": {
+    "url": 9,
+    "domain": 11,
+    "md5": 25
+   },
+   "left_out": {
+    "masked": {},
+    "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {
+      "allowlisted": 1,
+      "certificate_serial": 3,
+      "filename_like_domain": 4,
+      "line_wrap_fragment": 1,
+      "masked_name": 5
+     }
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {
+      "certificate_serial": 3,
+      "filename_like_domain": 4,
+      "line_wrap_fragment": 1,
+      "masked_name": 5
+     }
+    }
+   },
+   "outputs": {
+    "ttprism-default": {
+     "url": [
+      "http://185.214.10.220/1/KB-Auto-win-update.exe",
+      "http://185.214.10.220/1/officers_list.apk",
+      "http://185.214.10.220/2.php",
+      "http://185.214.10.220/p.php",
+      "http://188.215.229.20/2.php",
+      "http://92.118.190.16/FINAL.exe",
+      "http://anf.gov.pk/js/plugins/audiopro.exe",
+      "http://anf.gov.pk/pmstesting/export/test/covid-19/UA-COVID-19.exe",
+      "http://authowawebmailgo.com/securemail.auth/hello.jpg",
+      "http://authowawebmailgo.com/update/images/image.php",
+      "http://coremailxt5mainjsp.com/ps/sgrm.exe",
+      "http://karlsuites.com/word/update/gather",
+      "http://the-moondelight.96.lt/windw-sec/append",
+      "http://wahindustries.com.pk/js/plan.exe",
+      "https://jspsessionindex.com/jsp_sessionidHLD9823rye09YHDYDo8y32/Programm",
+      "https://ti.qianxin.com/",
+      "https://www.google.com/url?sa=i&rct=j&q=&esrc=s&source=images&cd=&ved=XXXXX&"
+     ],
+     "domain": [
+      "anf.gov.pk",
+      "auth.mail.sina.com.cn",
+      "auth.mail.sina.com.cn.jspsessionindex.com",
+      "authowawebmailgo.com",
+      "avicintl.cn.coremail.xt3.jspsessionindex.com",
+      "coremailxt5mainjsp.com",
+      "ecatic.cn.coremail.xt5.jspsessionindex.com",
+      "fiesta.kozow.com",
+      "he-moondelight.96.lt",
+      "hhwebmail.com",
+      "info.viewworld71.com",
+      "jspsession.com",
+      "jspsessionindex.com",
+      "karlsuites.com",
+      "login.mail.126.com",
+      "login.mail.126.com.hhwwebmail.jspsessionindex.com",
+      "login.mail.163.com",
+      "login.mail.163.com.hhwwebmail.jspsessionindex.com",
+      "login.mail.chinaships.com.coremail.xt5.jspsessionindex.com",
+      "login.mail.csoc.cn.coremail.xt5.jspsessionindex.com",
+      "mail.spacestar.com.cn.jspsessionindex.com",
+      "maill.cass.org.cn.login.to.continue24354.jspsessionindex.com",
+      "msword.windowsupdate.microsoft.msn.coremailxt5mainjsp.com",
+      "owaauthlogon.com",
+      "sessionexpire.com",
+      "the-moondelight.96.lt",
+      "ti.qianxin.com",
+      "us02web.zoom.us.coremailxt5mainjsp.com",
+      "wahindustries.com.pk",
+      "www.maill.cetci.com.cn.coremail.jspsessionindex.com",
+      "www.thesundayguardianlive.com.jspsessionindex.com",
+      "xt5coremail.com"
+     ],
+     "ipv4": [
+      "185.214.10.220",
+      "188.215.229.20",
+      "192.99.34.204",
+      "23.82.140.14",
+      "45.86.162.29",
+      "92.118.190.16"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "005e8de2974db8722073fa54e8b8d435",
+      "1331b068477e2974894a899c855bfc4b",
+      "1ec463b985b7d45937eacfdef4c11729",
+      "2d2fe787b2728332341166938a25fa26",
+      "33a2941742ed2f4b6b412d239711d6a3",
+      "47568de42706aa3da39a03d1d0feddca",
+      "4cc8577c844e2492840aed08876eb1c4",
+      "4e548b5597f995b42decd7591ba4212e",
+      "59bc5eb1d3f1affd1496dfbb61f1537e",
+      "6d264218807f705f6fabac5418a7ebaa",
+      "6d7d69e897351f6af2399bfdcf00983a",
+      "72503d7ef52495efa109941274b8769f",
+      "75c55e8a9b00a1d724ef4d451da5806f",
+      "7b2b6e47e33dddce7406fc989592ab50",
+      "842c3c8b62e4ed67ec529ab08ee87c4a",
+      "878ad290280bb9e880c1366e8c386e1a",
+      "8a4e265cfbad8d136222dda60505b61d",
+      "94a87ee68fe8f998df3ffc84bb459a1d",
+      "9d9ea8060ca29139803dc7e0dc7d183c",
+      "b96fe909c2d2f458abf71665ce1bb1ef",
+      "c3d422c2065ec3d9063929a1d4955416",
+      "c9d7b9e1d2eadb8657ec84ff2d20b98c",
+      "cab163e740e10b9572a6424e69cce1d5",
+      "d2d7723310c67b3df3d25529ca8b5a3b",
+      "d373bf68ceb8e395719a1ad6befba66d",
+      "dee2bc2f5424874a5fc7cf51c4cd2b55",
+      "e7b6ec85ece1c431f07b4a47e264190d",
+      "e91e10978ace80a789363288ffee178a",
+      "ef34e809b4a0e33eb1222409d13068ab"
+     ],
+     "sha1": [
+      "153a7ea3a7acb476fd66d214e61e51bb35b4a24b",
+      "1c3cbeaaddc4aaa8f3b743f4d7e8537f4c1ea597",
+      "dee2b1e9f3fd0fd8171648a3b528a85577c49ffa"
+     ],
+     "sha256": []
+    },
+    "ttprism-raw": {
+     "url": [
+      "http://185.214.10.220/1/KB-Auto-win-update.exe",
+      "http://185.214.10.220/1/officers_list.apk",
+      "http://185.214.10.220/2.php",
+      "http://185.214.10.220/p.php",
+      "http://188.215.229.20/2.php",
+      "http://92.118.190.16/FINAL.exe",
+      "http://anf.gov.pk/js/plugins/audiopro.exe",
+      "http://anf.gov.pk/pmstesting/export/test/covid-19/UA-COVID-19.exe",
+      "http://authowawebmailgo.com/securemail.auth/hello.jpg",
+      "http://authowawebmailgo.com/update/images/image.php",
+      "http://coremailxt5mainjsp.com/ps/sgrm.exe",
+      "http://karlsuites.com/word/update/gather",
+      "http://the-moondelight.96.lt/windw-sec/append",
+      "http://wahindustries.com.pk/js/plan.exe",
+      "https://jspsessionindex.com/jsp_sessionidHLD9823rye09YHDYDo8y32/Programm",
+      "https://ti.qianxin.com/",
+      "https://www.google.com/url?sa=i&rct=j&q=&esrc=s&source=images&cd=&ved=XXXXX&"
+     ],
+     "domain": [
+      "anf.gov.pk",
+      "auth.mail.sina.com.cn",
+      "auth.mail.sina.com.cn.jspsessionindex.com",
+      "authowawebmailgo.com",
+      "avicintl.cn.coremail.xt3.jspsessionindex.com",
+      "coremailxt5mainjsp.com",
+      "ecatic.cn.coremail.xt5.jspsessionindex.com",
+      "fiesta.kozow.com",
+      "he-moondelight.96.lt",
+      "hhwebmail.com",
+      "info.viewworld71.com",
+      "jspsession.com",
+      "jspsessionindex.com",
+      "karlsuites.com",
+      "login.mail.126.com",
+      "login.mail.126.com.hhwwebmail.jspsessionindex.com",
+      "login.mail.163.com",
+      "login.mail.163.com.hhwwebmail.jspsessionindex.com",
+      "login.mail.chinaships.com.coremail.xt5.jspsessionindex.com",
+      "login.mail.csoc.cn.coremail.xt5.jspsessionindex.com",
+      "mail.spacestar.com.cn.jspsessionindex.com",
+      "maill.cass.org.cn.login.to.continue24354.jspsessionindex.com",
+      "msword.windowsupdate.microsoft.msn.coremailxt5mainjsp.com",
+      "owaauthlogon.com",
+      "sessionexpire.com",
+      "the-moondelight.96.lt",
+      "ti.qianxin.com",
+      "us02web.zoom.us.coremailxt5mainjsp.com",
+      "wahindustries.com.pk",
+      "www.google.com",
+      "www.maill.cetci.com.cn.coremail.jspsessionindex.com",
+      "www.thesundayguardianlive.com.jspsessionindex.com",
+      "xt5coremail.com"
+     ],
+     "ipv4": [
+      "185.214.10.220",
+      "188.215.229.20",
+      "192.99.34.204",
+      "23.82.140.14",
+      "45.86.162.29",
+      "92.118.190.16"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "005e8de2974db8722073fa54e8b8d435",
+      "1331b068477e2974894a899c855bfc4b",
+      "1ec463b985b7d45937eacfdef4c11729",
+      "2d2fe787b2728332341166938a25fa26",
+      "33a2941742ed2f4b6b412d239711d6a3",
+      "47568de42706aa3da39a03d1d0feddca",
+      "4cc8577c844e2492840aed08876eb1c4",
+      "4e548b5597f995b42decd7591ba4212e",
+      "59bc5eb1d3f1affd1496dfbb61f1537e",
+      "6d264218807f705f6fabac5418a7ebaa",
+      "6d7d69e897351f6af2399bfdcf00983a",
+      "72503d7ef52495efa109941274b8769f",
+      "75c55e8a9b00a1d724ef4d451da5806f",
+      "7b2b6e47e33dddce7406fc989592ab50",
+      "842c3c8b62e4ed67ec529ab08ee87c4a",
+      "878ad290280bb9e880c1366e8c386e1a",
+      "8a4e265cfbad8d136222dda60505b61d",
+      "94a87ee68fe8f998df3ffc84bb459a1d",
+      "9d9ea8060ca29139803dc7e0dc7d183c",
+      "b96fe909c2d2f458abf71665ce1bb1ef",
+      "c3d422c2065ec3d9063929a1d4955416",
+      "c9d7b9e1d2eadb8657ec84ff2d20b98c",
+      "cab163e740e10b9572a6424e69cce1d5",
+      "d2d7723310c67b3df3d25529ca8b5a3b",
+      "d373bf68ceb8e395719a1ad6befba66d",
+      "dee2bc2f5424874a5fc7cf51c4cd2b55",
+      "e7b6ec85ece1c431f07b4a47e264190d",
+      "e91e10978ace80a789363288ffee178a",
+      "ef34e809b4a0e33eb1222409d13068ab"
+     ],
+     "sha1": [
+      "153a7ea3a7acb476fd66d214e61e51bb35b4a24b",
+      "1c3cbeaaddc4aaa8f3b743f4d7e8537f4c1ea597",
+      "dee2b1e9f3fd0fd8171648a3b528a85577c49ffa"
+     ],
+     "sha256": []
+    },
+    "iocextract": {
+     "url": [
+      "http://185.214.10.220/1/KB-Auto-win-",
+      "http://185.214.10.220/1/KB-Auto-win-update.exe",
+      "http://185.214.10.220/1/officers_list.apk",
+      "http://185.214.10.220/2.php",
+      "http://185.214.10.220/p.php",
+      "http://188.215.229.20/2.php",
+      "http://92.118.190.16/FINAL.exe",
+      "http://anf.gov.pk/js/plugins/audiopro.exe",
+      "http://anf.gov.pk/pmstesting/export/test/covid-",
+      "http://anf.gov.pk/pmstesting/export/test/covid-19/UA-COVID-19.exe",
+      "http://authowawebmailgo.com/securemail.auth/hello.jpg",
+      "http://authowawebmailgo.com/update/images/image.php",
+      "http://coremailxt5mainjsp.com/ps/sgrm.exe",
+      "http://karlsuites.com/word/update/gather",
+      "http://the-moondelight.96.lt/windw-sec/append",
+      "http://wahindustries.com.pk/js/plan.exe",
+      "https://jspsessionindex.com/jsp_sessionidHLD9823rye09YHDYDo8y32/Programm",
+      "https://ti.qianxin.com/",
+      "https://www.google.com/url?sa=i&rct=j&q=&esrc=s&source=images&cd=&ved=XXXXX&"
+     ],
+     "domain": [],
+     "ipv4": [
+      "185.214.10.220",
+      "188.215.229.20",
+      "192.99.34.204",
+      "23.82.140.14",
+      "45.86.162.29",
+      "92.118.190.16"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "005e8de2974db8722073fa54e8b8d435",
+      "00b27593843dc41ac674ea5021879cf5",
+      "00b68e6db2bb7412fabcbaa2192394ad",
+      "00b7c6b7197558146fb298aa80bdec99",
+      "1331b068477e2974894a899c855bfc4b",
+      "1ec463b985b7d45937eacfdef4c11729",
+      "2d2fe787b2728332341166938a25fa26",
+      "33a2941742ed2f4b6b412d239711d6a3",
+      "47568de42706aa3da39a03d1d0feddca",
+      "4cc8577c844e2492840aed08876eb1c4",
+      "4e548b5597f995b42decd7591ba4212e",
+      "59bc5eb1d3f1affd1496dfbb61f1537e",
+      "6d264218807f705f6fabac5418a7ebaa",
+      "6d7d69e897351f6af2399bfdcf00983a",
+      "72503d7ef52495efa109941274b8769f",
+      "75c55e8a9b00a1d724ef4d451da5806f",
+      "7b2b6e47e33dddce7406fc989592ab50",
+      "842c3c8b62e4ed67ec529ab08ee87c4a",
+      "878ad290280bb9e880c1366e8c386e1a",
+      "8a4e265cfbad8d136222dda60505b61d",
+      "94a87ee68fe8f998df3ffc84bb459a1d",
+      "9d9ea8060ca29139803dc7e0dc7d183c",
+      "b96fe909c2d2f458abf71665ce1bb1ef",
+      "c3d422c2065ec3d9063929a1d4955416",
+      "c9d7b9e1d2eadb8657ec84ff2d20b98c",
+      "cab163e740e10b9572a6424e69cce1d5",
+      "d2d7723310c67b3df3d25529ca8b5a3b",
+      "d373bf68ceb8e395719a1ad6befba66d",
+      "dee2bc2f5424874a5fc7cf51c4cd2b55",
+      "e7b6ec85ece1c431f07b4a47e264190d",
+      "e91e10978ace80a789363288ffee178a",
+      "ef34e809b4a0e33eb1222409d13068ab"
+     ],
+     "sha1": [
+      "153a7ea3a7acb476fd66d214e61e51bb35b4a24b",
+      "1c3cbeaaddc4aaa8f3b743f4d7e8537f4c1ea597",
+      "dee2b1e9f3fd0fd8171648a3b528a85577c49ffa"
+     ],
+     "sha256": []
+    },
+    "ioc-finder": {
+     "url": [
+      "authowawebmailgo.com/securemail.auth/c.html",
+      "coremailxt5mainjsp.com/ps/sgrm.exe",
+      "http://185.214.10.220/1/KB-Auto-win-",
+      "http://185.214.10.220/1/KB-Auto-win-update.exe",
+      "http://185.214.10.220/1/officers_list.apk",
+      "http://185.214.10.220/2.php",
+      "http://185.214.10.220/p.php",
+      "http://188.215.229.20/2.php",
+      "http://92.118.190.16/FINAL.exe",
+      "http://anf.gov.pk/js/plugins/audiopro.exe",
+      "http://anf.gov.pk/pmstesting/export/test/covid-",
+      "http://anf.gov.pk/pmstesting/export/test/covid-19/UA-COVID-19.exe",
+      "http://authowawebmailgo.com/securemail.auth/hello.jpg",
+      "http://authowawebmailgo.com/update/images/image.php",
+      "http://coremailxt5mainjsp.com/ps/sgrm.exe",
+      "http://karlsuites.com/word/update/gather",
+      "http://the-moondelight.96.lt/windw-sec/append",
+      "http://wahindustries.com.pk/js/plan.exe",
+      "https://jspsessionindex.com/jsp_sessionidHLD9823rye09YHDYDo8y32/Programm",
+      "https://ti.qianxin.com/",
+      "https://www.google.com/url?sa=i&rct=j&q=&esrc=s&source=images&cd=&ved=XXXXX&"
+     ],
+     "domain": [
+      "20system.zip",
+      "anf.gov.pk",
+      "auth.mail.sina.com.cn",
+      "auth.mail.sina.com.cn.jspsessionindex.com",
+      "authowawebmailgo.com",
+      "avicintl.cn.coremail.xt3.jspsessionindex.com",
+      "coremailxt5mainjsp.com",
+      "ecatic.cn.coremail.xt5.jspsessionindex.com",
+      "fiesta.kozow.com",
+      "he-moondelight.96.lt",
+      "hhwebmail.com",
+      "info.viewworld71.com",
+      "jspsession.com",
+      "jspsessionindex.com",
+      "karlsuites.com",
+      "login.mail.126.com",
+      "login.mail.126.com.hhwwebmail.jspsessionindex.com",
+      "login.mail.163.com",
+      "login.mail.163.com.hhwwebmail.jspsessionindex.com",
+      "login.mail.chinaships.com.coremail.xt5.jspsessionindex.com",
+      "login.mail.csoc.cn.coremail.xt5.jspsessionindex.com",
+      "login.mail.xxx.cn",
+      "mail.spacestar.com.cn.jspsessionindex.com",
+      "mail.xxx.com.cn.xxxxxx.com",
+      "maill.cass.org.cn.login.to.continue24354.jspsessionindex.com",
+      "maill.xxx.org.cn.xxxxxx.com",
+      "msword.windowsupdate.microsoft.msn.coremailxt5mainjsp.com",
+      "notepad.net",
+      "owaauthlogon.com",
+      "sessionexpire.com",
+      "system.zip",
+      "tem.zip",
+      "the-moondelight.96.lt",
+      "ti.qianxin.com",
+      "us02web.zoom.us.coremailxt5mainjsp.com",
+      "wahindustries.com.pk",
+      "www.google.com",
+      "www.maill.cetci.com.cn.coremail.jspsessionindex.com",
+      "www.thesundayguardianlive.com.jspsessionindex.com",
+      "xt5coremail.com",
+      "xxx.cn",
+      "xxxxxx.com"
+     ],
+     "ipv4": [
+      "185.214.10.220",
+      "188.215.229.20",
+      "192.99.34.204",
+      "23.82.140.14",
+      "45.86.162.29",
+      "92.118.190.16"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "005e8de2974db8722073fa54e8b8d435",
+      "00b27593843dc41ac674ea5021879cf5",
+      "00b68e6db2bb7412fabcbaa2192394ad",
+      "00b7c6b7197558146fb298aa80bdec99",
+      "1331b068477e2974894a899c855bfc4b",
+      "1ec463b985b7d45937eacfdef4c11729",
+      "2d2fe787b2728332341166938a25fa26",
+      "33a2941742ed2f4b6b412d239711d6a3",
+      "47568de42706aa3da39a03d1d0feddca",
+      "4cc8577c844e2492840aed08876eb1c4",
+      "4e548b5597f995b42decd7591ba4212e",
+      "59bc5eb1d3f1affd1496dfbb61f1537e",
+      "6d264218807f705f6fabac5418a7ebaa",
+      "6d7d69e897351f6af2399bfdcf00983a",
+      "72503d7ef52495efa109941274b8769f",
+      "75c55e8a9b00a1d724ef4d451da5806f",
+      "7b2b6e47e33dddce7406fc989592ab50",
+      "842c3c8b62e4ed67ec529ab08ee87c4a",
+      "878ad290280bb9e880c1366e8c386e1a",
+      "8a4e265cfbad8d136222dda60505b61d",
+      "94a87ee68fe8f998df3ffc84bb459a1d",
+      "9d9ea8060ca29139803dc7e0dc7d183c",
+      "b96fe909c2d2f458abf71665ce1bb1ef",
+      "c3d422c2065ec3d9063929a1d4955416",
+      "c9d7b9e1d2eadb8657ec84ff2d20b98c",
+      "cab163e740e10b9572a6424e69cce1d5",
+      "d2d7723310c67b3df3d25529ca8b5a3b",
+      "d373bf68ceb8e395719a1ad6befba66d",
+      "dee2bc2f5424874a5fc7cf51c4cd2b55",
+      "e7b6ec85ece1c431f07b4a47e264190d",
+      "e91e10978ace80a789363288ffee178a",
+      "ef34e809b4a0e33eb1222409d13068ab"
+     ],
+     "sha1": [
+      "153a7ea3a7acb476fd66d214e61e51bb35b4a24b",
+      "1c3cbeaaddc4aaa8f3b743f4d7e8537f4c1ea597",
+      "dee2b1e9f3fd0fd8171648a3b528a85577c49ffa"
+     ],
+     "sha256": []
+    }
+   },
+   "recall": {
+    "ttprism-default": {
+     "url": [
+      9,
+      9
+     ],
+     "domain": [
+      11,
+      11
+     ],
+     "md5": [
+      25,
+      25
+     ],
+     "url-host": [
+      5,
+      5
+     ]
+    },
+    "ttprism-raw": {
+     "url": [
+      9,
+      9
+     ],
+     "domain": [
+      11,
+      11
+     ],
+     "md5": [
+      25,
+      25
+     ],
+     "url-host": [
+      5,
+      5
+     ]
+    },
+    "iocextract": {
+     "url": [
+      9,
+      9
+     ],
+     "domain": [
+      4,
+      11
+     ],
+     "md5": [
+      25,
+      25
+     ],
+     "url-host": [
+      5,
+      5
+     ]
+    },
+    "ioc-finder": {
+     "url": [
+      9,
+      9
+     ],
+     "domain": [
+      11,
+      11
+     ],
+     "md5": [
+      25,
+      25
+     ],
+     "url-host": [
+      5,
+      5
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 47,
+     "a": 33,
+     "b": 5,
+     "c": 1,
+     "masked": 1,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 47,
+     "a": 33,
+     "b": 6,
+     "c": 1,
+     "masked": 1,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 36,
+     "a": 16,
+     "b": 1,
+     "c": 6,
+     "masked": 1,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 47,
+     "a": 35,
+     "b": 6,
+     "c": 10,
+     "masked": 6,
+     "ambiguous": 0
+    }
+   },
+   "lost_by_default_filtering": {}
+  },
+  {
+   "id": "cn06-qianxin-rubia-2020",
+   "original_url": "https://mp.weixin.qq.com/s/omacDXAdio88a_f0Xwu-kg",
+   "format": "pdf",
+   "source_sha256": "6d95a964384b40bc904abeda01bfd60dc9bbf916e33355393ebbdcd77aea0be9",
+   "text_sha256": "9ef16a7b6aa1555a8338a4e5a211f751e75261fa43e8516b4ac1da1ab9671691",
+   "conversion": {
+    "format": "pdf",
+    "python": "3.11.17 (main, Oct  1 2026, 15:41:07) [GCC 13.3.0]",
+    "html_parser_sha256": {
+     "html/parser.py": "3a02c73b41c1095a7cddb8b824387ffb875b19f37e0e6f591753d7a88a2fe52a",
+     "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
+     "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
+    },
+    "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
+    "conversion_inputs_sha256": "6e671e8a46ad2437aa884d77d5f290bd451639adc6a2d91bcb8173d8eb7b4734",
+    "commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
+    "pages": 52,
+    "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
+    "parts": [
+     {
+      "format": "pdf",
+      "start": 0,
+      "end": 16607
+     }
+    ]
+   },
+   "truth_counts": {
+    "domain": 45,
+    "ipv4": 22,
+    "md5": 4
+   },
+   "left_out": {
+    "masked": {},
+    "ambiguous": {
+     "domain": 8
+    }
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {
+      "line_wrap_fragment": 11,
+      "masked_name": 15
+     }
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {
+      "line_wrap_fragment": 11,
+      "masked_name": 15
+     }
+    }
+   },
+   "outputs": {
+    "ttprism-default": {
+     "url": [
+      "http://fs.163.com/fs/display/?p=xxx&file=xxx",
+      "http://www.emailsevr.net/?downloadlink=XXX&file=XXX&title=XXX",
+      "https://mp.weixin.qq.com/s/omacDXAdio88a_f0Xwu-kg",
+      "https://ti.qianxin.com/"
+     ],
+     "domain": [
+      "163-member.com",
+      "163-membership.com",
+      "163-tuiguang.com",
+      "163-tuiguang.net",
+      "163.dynssl.com",
+      "163cloudload.cemtertr.online",
+      "163cloudload.securitytactics.com",
+      "163emails.ddns.info",
+      "163icpbj.serveusers.com",
+      "163mail.serveuser.com",
+      "163mailboxdownload.servehttp.com",
+      "163uswebmail.serveusers.com",
+      "carpox.com",
+      "cty-thongminhtq.zapto.org",
+      "ddns.info",
+      "ddns.net",
+      "dsmtp.com",
+      "dynamic-dns.net",
+      "dynamic-ip.hinet.net",
+      "dynssl.com",
+      "email-filedownfile.ddns.net",
+      "emailsevr.net",
+      "fs.163.com",
+      "fuwumostsystem.serveuser.com",
+      "grandviewctd.serveusers.com",
+      "grandviewins.zapto.org",
+      "grendviewetd.myvnc.com",
+      "hkxbbuaa.servehttp.com",
+      "maildocument.serveuser.com",
+      "mailfile.dubya.info",
+      "ming1.tk",
+      "mingming.cf",
+      "mp.weixin.qq.com",
+      "myaccount.emailsevr.net",
+      "myvnc.com",
+      "netease-decryption.com",
+      "netease-help.com",
+      "netease-master.com",
+      "neteasedqwert.serveuser.com",
+      "neteaseyhnujm.serveusers.com",
+      "netesae.net",
+      "officeupdate.mynetav.com",
+      "organiccrap.com",
+      "qq-membearzhip.mrbonus.com",
+      "qqmailservers.serveuser.com",
+      "qqmailservice.dsmtp.com",
+      "rilakkuma.justdied.com",
+      "securitytactics.com",
+      "serve163.servepics.com",
+      "servehttp.com",
+      "servepics.com",
+      "serveuser.com",
+      "serveusers.com",
+      "softwarepatch.serveusers.com",
+      "ti.qianxin.com",
+      "usviph9.carpox.com",
+      "webmailaccounts.serveuser.com",
+      "webmaill.net",
+      "webmailqq.xyz",
+      "winupate.organiccrap.com",
+      "www.emailsevr.net",
+      "www.smalll.top",
+      "xproxybox.servehttp.com",
+      "xproxybox.zapto.org",
+      "yaheatyuio.serveuser.com",
+      "yls.dynssl.com",
+      "zapto.org",
+      "zyns.com"
+     ],
+     "ipv4": [
+      "104.238.157.144",
+      "108.61.247.62",
+      "114.44.6.144",
+      "133.130.102.181",
+      "139.180.202.208",
+      "139.180.214.245",
+      "139.180.216.24",
+      "149.28.154.5",
+      "149.28.186.36",
+      "149.28.36.134",
+      "155.138.128.101",
+      "167.179.101.49",
+      "167.179.79.209",
+      "199.247.0.113",
+      "207.148.10.221",
+      "45.32.26.132",
+      "45.32.27.69",
+      "45.32.28.119",
+      "45.76.51.47",
+      "45.76.66.60",
+      "45.76.94.151",
+      "45.77.157.67",
+      "45.77.24.192",
+      "45.77.44.242",
+      "78.141.193.185"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "004d7c37c65f418e91f5f6329a9f1092",
+      "182baf8d5e720bb7019b34fc7d2294f9",
+      "389f7e80b22facf9fda048762fd271b0",
+      "41c7e09170037fafe95bb691df021a20",
+      "4eb36b4e019a0df60bbc64d52e6d885b"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "ttprism-raw": {
+     "url": [
+      "http://fs.163.com/fs/display/?p=xxx&file=xxx",
+      "http://www.emailsevr.net/?downloadlink=XXX&file=XXX&title=XXX",
+      "https://mp.weixin.qq.com/s/omacDXAdio88a_f0Xwu-kg",
+      "https://ti.qianxin.com/"
+     ],
+     "domain": [
+      "163-member.com",
+      "163-membership.com",
+      "163-tuiguang.com",
+      "163-tuiguang.net",
+      "163.dynssl.com",
+      "163cloudload.cemtertr.online",
+      "163cloudload.securitytactics.com",
+      "163emails.ddns.info",
+      "163icpbj.serveusers.com",
+      "163mail.serveuser.com",
+      "163mailboxdownload.servehttp.com",
+      "163uswebmail.serveusers.com",
+      "carpox.com",
+      "cty-thongminhtq.zapto.org",
+      "ddns.info",
+      "ddns.net",
+      "dsmtp.com",
+      "dynamic-dns.net",
+      "dynamic-ip.hinet.net",
+      "dynssl.com",
+      "email-filedownfile.ddns.net",
+      "emailsevr.net",
+      "fs.163.com",
+      "fuwumostsystem.serveuser.com",
+      "grandviewctd.serveusers.com",
+      "grandviewins.zapto.org",
+      "grendviewetd.myvnc.com",
+      "hkxbbuaa.servehttp.com",
+      "maildocument.serveuser.com",
+      "mailfile.dubya.info",
+      "ming1.tk",
+      "mingming.cf",
+      "mp.weixin.qq.com",
+      "myaccount.emailsevr.net",
+      "myvnc.com",
+      "netease-decryption.com",
+      "netease-help.com",
+      "netease-master.com",
+      "neteasedqwert.serveuser.com",
+      "neteaseyhnujm.serveusers.com",
+      "netesae.net",
+      "officeupdate.mynetav.com",
+      "organiccrap.com",
+      "qq-membearzhip.mrbonus.com",
+      "qqmailservers.serveuser.com",
+      "qqmailservice.dsmtp.com",
+      "rilakkuma.justdied.com",
+      "securitytactics.com",
+      "serve163.servepics.com",
+      "servehttp.com",
+      "servepics.com",
+      "serveuser.com",
+      "serveusers.com",
+      "softwarepatch.serveusers.com",
+      "ti.qianxin.com",
+      "usviph9.carpox.com",
+      "webmailaccounts.serveuser.com",
+      "webmaill.net",
+      "webmailqq.xyz",
+      "winupate.organiccrap.com",
+      "www.emailsevr.net",
+      "www.smalll.top",
+      "xproxybox.servehttp.com",
+      "xproxybox.zapto.org",
+      "yaheatyuio.serveuser.com",
+      "yls.dynssl.com",
+      "zapto.org",
+      "zyns.com"
+     ],
+     "ipv4": [
+      "104.238.157.144",
+      "108.61.247.62",
+      "114.44.6.144",
+      "133.130.102.181",
+      "139.180.202.208",
+      "139.180.214.245",
+      "139.180.216.24",
+      "149.28.154.5",
+      "149.28.186.36",
+      "149.28.36.134",
+      "155.138.128.101",
+      "167.179.101.49",
+      "167.179.79.209",
+      "199.247.0.113",
+      "207.148.10.221",
+      "45.32.26.132",
+      "45.32.27.69",
+      "45.32.28.119",
+      "45.76.51.47",
+      "45.76.66.60",
+      "45.76.94.151",
+      "45.77.157.67",
+      "45.77.24.192",
+      "45.77.44.242",
+      "78.141.193.185"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "004d7c37c65f418e91f5f6329a9f1092",
+      "182baf8d5e720bb7019b34fc7d2294f9",
+      "389f7e80b22facf9fda048762fd271b0",
+      "41c7e09170037fafe95bb691df021a20",
+      "4eb36b4e019a0df60bbc64d52e6d885b"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "iocextract": {
+     "url": [
+      "http://fs.163.com/fs/display/?p=xxx&file=xxx",
+      "http://www.emailsevr.net/?downloadlink=XXX&file=XXX&title=XXX",
+      "http://xxxxx/mainX/",
+      "http://{攻击",
+      "https://mp.weixin.qq.com/s/omacDXAdio88a_f0Xwu-kg",
+      "https://ti.qianxin.com/",
+      "https://{攻击"
+     ],
+     "domain": [],
+     "ipv4": [
+      "104.238.157.144",
+      "108.61.247.62",
+      "114.44.6.144",
+      "133.130.102.181",
+      "139.180.202.208",
+      "139.180.214.245",
+      "139.180.216.24",
+      "149.28.154.5",
+      "149.28.186.36",
+      "149.28.36.134",
+      "155.138.128.101",
+      "167.179.101.49",
+      "167.179.79.209",
+      "199.247.0.113",
+      "207.148.10.221",
+      "45.32.26.132",
+      "45.32.27.69",
+      "45.32.28.119",
+      "45.76.51.47",
+      "45.76.66.60",
+      "45.76.94.151",
+      "45.77.157.67",
+      "45.77.24.192",
+      "45.77.44.242",
+      "78.141.193.185"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "004d7c37c65f418e91f5f6329a9f1092",
+      "182baf8d5e720bb7019b34fc7d2294f9",
+      "389f7e80b22facf9fda048762fd271b0",
+      "41c7e09170037fafe95bb691df021a20",
+      "4eb36b4e019a0df60bbc64d52e6d885b"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "ioc-finder": {
+     "url": [
+      "http://fs.163.com/fs/display/?p=xxx&file=xxx",
+      "http://www.emailsevr.net/?downloadlink=XXX&file=XXX&title=XXX",
+      "https://mp.weixin.qq.com/s/omacDXAdio88a_f0Xwu-kg",
+      "https://ti.qianxin.com/",
+      "mp.weixin.qq.com/s/omacDXAdio88a_f0Xwu-kg"
+     ],
+     "domain": [
+      "01.servepics.com",
+      "163-member.com",
+      "163-membership.com",
+      "163-tuiguang.com",
+      "163-tuiguang.net",
+      "163.dynssl.com",
+      "163cloudload.cemtertr.online",
+      "163cloudload.securitytactics.com",
+      "163emails.ddns.info",
+      "163icpbj.serveusers.com",
+      "163mail.serveuser.com",
+      "carpox.com",
+      "cilp.serveusers.com",
+      "count.mail.163.com",
+      "cty-thongminhtq.zapto.org",
+      "ddns.info",
+      "ddns.net",
+      "dns.net",
+      "download.serveuser.com",
+      "dsmtp.com",
+      "dynamic-dns.net",
+      "dynssl.com",
+      "email-filedownfile.ddns.net",
+      "emailsevr.net",
+      "fs.163.com",
+      "grandviewins.zapto.org",
+      "grendviewetd.myvnc.com",
+      "hkxbbuaa.servehttp.com",
+      "mail.acca21.xxxx.net",
+      "mail.cass.xxxx.net",
+      "mail.ccps.xxxx.net",
+      "mail.ceair.xxxx.net",
+      "mail.chiansc.xxxx.net",
+      "mail.chinaoil.xxxx.net",
+      "mail.cpifa.xxxx.net",
+      "mail.fujian.xxxx.net",
+      "mail.gxi.xxxx.net",
+      "mail.huanjia.xxxx.net",
+      "mail.mee.xxxx.net",
+      "mail.mfa.xxxx.net",
+      "mail.ouc.xxxx.net",
+      "mail.weichai.xxxx.net",
+      "maildocument.serveuser.com",
+      "mailfile.dubya.info",
+      "mailsmtp.online",
+      "main.serveusers.com",
+      "ming1.tk",
+      "mingming.cf",
+      "mp.weixin.qq.com",
+      "myaccount.emailsevr.net",
+      "myvnc.com",
+      "netease-decryption.com",
+      "netease-help.com",
+      "netease-master.com",
+      "neteasedqwert.serveuser.com",
+      "neteaseyhnujm.serveusers.com",
+      "netesae.net",
+      "officeupdate.mynetav.com",
+      "organiccrap.com",
+      "qq-membearzhip.mrbonus.com",
+      "qqmailservice.dsmtp.com",
+      "rilakkuma.justdied.com",
+      "rzport.xxxx.net",
+      "securitytactics.com",
+      "serve163.servepics.com",
+      "servehttp.com",
+      "servepics.com",
+      "serveuser.com",
+      "serveusers.com",
+      "ti.qianxin.com",
+      "usviph9.carpox.com",
+      "warepatch.serveuser.com",
+      "warepatch.serveusers.com",
+      "webmaill.net",
+      "webmailqq.xyz",
+      "winupate.organiccrap.com",
+      "www.emailsevr.net",
+      "www.smalll.top",
+      "xproxybox.servehttp.com",
+      "xproxybox.zapto.org",
+      "yaheatyuio.serveuser.com",
+      "yls.dynssl.com",
+      "zapto.org",
+      "zyns.com"
+     ],
+     "ipv4": [
+      "104.238.157.144",
+      "108.61.247.62",
+      "114.44.6.144",
+      "133.130.102.181",
+      "139.180.202.208",
+      "139.180.214.245",
+      "139.180.216.24",
+      "149.28.154.5",
+      "149.28.186.36",
+      "149.28.36.134",
+      "155.138.128.101",
+      "167.179.101.49",
+      "167.179.79.209",
+      "199.247.0.113",
+      "207.148.10.221",
+      "45.32.26.132",
+      "45.32.27.69",
+      "45.32.28.119",
+      "45.76.51.47",
+      "45.76.66.60",
+      "45.76.94.151",
+      "45.77.157.67",
+      "45.77.24.192",
+      "45.77.44.242",
+      "78.141.193.185"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "004d7c37c65f418e91f5f6329a9f1092",
+      "182baf8d5e720bb7019b34fc7d2294f9",
+      "389f7e80b22facf9fda048762fd271b0",
+      "41c7e09170037fafe95bb691df021a20",
+      "4eb36b4e019a0df60bbc64d52e6d885b"
+     ],
+     "sha1": [],
+     "sha256": []
+    }
+   },
+   "recall": {
+    "ttprism-default": {
+     "domain": [
+      43,
+      45
+     ],
+     "ipv4": [
+      22,
+      22
+     ],
+     "md5": [
+      4,
+      4
+     ]
+    },
+    "ttprism-raw": {
+     "domain": [
+      43,
+      45
+     ],
+     "ipv4": [
+      22,
+      22
+     ],
+     "md5": [
+      4,
+      4
+     ]
+    },
+    "iocextract": {
+     "domain": [
+      1,
+      45
+     ],
+     "ipv4": [
+      22,
+      22
+     ],
+     "md5": [
+      4,
+      4
+     ]
+    },
+    "ioc-finder": {
+     "domain": [
+      36,
+      45
+     ],
+     "ipv4": [
+      22,
+      22
+     ],
+     "md5": [
+      4,
+      4
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 69,
+     "a": 10,
+     "b": 21,
+     "c": 0,
+     "masked": 2,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 69,
+     "a": 10,
+     "b": 21,
+     "c": 0,
+     "masked": 2,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 26,
+     "a": 4,
+     "b": 2,
+     "c": 2,
+     "masked": 3,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 62,
+     "a": 10,
+     "b": 21,
+     "c": 9,
+     "masked": 17,
+     "ambiguous": 0
+    }
+   },
+   "lost_by_default_filtering": {}
+  },
+  {
+   "id": "cn07-360-apt-c-44-2020",
+   "original_url": "https://blogs.360.cn/post/APT-C-44.html",
+   "format": "pdf",
+   "source_sha256": "95c683580e8f47ea5b07e38f0ce43b2ebe4be62d99a792588b92e22658f694b9",
+   "text_sha256": "72069178fb92cd56a0893a08a6811f2393de9900d784865415c0a78092555c80",
+   "conversion": {
+    "format": "pdf",
+    "python": "3.11.17 (main, Oct  1 2026, 15:41:07) [GCC 13.3.0]",
+    "html_parser_sha256": {
+     "html/parser.py": "3a02c73b41c1095a7cddb8b824387ffb875b19f37e0e6f591753d7a88a2fe52a",
+     "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
+     "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
+    },
+    "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
+    "conversion_inputs_sha256": "6e671e8a46ad2437aa884d77d5f290bd451639adc6a2d91bcb8173d8eb7b4734",
+    "commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
+    "pages": 23,
+    "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
+    "parts": [
+     {
+      "format": "pdf",
+      "start": 0,
+      "end": 10228
+     }
+    ]
+   },
+   "truth_counts": {
+    "url": 3,
+    "domain": 3,
+    "md5": 37
+   },
+   "left_out": {
+    "masked": {},
+    "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {
+      "allowlisted": 1
+     }
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {}
+    }
+   },
+   "outputs": {
+    "ttprism-default": {
+     "url": [
+      "http://egchaat.com",
+      "http://egchaat.com/",
+      "http://egchat.com/egchat/",
+      "http://www.moltqana.com",
+      "https://blogs.360.cn/post/APT-C-44.html",
+      "https://github.com/mwsrc/XtremeRAT",
+      "https://ti.360.cn/",
+      "https://top4top.io/downloadf-12180r3ix1-apk.html",
+      "https://voly.ddns.net",
+      "https://web.archive.org/web/20180605042224/http://egchat.com/egchat/",
+      "https://web.archive.org/web/20180805173429/http://egchaat.com/",
+      "https://www.facebook.com/100011589727981k",
+      "https://www.facebook.com/bashar.basha11",
+      "https://www.facebook.com/eegchaat",
+      "https://www.facebook.com/pg/voiceegchat"
+     ],
+     "domain": [
+      "blogs.360.cn",
+      "egchaat.com",
+      "egchat.com",
+      "ti.360.cn",
+      "top4top.io",
+      "voly.ddns.net",
+      "web.archive.org",
+      "www.facebook.com",
+      "www.mltqana.com",
+      "www.moltqana.com"
+     ],
+     "ipv4": [
+      "41.105.0.0",
+      "41.105.255.255"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "04b37c5776e2a2424d47472fc3e9aaf5",
+      "10335258e279c1ec346e9bedae2776dd",
+      "1455f631b08b4c7a4ae1c5c8c319d64f",
+      "1f6375a4a6cac6a12172c87eff7cafce",
+      "291d4bdbab778d045aedd11788762e82",
+      "32e3e9106c57f1089c136fe78dfe5e38",
+      "508c7f8c30c558c3c5bdbdb3f6a8b1c9",
+      "57ac433c6ae67fa45699b8b08fb04142",
+      "6ecd6914eb992734dfbca11cd41afb07",
+      "6f7b51344e8956325859a2ec37ac2d25",
+      "72425aac85ead205e3d26392fb414e1d",
+      "78fc9320dc84109cd50d17379fada888",
+      "7958aab62e49c69ef8f64765a377788c",
+      "80bbdc982ed7d5728c9005f1713db4c7",
+      "81b910bed85a80781aafadde79832405",
+      "8a8b2e08c4087735ca214640f52a7215",
+      "98bc19c0196a9e12a334adf5c505a78d",
+      "9da77984d89f70705f9fa9c7dd904f5a",
+      "9e1ef7349b74d0be83d7374909937c47",
+      "a228ba347cc2ca2b97f0c1e6e5e07558",
+      "a6bea852441fd3a2658d4882f1823492",
+      "bd4d1f6a435639fc6f01af26237e0a31",
+      "be6e448595e3a98ddd11c3cfb49e51e6",
+      "c238894641abfeb9411f7e9ffb1999f4",
+      "ca0697a4cb47108dc2322b09de1868e0",
+      "ce0f944b84b823e1267175d6b4f5cdbd",
+      "d6ba589af24ff96e9c1f356398243156",
+      "d7f7a907cd1dc1d34695759d4669409b",
+      "dc32f1e2c8e46a283522f680689df577",
+      "de7cfef57b848a8d7f0a1d4828d6f1ed",
+      "e846dc1ab2fdeae0f02faf9f92626a9e",
+      "ec9ccaf9a8e0421748c3460f76289a48",
+      "f4a2b85463cea2d05ca672069acfa364",
+      "f67674f89e1c9727ea6aeffd71949748",
+      "f68578468ff8fd930079871643277b9e",
+      "fe8b2df29417a27881f4727c35aae61e",
+      "fec9ff0cd85e820ac779ea25e3fefb24"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "ttprism-raw": {
+     "url": [
+      "http://egchaat.com",
+      "http://egchaat.com/",
+      "http://egchat.com/egchat/",
+      "http://www.moltqana.com",
+      "https://blogs.360.cn/post/APT-C-44.html",
+      "https://github.com/mwsrc/XtremeRAT",
+      "https://ti.360.cn/",
+      "https://top4top.io/downloadf-12180r3ix1-apk.html",
+      "https://voly.ddns.net",
+      "https://web.archive.org/web/20180605042224/http://egchat.com/egchat/",
+      "https://web.archive.org/web/20180805173429/http://egchaat.com/",
+      "https://www.facebook.com/100011589727981k",
+      "https://www.facebook.com/bashar.basha11",
+      "https://www.facebook.com/eegchaat",
+      "https://www.facebook.com/pg/voiceegchat"
+     ],
+     "domain": [
+      "blogs.360.cn",
+      "egchaat.com",
+      "egchat.com",
+      "github.com",
+      "ti.360.cn",
+      "top4top.io",
+      "voly.ddns.net",
+      "web.archive.org",
+      "www.facebook.com",
+      "www.mltqana.com",
+      "www.moltqana.com"
+     ],
+     "ipv4": [
+      "41.105.0.0",
+      "41.105.255.255"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "04b37c5776e2a2424d47472fc3e9aaf5",
+      "10335258e279c1ec346e9bedae2776dd",
+      "1455f631b08b4c7a4ae1c5c8c319d64f",
+      "1f6375a4a6cac6a12172c87eff7cafce",
+      "291d4bdbab778d045aedd11788762e82",
+      "32e3e9106c57f1089c136fe78dfe5e38",
+      "508c7f8c30c558c3c5bdbdb3f6a8b1c9",
+      "57ac433c6ae67fa45699b8b08fb04142",
+      "6ecd6914eb992734dfbca11cd41afb07",
+      "6f7b51344e8956325859a2ec37ac2d25",
+      "72425aac85ead205e3d26392fb414e1d",
+      "78fc9320dc84109cd50d17379fada888",
+      "7958aab62e49c69ef8f64765a377788c",
+      "80bbdc982ed7d5728c9005f1713db4c7",
+      "81b910bed85a80781aafadde79832405",
+      "8a8b2e08c4087735ca214640f52a7215",
+      "98bc19c0196a9e12a334adf5c505a78d",
+      "9da77984d89f70705f9fa9c7dd904f5a",
+      "9e1ef7349b74d0be83d7374909937c47",
+      "a228ba347cc2ca2b97f0c1e6e5e07558",
+      "a6bea852441fd3a2658d4882f1823492",
+      "bd4d1f6a435639fc6f01af26237e0a31",
+      "be6e448595e3a98ddd11c3cfb49e51e6",
+      "c238894641abfeb9411f7e9ffb1999f4",
+      "ca0697a4cb47108dc2322b09de1868e0",
+      "ce0f944b84b823e1267175d6b4f5cdbd",
+      "d6ba589af24ff96e9c1f356398243156",
+      "d7f7a907cd1dc1d34695759d4669409b",
+      "dc32f1e2c8e46a283522f680689df577",
+      "de7cfef57b848a8d7f0a1d4828d6f1ed",
+      "e846dc1ab2fdeae0f02faf9f92626a9e",
+      "ec9ccaf9a8e0421748c3460f76289a48",
+      "f4a2b85463cea2d05ca672069acfa364",
+      "f67674f89e1c9727ea6aeffd71949748",
+      "f68578468ff8fd930079871643277b9e",
+      "fe8b2df29417a27881f4727c35aae61e",
+      "fec9ff0cd85e820ac779ea25e3fefb24"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "iocextract": {
+     "url": [
+      "http://egchaat.com",
+      "http://egchat.com",
+      "http://www.mltqana.com",
+      "http://www.moltqana.com",
+      "https://blogs.360.cn/post/APT-C-44.html",
+      "https://github.com/mwsrc/XtremeRAT",
+      "https://ti.360.cn/",
+      "https://top4top.io/downloadf-12180r3ix1-apk.html",
+      "https://voly.ddns.net",
+      "https://web.archive.org/web/20180605042224/http://egchat.com/egchat/",
+      "https://web.archive.org/web/20180805173429/http://egchaat.com/",
+      "https://www.facebook.com/100011589727981k",
+      "https://www.facebook.com/bashar.basha11",
+      "https://www.facebook.com/eegchaat",
+      "https://www.facebook.com/pg/voiceegchat"
+     ],
+     "domain": [],
+     "ipv4": [
+      "41.105.0.0",
+      "41.105.255.255"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "04b37c5776e2a2424d47472fc3e9aaf5",
+      "10335258e279c1ec346e9bedae2776dd",
+      "1455f631b08b4c7a4ae1c5c8c319d64f",
+      "1f6375a4a6cac6a12172c87eff7cafce",
+      "291d4bdbab778d045aedd11788762e82",
+      "32e3e9106c57f1089c136fe78dfe5e38",
+      "508c7f8c30c558c3c5bdbdb3f6a8b1c9",
+      "57ac433c6ae67fa45699b8b08fb04142",
+      "6ecd6914eb992734dfbca11cd41afb07",
+      "6f7b51344e8956325859a2ec37ac2d25",
+      "72425aac85ead205e3d26392fb414e1d",
+      "78fc9320dc84109cd50d17379fada888",
+      "7958aab62e49c69ef8f64765a377788c",
+      "80bbdc982ed7d5728c9005f1713db4c7",
+      "81b910bed85a80781aafadde79832405",
+      "8a8b2e08c4087735ca214640f52a7215",
+      "98bc19c0196a9e12a334adf5c505a78d",
+      "9da77984d89f70705f9fa9c7dd904f5a",
+      "9e1ef7349b74d0be83d7374909937c47",
+      "a228ba347cc2ca2b97f0c1e6e5e07558",
+      "a6bea852441fd3a2658d4882f1823492",
+      "bd4d1f6a435639fc6f01af26237e0a31",
+      "be6e448595e3a98ddd11c3cfb49e51e6",
+      "c238894641abfeb9411f7e9ffb1999f4",
+      "ca0697a4cb47108dc2322b09de1868e0",
+      "ce0f944b84b823e1267175d6b4f5cdbd",
+      "d6ba589af24ff96e9c1f356398243156",
+      "d7f7a907cd1dc1d34695759d4669409b",
+      "dc32f1e2c8e46a283522f680689df577",
+      "de7cfef57b848a8d7f0a1d4828d6f1ed",
+      "e846dc1ab2fdeae0f02faf9f92626a9e",
+      "ec9ccaf9a8e0421748c3460f76289a48",
+      "f4a2b85463cea2d05ca672069acfa364",
+      "f67674f89e1c9727ea6aeffd71949748",
+      "f68578468ff8fd930079871643277b9e",
+      "fe8b2df29417a27881f4727c35aae61e",
+      "fec9ff0cd85e820ac779ea25e3fefb24"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "ioc-finder": {
+     "url": [
+      "blogs.360.cn/post/APT-C-44.html",
+      "http://egchaat.com",
+      "http://www.moltqana.com",
+      "https://blogs.360.cn/post/APT-C-44.html",
+      "https://github.com/mwsrc/XtremeRAT",
+      "https://ti.360.cn/",
+      "https://top4top.io/downloadf-12180r3ix1-apk.html",
+      "https://voly.ddns.net",
+      "https://web.archive.org/web/20180605042224/http://egchat.com/egchat/",
+      "https://web.archive.org/web/20180805173429/http://egchaat.com/",
+      "https://www.facebook.com/100011589727981k",
+      "https://www.facebook.com/bashar.basha11",
+      "https://www.facebook.com/eegchaat",
+      "https://www.facebook.com/pg/voiceegchat"
+     ],
+     "domain": [
+      "blogs.360.cn",
+      "egchaat.com",
+      "egchat.com",
+      "github.com",
+      "ti.360.cn",
+      "top4top.io",
+      "voly.ddns.net",
+      "web.archive.org",
+      "www.facebook.com",
+      "www.mltqana.com",
+      "www.moltqana.com"
+     ],
+     "ipv4": [
+      "41.105.0.0",
+      "41.105.255.255"
+     ],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "04b37c5776e2a2424d47472fc3e9aaf5",
+      "10335258e279c1ec346e9bedae2776dd",
+      "1455f631b08b4c7a4ae1c5c8c319d64f",
+      "1f6375a4a6cac6a12172c87eff7cafce",
+      "291d4bdbab778d045aedd11788762e82",
+      "32e3e9106c57f1089c136fe78dfe5e38",
+      "508c7f8c30c558c3c5bdbdb3f6a8b1c9",
+      "57ac433c6ae67fa45699b8b08fb04142",
+      "6ecd6914eb992734dfbca11cd41afb07",
+      "6f7b51344e8956325859a2ec37ac2d25",
+      "72425aac85ead205e3d26392fb414e1d",
+      "78fc9320dc84109cd50d17379fada888",
+      "7958aab62e49c69ef8f64765a377788c",
+      "80bbdc982ed7d5728c9005f1713db4c7",
+      "81b910bed85a80781aafadde79832405",
+      "8a8b2e08c4087735ca214640f52a7215",
+      "98bc19c0196a9e12a334adf5c505a78d",
+      "9da77984d89f70705f9fa9c7dd904f5a",
+      "9e1ef7349b74d0be83d7374909937c47",
+      "a228ba347cc2ca2b97f0c1e6e5e07558",
+      "a6bea852441fd3a2658d4882f1823492",
+      "bd4d1f6a435639fc6f01af26237e0a31",
+      "be6e448595e3a98ddd11c3cfb49e51e6",
+      "c238894641abfeb9411f7e9ffb1999f4",
+      "ca0697a4cb47108dc2322b09de1868e0",
+      "ce0f944b84b823e1267175d6b4f5cdbd",
+      "d6ba589af24ff96e9c1f356398243156",
+      "d7f7a907cd1dc1d34695759d4669409b",
+      "dc32f1e2c8e46a283522f680689df577",
+      "de7cfef57b848a8d7f0a1d4828d6f1ed",
+      "e846dc1ab2fdeae0f02faf9f92626a9e",
+      "ec9ccaf9a8e0421748c3460f76289a48",
+      "f4a2b85463cea2d05ca672069acfa364",
+      "f67674f89e1c9727ea6aeffd71949748",
+      "f68578468ff8fd930079871643277b9e",
+      "fe8b2df29417a27881f4727c35aae61e",
+      "fec9ff0cd85e820ac779ea25e3fefb24"
+     ],
+     "sha1": [],
+     "sha256": []
+    }
+   },
+   "recall": {
+    "ttprism-default": {
+     "url": [
+      3,
+      3
+     ],
+     "domain": [
+      3,
+      3
+     ],
+     "md5": [
+      37,
+      37
+     ],
+     "url-host": [
+      3,
+      3
+     ]
+    },
+    "ttprism-raw": {
+     "url": [
+      3,
+      3
+     ],
+     "domain": [
+      3,
+      3
+     ],
+     "md5": [
+      37,
+      37
+     ],
+     "url-host": [
+      3,
+      3
+     ]
+    },
+    "iocextract": {
+     "url": [
+      3,
+      3
+     ],
+     "domain": [
+      3,
+      3
+     ],
+     "md5": [
+      37,
+      37
+     ],
+     "url-host": [
+      3,
+      3
+     ]
+    },
+    "ioc-finder": {
+     "url": [
+      3,
+      3
+     ],
+     "domain": [
+      3,
+      3
+     ],
+     "md5": [
+      37,
+      37
+     ],
+     "url-host": [
+      3,
+      3
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 43,
+     "a": 1,
+     "b": 20,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 43,
+     "a": 1,
+     "b": 21,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 40,
+     "a": 0,
+     "b": 12,
+     "c": 2,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 43,
+     "a": 0,
+     "b": 21,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    }
+   },
+   "lost_by_default_filtering": {}
+  },
+  {
+   "id": "cn08-gcow-sidewinder-2020h1",
+   "original_url": "https://mp.weixin.qq.com/s/5mBqxf_v6G006EnjECoTHw",
+   "format": "pdf",
+   "source_sha256": "46759a030e9b0a2ad57af83f3bc26687d334cd28264fd165abd4a8137d61caa8",
+   "text_sha256": "e9ab4d4fac8bb6deac3194924ce8d176444e80fffb1b617950cfc38b57f59deb",
+   "conversion": {
+    "format": "pdf",
+    "python": "3.11.17 (main, Oct  1 2026, 15:41:07) [GCC 13.3.0]",
+    "html_parser_sha256": {
+     "html/parser.py": "3a02c73b41c1095a7cddb8b824387ffb875b19f37e0e6f591753d7a88a2fe52a",
+     "_markupbase.py": "cb14dd6f2e2439eb70b806cd49d19911363d424c2b6b9f4b73c9c08022d47030",
+     "html/entities.py": "282b7cdd567bbbf3d7d7ccd49fae1d3ebc7f7ab64058d781193620913773731b"
+    },
+    "evaluate_sha256": "eab7ce3ffed55d66500e650ef1fcc8879f295aeb6d0bbe50686a4d72534b28b3",
+    "conversion_inputs_sha256": "6e671e8a46ad2437aa884d77d5f290bd451639adc6a2d91bcb8173d8eb7b4734",
+    "commit": "435bb97af4f08f4e683a2365be87a1300a725c32",
+    "pages": 25,
+    "method": "pypdf 6.20.0: page.extract_text() for each page, joined with line breaks; headers and footers kept",
+    "parts": [
+     {
+      "format": "pdf",
+      "start": 0,
+      "end": 9630
+     }
+    ]
+   },
+   "truth_counts": {
+    "domain": 10,
+    "md5": 9
+   },
+   "left_out": {
+    "masked": {},
+    "ambiguous": {}
+   },
+   "ttprism": {
+    "ttprism-default": {
+     "warnings": [],
+     "suppressed": {}
+    },
+    "ttprism-raw": {
+     "warnings": [],
+     "suppressed": {}
+    }
+   },
+   "outputs": {
+    "ttprism-default": {
+     "url": [
+      "https://bbs.pediy.com/thread-259500.htm",
+      "https://blog.trendmicro.com/trendlabs-security-intelligence/first-active-attack-exploiting-cve-2019-2215-found-on-google-play-linked-to-sidewinder-apt-group/",
+      "https://blogs.360.cn/post/apt-c-06_0day.html",
+      "https://blogs.jpcert.or.jp/en/2020/04/ie-firefox-0day.html",
+      "https://mp.weixin.qq.com/s/5mBqxf_v6G006EnjECoTHw",
+      "https://mp.weixin.qq.com/s/9LfElDbKCrQX1QzGFISFPw",
+      "https://mp.weixin.qq.com/s/CZrdslzEs4iwla",
+      "https://mp.weixin.qq.com/s/yxUTG3Qva169-XiYV0pAyQ"
+     ],
+     "domain": [
+      "ap-ms.net",
+      "bbs.pediy.com",
+      "blog.trendmicro.com",
+      "blogs.360.cn",
+      "blogs.jpcert.or.jp",
+      "cloud-apt.net",
+      "kat0x.net",
+      "mp.weixin.qq.com",
+      "n.qq.com",
+      "nrots.net",
+      "r0dps.net",
+      "www-afc.chrom3.net",
+      "www.au-edu.km01s.net",
+      "www.d01fa.net",
+      "www.fdn-en.net",
+      "www.link-cdnl.net"
+     ],
+     "ipv4": [],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "2c798c915568b3fd8ee7909c45a43168",
+      "3ad91b31956ce49fe3736c0e7344228d",
+      "69a173dc32e084e7f1e1633526f80ca2",
+      "7e461f6366681c5ae24920a31c3cfec6",
+      "865e7c8013537414b97749e7a160a94e",
+      "b6932a288649b3ceb9a454f808d6eb35",
+      "d7187130cf52199fae92d7611dc41dac",
+      "dbb09fd0da004742cac805150dbc01ca",
+      "fef12d62a3b2fbf1d3be1f0c71ae393e"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "ttprism-raw": {
+     "url": [
+      "https://bbs.pediy.com/thread-259500.htm",
+      "https://blog.trendmicro.com/trendlabs-security-intelligence/first-active-attack-exploiting-cve-2019-2215-found-on-google-play-linked-to-sidewinder-apt-group/",
+      "https://blogs.360.cn/post/apt-c-06_0day.html",
+      "https://blogs.jpcert.or.jp/en/2020/04/ie-firefox-0day.html",
+      "https://mp.weixin.qq.com/s/5mBqxf_v6G006EnjECoTHw",
+      "https://mp.weixin.qq.com/s/9LfElDbKCrQX1QzGFISFPw",
+      "https://mp.weixin.qq.com/s/CZrdslzEs4iwla",
+      "https://mp.weixin.qq.com/s/yxUTG3Qva169-XiYV0pAyQ"
+     ],
+     "domain": [
+      "ap-ms.net",
+      "bbs.pediy.com",
+      "blog.trendmicro.com",
+      "blogs.360.cn",
+      "blogs.jpcert.or.jp",
+      "cloud-apt.net",
+      "kat0x.net",
+      "mp.weixin.qq.com",
+      "n.qq.com",
+      "nrots.net",
+      "r0dps.net",
+      "www-afc.chrom3.net",
+      "www.au-edu.km01s.net",
+      "www.d01fa.net",
+      "www.fdn-en.net",
+      "www.link-cdnl.net"
+     ],
+     "ipv4": [],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "2c798c915568b3fd8ee7909c45a43168",
+      "3ad91b31956ce49fe3736c0e7344228d",
+      "69a173dc32e084e7f1e1633526f80ca2",
+      "7e461f6366681c5ae24920a31c3cfec6",
+      "865e7c8013537414b97749e7a160a94e",
+      "b6932a288649b3ceb9a454f808d6eb35",
+      "d7187130cf52199fae92d7611dc41dac",
+      "dbb09fd0da004742cac805150dbc01ca",
+      "fef12d62a3b2fbf1d3be1f0c71ae393e"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "iocextract": {
+     "url": [
+      "http://ap-ms.net",
+      "http://cloud-apt.net",
+      "http://kat0x.net",
+      "http://nrots.net",
+      "http://r0dps.net",
+      "http://www-afc.chrom3.net",
+      "http://www.au-edu.km01s.net",
+      "http://www.d01fa.net",
+      "http://www.fdn-en.net",
+      "http://www.link-cdnl.net",
+      "https://bbs.pediy.com/thread-259500.htm",
+      "https://blog.trendmicro.com/trendlabs-security-intelligence/first-active-attack-",
+      "https://blogs.360.cn/post/apt-c-",
+      "https://blogs.jpcert.or.jp/en/2020/04/ie-firefox-0day.html",
+      "https://mp.weixi",
+      "https://mp.weixin.qq.com/s/5mBqxf_v6G006EnjECoTHw",
+      "https://mp.weixin.qq.com/s/9LfElDbKCrQX1QzGFISFPw",
+      "https://mp.weixin.qq.com/s/CZrdslzEs4iwla",
+      "https://mp.weixin.qq.com/s/yxUTG3Qva169-"
+     ],
+     "domain": [],
+     "ipv4": [],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "2c798c915568b3fd8ee7909c45a43168",
+      "3ad91b31956ce49fe3736c0e7344228d",
+      "69a173dc32e084e7f1e1633526f80ca2",
+      "7e461f6366681c5ae24920a31c3cfec6",
+      "865e7c8013537414b97749e7a160a94e",
+      "b6932a288649b3ceb9a454f808d6eb35",
+      "d7187130cf52199fae92d7611dc41dac",
+      "dbb09fd0da004742cac805150dbc01ca",
+      "fef12d62a3b2fbf1d3be1f0c71ae393e"
+     ],
+     "sha1": [],
+     "sha256": []
+    },
+    "ioc-finder": {
+     "url": [
+      "https://bbs.pediy.com/thread-259500.htm",
+      "https://blog.trendmicro.com/trendlabs-security-intelligence/first-active-attack-",
+      "https://blogs.360.cn/post/apt-c-",
+      "https://blogs.jpcert.or.jp/en/2020/04/ie-firefox-0day.html",
+      "https://mp.weixin.qq.com/s/5mBqxf_v6G006EnjECoTHw",
+      "https://mp.weixin.qq.com/s/9LfElDbKCrQX1QzGFISFPw",
+      "https://mp.weixin.qq.com/s/CZrdslzEs4iwla",
+      "https://mp.weixin.qq.com/s/yxUTG3Qva169-",
+      "mp.weixin.qq.com/s/5mBqxf_v6G006EnjECoTHw",
+      "n.qq.com/s/Kb_woHp1miaCgDZyHLHNgA"
+     ],
+     "domain": [
+      "ap-ms.net",
+      "bbs.pediy.com",
+      "blog.trendmicro.com",
+      "blogs.360.cn",
+      "blogs.jpcert.or.jp",
+      "cloud-apt.net",
+      "kat0x.net",
+      "mp.weixin.qq.com",
+      "n.qq.com",
+      "nrots.net",
+      "r0dps.net",
+      "www-afc.chrom3.net",
+      "www.au-edu.km01s.net",
+      "www.d01fa.net",
+      "www.fdn-en.net",
+      "www.link-cdnl.net"
+     ],
+     "ipv4": [],
+     "ipv6": [],
+     "email": [],
+     "md5": [
+      "2c798c915568b3fd8ee7909c45a43168",
+      "3ad91b31956ce49fe3736c0e7344228d",
+      "69a173dc32e084e7f1e1633526f80ca2",
+      "7e461f6366681c5ae24920a31c3cfec6",
+      "865e7c8013537414b97749e7a160a94e",
+      "b6932a288649b3ceb9a454f808d6eb35",
+      "d7187130cf52199fae92d7611dc41dac",
+      "dbb09fd0da004742cac805150dbc01ca",
+      "fef12d62a3b2fbf1d3be1f0c71ae393e"
+     ],
+     "sha1": [],
+     "sha256": []
+    }
+   },
+   "recall": {
+    "ttprism-default": {
+     "domain": [
+      10,
+      10
+     ],
+     "md5": [
+      9,
+      9
+     ]
+    },
+    "ttprism-raw": {
+     "domain": [
+      10,
+      10
+     ],
+     "md5": [
+      9,
+      9
+     ]
+    },
+    "iocextract": {
+     "domain": [
+      10,
+      10
+     ],
+     "md5": [
+      9,
+      9
+     ]
+    },
+    "ioc-finder": {
+     "domain": [
+      10,
+      10
+     ],
+     "md5": [
+      9,
+      9
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 19,
+     "a": 0,
+     "b": 12,
+     "c": 2,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 19,
+     "a": 0,
+     "b": 12,
+     "c": 2,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 9,
+     "a": 0,
+     "b": 4,
+     "c": 15,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 19,
+     "a": 0,
+     "b": 10,
+     "c": 6,
+     "masked": 0,
+     "ambiguous": 0
+    }
+   },
+   "lost_by_default_filtering": {}
+  }
+ ],
+ "totals": {
+  "ttprism-default": {
+   "recall": {
+    "domain": [
+     169,
+     171,
+     0.9883
+    ],
+    "ipv4": [
+     42,
+     42,
+     1.0
+    ],
+    "md5": [
+     274,
+     274,
+     1.0
+    ],
+    "url": [
+     13,
+     13,
+     1.0
+    ],
+    "url-host": [
+     9,
+     9,
+     1.0
+    ]
+   },
+   "precision": {
+    "truth": 500,
+    "a": 62,
+    "b": 101,
+    "c": 6,
+    "masked": 3,
+    "ambiguous": 0,
+    "judged_total": 669,
+    "strict": 0.8401,
+    "lenient": 0.991
+   }
+  },
+  "ttprism-raw": {
+   "recall": {
+    "domain": [
+     169,
+     171,
+     0.9883
+    ],
+    "ipv4": [
+     42,
+     42,
+     1.0
+    ],
+    "md5": [
+     274,
+     274,
+     1.0
+    ],
+    "url": [
+     13,
+     13,
+     1.0
+    ],
+    "url-host": [
+     9,
+     9,
+     1.0
+    ]
+   },
+   "precision": {
+    "truth": 500,
+    "a": 62,
+    "b": 111,
+    "c": 7,
+    "masked": 3,
+    "ambiguous": 0,
+    "judged_total": 680,
+    "strict": 0.8265,
+    "lenient": 0.9897
+   }
+  },
+  "iocextract": {
+   "recall": {
+    "domain": [
+     21,
+     171,
+     0.1228
+    ],
+    "ipv4": [
+     42,
+     42,
+     1.0
+    ],
+    "md5": [
+     274,
+     274,
+     1.0
+    ],
+    "url": [
+     13,
+     13,
+     1.0
+    ],
+    "url-host": [
+     9,
+     9,
+     1.0
+    ]
+   },
+   "precision": {
+    "truth": 331,
+    "a": 36,
+    "b": 45,
+    "c": 48,
+    "masked": 4,
+    "ambiguous": 0,
+    "judged_total": 460,
+    "strict": 0.7978,
+    "lenient": 0.8957
+   }
+  },
+  "ioc-finder": {
+   "recall": {
+    "domain": [
+     162,
+     171,
+     0.9474
+    ],
+    "ipv4": [
+     42,
+     42,
+     1.0
+    ],
+    "md5": [
+     272,
+     274,
+     0.9927
+    ],
+    "url": [
+     13,
+     13,
+     1.0
+    ],
+    "url-host": [
+     9,
+     9,
+     1.0
+    ]
+   },
+   "precision": {
+    "truth": 491,
+    "a": 63,
+    "b": 115,
+    "c": 41,
+    "masked": 24,
+    "ambiguous": 0,
+    "judged_total": 710,
+    "strict": 0.7803,
+    "lenient": 0.9423
+   }
+  }
+ },
+ "totals_by_format": {
+  "pdf": {
+   "ttprism-default": {
+    "recall": {
+     "domain": [
+      169,
+      171,
+      0.9883
+     ],
+     "ipv4": [
+      42,
+      42,
+      1.0
+     ],
+     "md5": [
+      274,
+      274,
+      1.0
+     ],
+     "url": [
+      13,
+      13,
+      1.0
+     ],
+     "url-host": [
+      9,
+      9,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 500,
+     "a": 62,
+     "b": 101,
+     "c": 6,
+     "masked": 3,
+     "ambiguous": 0,
+     "judged_total": 669,
+     "strict": 0.8401,
+     "lenient": 0.991
+    }
+   },
+   "ttprism-raw": {
+    "recall": {
+     "domain": [
+      169,
+      171,
+      0.9883
+     ],
+     "ipv4": [
+      42,
+      42,
+      1.0
+     ],
+     "md5": [
+      274,
+      274,
+      1.0
+     ],
+     "url": [
+      13,
+      13,
+      1.0
+     ],
+     "url-host": [
+      9,
+      9,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 500,
+     "a": 62,
+     "b": 111,
+     "c": 7,
+     "masked": 3,
+     "ambiguous": 0,
+     "judged_total": 680,
+     "strict": 0.8265,
+     "lenient": 0.9897
+    }
+   },
+   "iocextract": {
+    "recall": {
+     "domain": [
+      21,
+      171,
+      0.1228
+     ],
+     "ipv4": [
+      42,
+      42,
+      1.0
+     ],
+     "md5": [
+      274,
+      274,
+      1.0
+     ],
+     "url": [
+      13,
+      13,
+      1.0
+     ],
+     "url-host": [
+      9,
+      9,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 331,
+     "a": 36,
+     "b": 45,
+     "c": 48,
+     "masked": 4,
+     "ambiguous": 0,
+     "judged_total": 460,
+     "strict": 0.7978,
+     "lenient": 0.8957
+    }
+   },
+   "ioc-finder": {
+    "recall": {
+     "domain": [
+      162,
+      171,
+      0.9474
+     ],
+     "ipv4": [
+      42,
+      42,
+      1.0
+     ],
+     "md5": [
+      272,
+      274,
+      0.9927
+     ],
+     "url": [
+      13,
+      13,
+      1.0
+     ],
+     "url-host": [
+      9,
+      9,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 491,
+     "a": 63,
+     "b": 115,
+     "c": 41,
+     "masked": 24,
+     "ambiguous": 0,
+     "judged_total": 710,
+     "strict": 0.7803,
+     "lenient": 0.9423
+    }
+   }
+  }
+ },
+ "lost_by_default_filtering": {},
+ "unjudged": {}
+}

@@ -1,0 +1,1556 @@
+{
+ "about": "Extracted values that are not in a report's ground truth, judged by one person (the evaluator) from the surrounding text. a: an indicator the report names outside the appendix; b: a correct value that is not an indicator; c: a wrong value. Each entry is [category, reason]. Values with a mask ('xxx', '*') and readings of ambiguous ground-truth entries are not judged; evaluate.py leaves them out.",
+ "categories": {
+  "a": "indicator named in the body of the report",
+  "b": "correct value, but not an indicator (the article's own URL, references, benign hosts)",
+  "c": "wrong value (cut, glued to other text, or not that type)"
+ },
+ "judgements": {
+  "zh-cn/cn01-tencent-oceanlotus-2018": {
+   "domain": {
+    "orinneamoure.com": [
+     "a",
+     "domain the report links to OceanLotus in the body"
+    ]
+   },
+   "md5": {
+    "92ba181801194f79874ee3bf79c355b8": [
+     "c",
+     "a GUID whose hyphens are soft hyphens (U+00AD), not an MD5"
+    ],
+    "a96b020f0000466fa96da91bbf8eac96": [
+     "c",
+     "a GUID whose hyphens are soft hyphens (U+00AD), not an MD5"
+    ],
+    "bf13d4ea2945444d8b13e2121cb6b663": [
+     "c",
+     "hex part of a registry key name (AppX...), not an MD5"
+    ]
+   },
+   "ipv6": {
+    "15:47:32": [
+     "c",
+     "a time of day (hh:mm:ss), not an IPv6 address"
+    ]
+   }
+  },
+  "zh-cn/cn02-360-apt-c-01-2018": {
+   "url": {
+    "http://updateinfo.servegame.org": [
+     "a",
+     "C&C host and payload URL named in the body"
+    ],
+    "http://updateinfo.servegame.org/tiny1detvghrt.tmp": [
+     "a",
+     "C&C host and payload URL named in the body"
+    ],
+    "blog.xecure-lab.com/2014/10/cve-2014-4114-pptx-apt-xecure-lab.html": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "http://blog.xecure-lab.com/2014/10/cve-2014-4114-pptx-apt-xecure-lab.html": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "http://blogs.cisco.com/security/talos/opening-zxshell": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "http://code.google.com/a/apache-extras.org/p/phpmailer/": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "http://en.wikipedia.org/wiki/Unicode_character_property": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "http://news.xinhuanet.com/world/2014-05/18/c_1110741502.htm": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "http://www.cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2012-0158": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "http://www.cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2014-6352": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "http://www.isightpartners.com/2014/10/cve-2014-4114/": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2014-4114": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-8759": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "https://technet.microsoft.com/zh-cn/library/security/3010060.aspx": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "https://technet.microsoft.com/zh-cn/library/security/ms12-027.aspx": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "https://technet.microsoft.com/zh-cn/library/security/ms14-060.aspx": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "https://technet.microsoft.com/zh-cn/library/security/ms14-064.aspx": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "https://ti.360.net/blog/articles/analysis-of-apt-c-01/": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "https://www.fireeye.com/resources/pdfs/fireeye-poison-ivy-report.pdf": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "https://ti.360.net/": [
+     "b",
+     "the publisher's own site or contact"
+    ],
+    "https://api-upload.kanbox.com/0/upload/%s/%s?bearer_token=%s": [
+     "b",
+     "legitimate cloud-storage API that the malware uploads to; a service, not an attacker host"
+    ],
+    "https://auth.kanbox.com/0/token": [
+     "b",
+     "legitimate cloud-storage API that the malware uploads to; a service, not an attacker host"
+    ],
+    "http://www.trendmicro.com/cloud-content/us/pdfs/security-intelligence/white-papers/wp-spear-phishing-email-": [
+     "c",
+     "cut at a PDF line break; the rest of the value is on the next line"
+    ],
+    "https://www.virustotal.com/en/file/8cee670d7419d1fd0f8f0ac6a2bd981593c2c96ca0f6b801931": [
+     "c",
+     "cut at a PDF line break; the rest of the value is on the next line"
+    ],
+    "http://如.doc.ppt.xls.wps": [
+     "c",
+     "not in the text: a URL assembled from file extensions in prose"
+    ],
+    "https://kanbox.com/": [
+     "c",
+     "not in the text: scheme and host taken from a longer URL"
+    ],
+    "kanbox.com/": [
+     "c",
+     "a host fragment of https://auth.kanbox.com/0/token"
+    ],
+    "http://www.trendmicro.com/cloud-content/us/pdfs/security-intelligence/white-papers/wp-spear-phishing-email-most-favored-apt-attack-bait.pdf": [
+     "b",
+     "reference or source the report cites (joined across a line break)"
+    ]
+   },
+   "domain": {
+    "gaewaaa.upgrinfo.com": [
+     "a",
+     "C&C domain named in the body (the appendix spells it gaewaa)"
+    ],
+    "apache-extras.org": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "blog.xecure-lab.com": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "blogs.cisco.com": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "code.google.com": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "cve.mitre.org": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "en.wikipedia.org": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "news.xinhuanet.com": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "technet.microsoft.com": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "www.cve.mitre.org": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "www.fireeye.com": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "www.isightpartners.com": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "www.trendmicro.com": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "www.virustotal.com": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "360.cn": [
+     "b",
+     "the publisher's own site or contact"
+    ],
+    "ti.360.net": [
+     "b",
+     "the publisher's own site or contact"
+    ],
+    "api-upload.kanbox.com": [
+     "b",
+     "legitimate cloud-storage API that the malware uploads to; a service, not an attacker host"
+    ],
+    "auth.kanbox.com": [
+     "b",
+     "legitimate cloud-storage API that the malware uploads to; a service, not an attacker host"
+    ],
+    "kanbox.com": [
+     "b",
+     "legitimate cloud-storage API that the malware uploads to; a service, not an attacker host"
+    ],
+    "www.81.cn": [
+     "b",
+     "legitimate site whose name a C&C host imitates"
+    ],
+    "www.chinamil.cn": [
+     "b",
+     "legitimate site whose name a C&C host imitates"
+    ],
+    "www.chinamil.com": [
+     "b",
+     "legitimate site whose name a C&C host imitates"
+    ],
+    "www.soa.gov.cn": [
+     "b",
+     "legitimate site whose name a C&C host imitates"
+    ],
+    "www.xinhuanet.com": [
+     "b",
+     "legitimate site whose name a C&C host imitates"
+    ],
+    "backdoor.win32.ht": [
+     "c",
+     "a detection name (Backdoor.Win32.Ht), not a host"
+    ],
+    "tmp.zip": [
+     "c",
+     "a file name, not a host"
+    ]
+   },
+   "md5": {
+    "19365fddc2fca8735d51def001704db3": [
+     "a",
+     "sample hash in a table in the body"
+    ],
+    "19f967e27e21802fe92bc9705ae0a770": [
+     "a",
+     "sample hash in a table in the body"
+    ],
+    "2fa75fdf4d57c182bc6c0438dd6cbf27": [
+     "a",
+     "sample hash in a table in the body"
+    ],
+    "5d0b4cadfb149695d9fbc71dd1b36bef": [
+     "a",
+     "sample hash in a table in the body"
+    ],
+    "954f50f7ed8b4c11b59560769de0ec36": [
+     "a",
+     "sample hash in a table in the body"
+    ],
+    "9fb6866c2cdd49387a520f421a04b882": [
+     "a",
+     "sample hash in a table in the body"
+    ],
+    "a5d9edaa1b6cf820d54c19b2c6bd246d": [
+     "a",
+     "sample hash in a table in the body"
+    ],
+    "b04d7fa1c7e3a8274ba81f48f06a5f4e": [
+     "a",
+     "sample hash in a table in the body"
+    ],
+    "cbeebf063f914eb3b5eba8b37302189f": [
+     "a",
+     "sample hash in a table in the body"
+    ],
+    "da807804fa5f53f7cbcaac82b901689c": [
+     "a",
+     "sample hash in a table in the body"
+    ]
+   },
+   "email": {
+    "360zhuiri@360.cn": [
+     "b",
+     "the publisher's own site or contact"
+    ]
+   },
+   "ipv6": {
+    "16:48:12": [
+     "c",
+     "a time of day (hh:mm:ss), not an IPv6 address"
+    ],
+    "20:48:26": [
+     "c",
+     "a time of day (hh:mm:ss), not an IPv6 address"
+    ],
+    "22:08:18": [
+     "c",
+     "a time of day (hh:mm:ss), not an IPv6 address"
+    ],
+    "23:17:57": [
+     "c",
+     "a time of day (hh:mm:ss), not an IPv6 address"
+    ],
+    "8:21:01": [
+     "c",
+     "a time of day (hh:mm:ss), not an IPv6 address"
+    ]
+   }
+  },
+  "zh-cn/cn03-360-apt-c-38-2019": {
+   "url": {
+    "blogs.360.cn/post/analysis-of-APT-C-38.html": [
+     "b",
+     "the report's own address (page header or footer)"
+    ],
+    "http://blogs.360.cn/post/analysis-of-APT-C-38.html": [
+     "b",
+     "the report's own address (page header or footer)"
+    ]
+   },
+   "domain": {
+    "blogs.360.cn": [
+     "b",
+     "the report's own address (page header or footer)"
+    ],
+    "ail.com": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF (WHOIS table: a C&C domain or a registrant e-mail address)"
+    ],
+    "dater.com": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF (WHOIS table: a C&C domain or a registrant e-mail address)"
+    ],
+    "daters.com": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF (WHOIS table: a C&C domain or a registrant e-mail address)"
+    ],
+    "hoo.com": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF (WHOIS table: a C&C domain or a registrant e-mail address)"
+    ],
+    "tors.com": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF (WHOIS table: a C&C domain or a registrant e-mail address)"
+    ],
+    "update.com": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF (WHOIS table: a C&C domain or a registrant e-mail address)"
+    ],
+    "updates.com": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF (WHOIS table: a C&C domain or a registrant e-mail address)"
+    ]
+   },
+   "ipv6": {
+    "10:15:30": [
+     "c",
+     "a time of day (hh:mm:ss), not an IPv6 address"
+    ],
+    "11:04:14": [
+     "c",
+     "a time of day (hh:mm:ss), not an IPv6 address"
+    ]
+   }
+  },
+  "zh-cn/cn04-tencent-higaisa-2019": {
+   "url": {
+    "http://180.150.227.24/do/index.php?id=ssss": [
+     "a",
+     "C2 upload or download URL named in the body"
+    ],
+    "http://180.150.227.24/view/index.php?id=860016C5": [
+     "a",
+     "C2 upload or download URL named in the body"
+    ],
+    "https://github.com/0Fdemir/OutlookPasswordRecovery": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "https://malware.prevenity.com/2018/03/happy-new-year-wishes-from-china.html": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "https://s.tencent.com/research/report/762.html": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "https://s.tencent.com/product/gjwxjc/index.html": [
+     "b",
+     "the publisher's own site or contact"
+    ],
+    "http://www.spo.go.kr/spo/index.jsp": [
+     "b",
+     "legitimate site that the fake app opens"
+    ],
+    "http://info.hangro.net/file/start?session=[8": [
+     "c",
+     "URL template cut at its placeholder ('[8 位随机数字]')"
+    ],
+    "https://malware.prevenity.com/2018/03/happy-new-year-wishes-from-china.ht": [
+     "c",
+     "cut at a PDF line break; the rest of the value is on the next line"
+    ]
+   },
+   "ipv4": {
+    "69.172.75.148": [
+     "a",
+     "C2 address in the decrypted configuration shown in the body"
+    ]
+   },
+   "md5": {
+    "c5f0336b18a1929d7bd17d09777bdc6c": [
+     "a",
+     "sample hash named in the body"
+    ]
+   },
+   "domain": {
+    "github.com": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "malware.prevenity.com": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "s.tencent.com": [
+     "b",
+     "the publisher's own site or contact"
+    ],
+    "www.spo.go.kr": [
+     "b",
+     "legitimate site that the fake app opens"
+    ],
+    "naver.com": [
+     "b",
+     "benign host named as a string in the sample"
+    ],
+    "gov.cn": [
+     "b",
+     "the gov.cn suffix named in prose"
+    ],
+    "happy-new-year-wishes-from-china.ht": [
+     "c",
+     "part of a URL path"
+    ]
+   },
+   "ipv6": {
+    "00:39:04": [
+     "c",
+     "a time of day (hh:mm:ss), not an IPv6 address"
+    ],
+    "01:51:12": [
+     "c",
+     "a time of day (hh:mm:ss), not an IPv6 address"
+    ],
+    "03:52:32": [
+     "c",
+     "a time of day (hh:mm:ss), not an IPv6 address"
+    ],
+    "09:39:45": [
+     "c",
+     "a time of day (hh:mm:ss), not an IPv6 address"
+    ],
+    "12:13:18": [
+     "c",
+     "a time of day (hh:mm:ss), not an IPv6 address"
+    ],
+    "13:23:02": [
+     "c",
+     "a time of day (hh:mm:ss), not an IPv6 address"
+    ],
+    "13:49:30": [
+     "c",
+     "a time of day (hh:mm:ss), not an IPv6 address"
+    ],
+    "14:18:10": [
+     "c",
+     "a time of day (hh:mm:ss), not an IPv6 address"
+    ]
+   }
+  },
+  "zh-cn/cn05-qianxin-tibbar-2020": {
+   "url": {
+    "authowawebmailgo.com/securemail.auth/c.html": [
+     "a",
+     "C2, download or phishing URL named in the body"
+    ],
+    "coremailxt5mainjsp.com/ps/sgrm.exe": [
+     "a",
+     "C2, download or phishing URL named in the body"
+    ],
+    "http://188.215.229.20/2.php": [
+     "a",
+     "C2, download or phishing URL named in the body"
+    ],
+    "http://authowawebmailgo.com/securemail.auth/hello.jpg": [
+     "a",
+     "C2, download or phishing URL named in the body"
+    ],
+    "http://authowawebmailgo.com/update/images/image.php": [
+     "a",
+     "C2, download or phishing URL named in the body"
+    ],
+    "http://karlsuites.com/word/update/gather": [
+     "a",
+     "C2, download or phishing URL named in the body"
+    ],
+    "http://the-moondelight.96.lt/windw-sec/append": [
+     "a",
+     "C2, download or phishing URL named in the body"
+    ],
+    "https://ti.qianxin.com/": [
+     "b",
+     "the publisher's own site or contact"
+    ],
+    "http://185.214.10.220/1/KB-Auto-win-": [
+     "c",
+     "cut at a PDF line break; the rest of the value is on the next line"
+    ],
+    "http://anf.gov.pk/pmstesting/export/test/covid-": [
+     "c",
+     "cut at a PDF line break; the rest of the value is on the next line"
+    ],
+    "https://jspsessionindex.com/jsp_sessionidHLD9823rye09YHDYDo8y32/Programm": [
+     "c",
+     "cut at a PDF line break; the rest of the value is on the next line"
+    ]
+   },
+   "domain": {
+    "auth.mail.sina.com.cn.jspsessionindex.com": [
+     "a",
+     "C2 or phishing domain named in the body"
+    ],
+    "avicintl.cn.coremail.xt3.jspsessionindex.com": [
+     "a",
+     "C2 or phishing domain named in the body"
+    ],
+    "ecatic.cn.coremail.xt5.jspsessionindex.com": [
+     "a",
+     "C2 or phishing domain named in the body"
+    ],
+    "fiesta.kozow.com": [
+     "a",
+     "C2 or phishing domain named in the body"
+    ],
+    "info.viewworld71.com": [
+     "a",
+     "C2 or phishing domain named in the body"
+    ],
+    "jspsessionindex.com": [
+     "a",
+     "C2 or phishing domain named in the body"
+    ],
+    "karlsuites.com": [
+     "a",
+     "C2 or phishing domain named in the body"
+    ],
+    "login.mail.126.com.hhwwebmail.jspsessionindex.com": [
+     "a",
+     "C2 or phishing domain named in the body"
+    ],
+    "login.mail.163.com.hhwwebmail.jspsessionindex.com": [
+     "a",
+     "C2 or phishing domain named in the body"
+    ],
+    "login.mail.chinaships.com.coremail.xt5.jspsessionindex.com": [
+     "a",
+     "C2 or phishing domain named in the body"
+    ],
+    "login.mail.csoc.cn.coremail.xt5.jspsessionindex.com": [
+     "a",
+     "C2 or phishing domain named in the body"
+    ],
+    "mail.spacestar.com.cn.jspsessionindex.com": [
+     "a",
+     "C2 or phishing domain named in the body"
+    ],
+    "maill.cass.org.cn.login.to.continue24354.jspsessionindex.com": [
+     "a",
+     "C2 or phishing domain named in the body"
+    ],
+    "owaauthlogon.com": [
+     "a",
+     "C2 or phishing domain named in the body"
+    ],
+    "the-moondelight.96.lt": [
+     "a",
+     "C2 or phishing domain named in the body"
+    ],
+    "www.maill.cetci.com.cn.coremail.jspsessionindex.com": [
+     "a",
+     "C2 or phishing domain named in the body"
+    ],
+    "www.thesundayguardianlive.com.jspsessionindex.com": [
+     "a",
+     "C2 or phishing domain named in the body"
+    ],
+    "ti.qianxin.com": [
+     "b",
+     "the publisher's own site or contact"
+    ],
+    "auth.mail.sina.com.cn": [
+     "b",
+     "legitimate mail login host; the phishing host it prefixes is masked in the text"
+    ],
+    "login.mail.126.com": [
+     "b",
+     "legitimate mail login host; the phishing host it prefixes is masked in the text"
+    ],
+    "login.mail.163.com": [
+     "b",
+     "legitimate mail login host; the phishing host it prefixes is masked in the text"
+    ],
+    "www.google.com": [
+     "b",
+     "legitimate host of a redirect-URL format"
+    ],
+    "20system.zip": [
+     "c",
+     "a file name, not a host"
+    ],
+    "notepad.net": [
+     "c",
+     "a file name, not a host"
+    ],
+    "system.zip": [
+     "c",
+     "a file name, not a host"
+    ],
+    "tem.zip": [
+     "c",
+     "a file name, not a host"
+    ]
+   },
+   "ipv4": {
+    "188.215.229.20": [
+     "a",
+     "C2 address named in the body"
+    ],
+    "192.99.34.204": [
+     "a",
+     "C2 address named in the body"
+    ],
+    "23.82.140.14": [
+     "a",
+     "C2 address named in the body"
+    ],
+    "45.86.162.29": [
+     "a",
+     "C2 address named in the body"
+    ]
+   },
+   "md5": {
+    "1ec463b985b7d45937eacfdef4c11729": [
+     "a",
+     "sample hash named in the body"
+    ],
+    "4e548b5597f995b42decd7591ba4212e": [
+     "a",
+     "sample hash named in the body"
+    ],
+    "6d264218807f705f6fabac5418a7ebaa": [
+     "a",
+     "sample hash named in the body"
+    ],
+    "9d9ea8060ca29139803dc7e0dc7d183c": [
+     "a",
+     "sample hash named in the body"
+    ],
+    "00b27593843dc41ac674ea5021879cf5": [
+     "c",
+     "a certificate serial number, not an MD5"
+    ],
+    "00b68e6db2bb7412fabcbaa2192394ad": [
+     "c",
+     "a certificate serial number, not an MD5"
+    ],
+    "00b7c6b7197558146fb298aa80bdec99": [
+     "c",
+     "a certificate serial number, not an MD5"
+    ]
+   },
+   "sha1": {
+    "153a7ea3a7acb476fd66d214e61e51bb35b4a24b": [
+     "a",
+     "thumbprint (SHA-1) of the C2 server certificate named in the body"
+    ],
+    "1c3cbeaaddc4aaa8f3b743f4d7e8537f4c1ea597": [
+     "a",
+     "thumbprint (SHA-1) of the C2 server certificate named in the body"
+    ],
+    "dee2b1e9f3fd0fd8171648a3b528a85577c49ffa": [
+     "a",
+     "thumbprint (SHA-1) of the C2 server certificate named in the body"
+    ]
+   }
+  },
+  "zh-cn/cn06-qianxin-rubia-2020": {
+   "domain": {
+    "163-tuiguang.net": [
+     "a",
+     "phishing or C2 domain named in the body"
+    ],
+    "emailsevr.net": [
+     "a",
+     "phishing or C2 domain named in the body"
+    ],
+    "myaccount.emailsevr.net": [
+     "a",
+     "phishing or C2 domain named in the body"
+    ],
+    "netesae.net": [
+     "a",
+     "phishing or C2 domain named in the body"
+    ],
+    "officeupdate.mynetav.com": [
+     "a",
+     "phishing or C2 domain named in the body"
+    ],
+    "webmaill.net": [
+     "a",
+     "phishing or C2 domain named in the body"
+    ],
+    "mp.weixin.qq.com": [
+     "b",
+     "the report's own address (page header or footer)"
+    ],
+    "ti.qianxin.com": [
+     "b",
+     "the publisher's own site or contact"
+    ],
+    "carpox.com": [
+     "b",
+     "parent domain of a dynamic DNS service the attackers used; the service itself is not malicious"
+    ],
+    "ddns.info": [
+     "b",
+     "parent domain of a dynamic DNS service the attackers used; the service itself is not malicious"
+    ],
+    "ddns.net": [
+     "b",
+     "parent domain of a dynamic DNS service the attackers used; the service itself is not malicious"
+    ],
+    "dsmtp.com": [
+     "b",
+     "parent domain of a dynamic DNS service the attackers used; the service itself is not malicious"
+    ],
+    "dynamic-dns.net": [
+     "b",
+     "parent domain of a dynamic DNS service the attackers used; the service itself is not malicious"
+    ],
+    "dynssl.com": [
+     "b",
+     "parent domain of a dynamic DNS service the attackers used; the service itself is not malicious"
+    ],
+    "myvnc.com": [
+     "b",
+     "parent domain of a dynamic DNS service the attackers used; the service itself is not malicious"
+    ],
+    "organiccrap.com": [
+     "b",
+     "parent domain of a dynamic DNS service the attackers used; the service itself is not malicious"
+    ],
+    "securitytactics.com": [
+     "b",
+     "parent domain of a dynamic DNS service the attackers used; the service itself is not malicious"
+    ],
+    "servehttp.com": [
+     "b",
+     "parent domain of a dynamic DNS service the attackers used; the service itself is not malicious"
+    ],
+    "servepics.com": [
+     "b",
+     "parent domain of a dynamic DNS service the attackers used; the service itself is not malicious"
+    ],
+    "serveuser.com": [
+     "b",
+     "parent domain of a dynamic DNS service the attackers used; the service itself is not malicious"
+    ],
+    "serveusers.com": [
+     "b",
+     "parent domain of a dynamic DNS service the attackers used; the service itself is not malicious"
+    ],
+    "zapto.org": [
+     "b",
+     "parent domain of a dynamic DNS service the attackers used; the service itself is not malicious"
+    ],
+    "zyns.com": [
+     "b",
+     "parent domain of a dynamic DNS service the attackers used; the service itself is not malicious"
+    ],
+    "dynamic-ip.hinet.net": [
+     "b",
+     "the ISP's dynamic-address domain (*.dynamic-ip.hinet.net)"
+    ],
+    "fs.163.com": [
+     "b",
+     "legitimate NetEase file host"
+    ],
+    "01.servepics.com": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF (domain table)"
+    ],
+    "cilp.serveusers.com": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF (domain table)"
+    ],
+    "count.mail.163.com": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF (domain table)"
+    ],
+    "dns.net": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF (domain table)"
+    ],
+    "download.serveuser.com": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF (domain table)"
+    ],
+    "mailsmtp.online": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF (domain table)"
+    ],
+    "main.serveusers.com": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF (domain table)"
+    ],
+    "warepatch.serveuser.com": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF (domain table)"
+    ],
+    "warepatch.serveusers.com": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF (domain table)"
+    ]
+   },
+   "ipv4": {
+    "114.44.6.144": [
+     "a",
+     "address a phishing or C2 domain resolved to, named in the body"
+    ],
+    "133.130.102.181": [
+     "a",
+     "address a phishing or C2 domain resolved to, named in the body"
+    ],
+    "139.180.202.208": [
+     "a",
+     "address a phishing or C2 domain resolved to, named in the body"
+    ]
+   },
+   "md5": {
+    "4eb36b4e019a0df60bbc64d52e6d885b": [
+     "a",
+     "sample hash named in the body"
+    ]
+   },
+   "url": {
+    "https://mp.weixin.qq.com/s/omacDXAdio88a_f0Xwu-kg": [
+     "b",
+     "the report's own address (page header or footer)"
+    ],
+    "mp.weixin.qq.com/s/omacDXAdio88a_f0Xwu-kg": [
+     "b",
+     "the report's own address (page header or footer)"
+    ],
+    "https://ti.qianxin.com/": [
+     "b",
+     "the publisher's own site or contact"
+    ],
+    "http://{攻击": [
+     "c",
+     "a URL template with the attacker host as a placeholder ('{攻击者域名或IP}')"
+    ],
+    "https://{攻击": [
+     "c",
+     "a URL template with the attacker host as a placeholder ('{攻击者域名或IP}')"
+    ]
+   }
+  },
+  "zh-cn/cn07-360-apt-c-44-2020": {
+   "url": {
+    "http://egchaat.com/": [
+     "a",
+     "the appendix C&C URL http://egchaat.com, taken from an archive.org reference"
+    ],
+    "blogs.360.cn/post/APT-C-44.html": [
+     "b",
+     "the report's own address (page header or footer)"
+    ],
+    "https://blogs.360.cn/post/APT-C-44.html": [
+     "b",
+     "the report's own address (page header or footer)"
+    ],
+    "https://ti.360.cn/": [
+     "b",
+     "the publisher's own site or contact"
+    ],
+    "https://github.com/mwsrc/XtremeRAT": [
+     "b",
+     "reference or source the report cites; the report does not say which accounts or downloads are the attackers'"
+    ],
+    "https://top4top.io/downloadf-12180r3ix1-apk.html": [
+     "b",
+     "reference or source the report cites; the report does not say which accounts or downloads are the attackers'"
+    ],
+    "https://web.archive.org/web/20180605042224/http://egchat.com/egchat/": [
+     "b",
+     "reference or source the report cites; the report does not say which accounts or downloads are the attackers'"
+    ],
+    "https://web.archive.org/web/20180805173429/http://egchaat.com/": [
+     "b",
+     "reference or source the report cites; the report does not say which accounts or downloads are the attackers'"
+    ],
+    "https://www.facebook.com/100011589727981k": [
+     "b",
+     "reference or source the report cites; the report does not say which accounts or downloads are the attackers'"
+    ],
+    "https://www.facebook.com/bashar.basha11": [
+     "b",
+     "reference or source the report cites; the report does not say which accounts or downloads are the attackers'"
+    ],
+    "https://www.facebook.com/eegchaat": [
+     "b",
+     "reference or source the report cites; the report does not say which accounts or downloads are the attackers'"
+    ],
+    "https://www.facebook.com/pg/voiceegchat": [
+     "b",
+     "reference or source the report cites; the report does not say which accounts or downloads are the attackers'"
+    ],
+    "http://egchat.com/egchat/": [
+     "b",
+     "official site of the legitimate chat application the attackers imitate"
+    ],
+    "http://egchat.com": [
+     "c",
+     "a defanged host without a scheme, reported as a URL with an invented http:// scheme (a legitimate site)"
+    ],
+    "http://www.mltqana.com": [
+     "c",
+     "a defanged host without a scheme, reported as a URL with an invented http:// scheme (a legitimate site)"
+    ]
+   },
+   "domain": {
+    "blogs.360.cn": [
+     "b",
+     "the report's own address (page header or footer)"
+    ],
+    "ti.360.cn": [
+     "b",
+     "the publisher's own site or contact"
+    ],
+    "github.com": [
+     "b",
+     "reference or source the report cites; the report does not say which accounts or downloads are the attackers'"
+    ],
+    "top4top.io": [
+     "b",
+     "reference or source the report cites; the report does not say which accounts or downloads are the attackers'"
+    ],
+    "web.archive.org": [
+     "b",
+     "reference or source the report cites; the report does not say which accounts or downloads are the attackers'"
+    ],
+    "www.facebook.com": [
+     "b",
+     "reference or source the report cites; the report does not say which accounts or downloads are the attackers'"
+    ],
+    "egchat.com": [
+     "b",
+     "official site of the legitimate chat application the attackers imitate"
+    ],
+    "www.mltqana.com": [
+     "b",
+     "official site of the legitimate chat application the attackers imitate"
+    ]
+   },
+   "ipv4": {
+    "41.105.0.0": [
+     "b",
+     "bounds of an IP range the report gives for attribution"
+    ],
+    "41.105.255.255": [
+     "b",
+     "bounds of an IP range the report gives for attribution"
+    ]
+   }
+  },
+  "zh-cn/cn08-gcow-sidewinder-2020h1": {
+   "url": {
+    "https://mp.weixin.qq.com/s/5mBqxf_v6G006EnjECoTHw": [
+     "b",
+     "the report's own address (page header or footer)"
+    ],
+    "mp.weixin.qq.com/s/5mBqxf_v6G006EnjECoTHw": [
+     "b",
+     "the report's own address (page header or footer)"
+    ],
+    "https://bbs.pediy.com/thread-259500.htm": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "https://blogs.jpcert.or.jp/en/2020/04/ie-firefox-0day.html": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "https://mp.weixin.qq.com/s/9LfElDbKCrQX1QzGFISFPw": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "http://ap-ms.net": [
+     "c",
+     "a defanged host without a scheme, reported as a URL with an invented http:// scheme (an appendix C2 domain)"
+    ],
+    "http://cloud-apt.net": [
+     "c",
+     "a defanged host without a scheme, reported as a URL with an invented http:// scheme (an appendix C2 domain)"
+    ],
+    "http://kat0x.net": [
+     "c",
+     "a defanged host without a scheme, reported as a URL with an invented http:// scheme (an appendix C2 domain)"
+    ],
+    "http://nrots.net": [
+     "c",
+     "a defanged host without a scheme, reported as a URL with an invented http:// scheme (an appendix C2 domain)"
+    ],
+    "http://r0dps.net": [
+     "c",
+     "a defanged host without a scheme, reported as a URL with an invented http:// scheme (an appendix C2 domain)"
+    ],
+    "http://www-afc.chrom3.net": [
+     "c",
+     "a defanged host without a scheme, reported as a URL with an invented http:// scheme (an appendix C2 domain)"
+    ],
+    "http://www.au-edu.km01s.net": [
+     "c",
+     "a defanged host without a scheme, reported as a URL with an invented http:// scheme (an appendix C2 domain)"
+    ],
+    "http://www.d01fa.net": [
+     "c",
+     "a defanged host without a scheme, reported as a URL with an invented http:// scheme (an appendix C2 domain)"
+    ],
+    "http://www.fdn-en.net": [
+     "c",
+     "a defanged host without a scheme, reported as a URL with an invented http:// scheme (an appendix C2 domain)"
+    ],
+    "http://www.link-cdnl.net": [
+     "c",
+     "a defanged host without a scheme, reported as a URL with an invented http:// scheme (an appendix C2 domain)"
+    ],
+    "https://blog.trendmicro.com/trendlabs-security-intelligence/first-active-attack-": [
+     "c",
+     "cut at a PDF line break; the rest of the value is on the next line"
+    ],
+    "https://blogs.360.cn/post/apt-c-": [
+     "c",
+     "cut at a PDF line break; the rest of the value is on the next line"
+    ],
+    "https://mp.weixi": [
+     "c",
+     "cut at a PDF line break; the rest of the value is on the next line"
+    ],
+    "https://mp.weixin.qq.com/s/CZrdslzEs4iwla": [
+     "c",
+     "cut at a PDF line break; the rest of the value is on the next line"
+    ],
+    "https://mp.weixin.qq.com/s/yxUTG3Qva169-": [
+     "c",
+     "cut at a PDF line break; the rest of the value is on the next line"
+    ],
+    "n.qq.com/s/Kb_woHp1miaCgDZyHLHNgA": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF"
+    ],
+    "https://blog.trendmicro.com/trendlabs-security-intelligence/first-active-attack-exploiting-cve-2019-2215-found-on-google-play-linked-to-sidewinder-apt-group/": [
+     "b",
+     "reference or source the report cites (joined across a line break)"
+    ],
+    "https://blogs.360.cn/post/apt-c-06_0day.html": [
+     "b",
+     "reference or source the report cites (joined across a line break)"
+    ],
+    "https://mp.weixin.qq.com/s/yxUTG3Qva169-XiYV0pAyQ": [
+     "b",
+     "reference or source the report cites (joined across a line break)"
+    ]
+   },
+   "domain": {
+    "mp.weixin.qq.com": [
+     "b",
+     "the report's own address (page header or footer)"
+    ],
+    "bbs.pediy.com": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "blog.trendmicro.com": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "blogs.360.cn": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "blogs.jpcert.or.jp": [
+     "b",
+     "reference or source the report cites"
+    ],
+    "n.qq.com": [
+     "c",
+     "the tail of a value that wraps onto a new line in the PDF"
+    ]
+   }
+  },
+  "zh-tw/tw03-twcert-kev-2026": {
+   "url": {
+    "https://lists.opensuse.org/archives/list/updates": [
+     "c",
+     "a cut URL: the path stops at the '@' of 'updates@lists.opensuse.org' inside a reference URL"
+    ],
+    "https://www.cisa.gov/news-events/directives/bod-26-04-implementation-guidance-prioritizing-security-": [
+     "b",
+     "the third 相關連結 link as the page writes it (its own link text ends in 'security-'); a reference, not an indicator"
+    ],
+    "lists.opensuse.org/message/WE6YZRG5UVXMGQ7IVDRYBPIWV4M6UUGM/": [
+     "c",
+     "a piece of a reference URL cut at the '@' of the mailing-list address in its path, without its scheme"
+    ],
+    "https://www.cisa.gov/news-events/directives/bod-26-04-prioritizing-security-updates-based-risk": [
+     "b",
+     "the second 相關連結 link (CISA BOD 26-04); a reference, not an indicator"
+    ],
+    "https://www.cisa.gov/known-exploited-vulnerabilities-catalog": [
+     "b",
+     "the first 相關連結 link (CISA's KEV catalog); a reference, not an indicator"
+    ],
+    "https://kb.isc.org/article/AA-01272": [
+     "b",
+     "the ISC advisory URL archived inside a web.archive.org reference link; a reference, not an indicator"
+    ]
+   },
+   "domain": {
+    "kb.isc.org": [
+     "b",
+     "the host of the ISC advisory URL archived inside a web.archive.org reference link; a reference, not an indicator"
+    ],
+    "changelog.md": [
+     "c",
+     "the file name CHANGELOG.md in a reference URL's path, not a domain"
+    ],
+    "www.cisa.gov": [
+     "b",
+     "the host of CISA reference links in 相關連結; a reference, not an indicator"
+    ],
+    "cert.org.tw": [
+     "b",
+     "TWCERT/CC's own domain, in its footer mailboxes; not an indicator"
+    ]
+   },
+   "email": {
+    "int_report@cert.org.tw": [
+     "b",
+     "TWCERT/CC's own incident-report mailbox in the page footer, written int_report(at)cert.org.tw; not an indicator"
+    ],
+    "cve@cert.org.tw": [
+     "b",
+     "TWCERT/CC's own CVE mailbox in the page footer, written cve(at)cert.org.tw; not an indicator"
+    ],
+    "cert_service@cert.org.tw": [
+     "b",
+     "TWCERT/CC's own service mailbox in the page footer, written cert_service(at)cert.org.tw; not an indicator"
+    ],
+    "updates@lists.opensuse.org": [
+     "b",
+     "the openSUSE updates mailing-list address that stands in a reference URL's path; correct, not an indicator"
+    ]
+   },
+   "sha1": {
+    "903fe5ab7a275bd69c3c3346af2d21cf87ebeabf": [
+     "b",
+     "a git commit id (a SHA-1) inside a reference URL to the ONLYOFFICE changelog; correct, not an indicator"
+    ]
+   }
+  },
+  "zh-tw/tw01-teamt5-activemq-2026": {
+   "ipv6": {
+    "08:50:10": [
+     "c",
+     "a time of day (08:50:10) in a sample log line, not an IPv6 address"
+    ],
+    "08:44:39": [
+     "c",
+     "a time of day (08:44:39) in a sample log line, not an IPv6 address"
+    ],
+    "08:44:38": [
+     "c",
+     "a time of day (08:44:38) in a sample log line, not an IPv6 address"
+    ]
+   },
+   "ipv4": {
+    "103.201.131.121": [
+     "a",
+     "the C2 of the download script and of SoxAgent, named in the body (Exploitation Status)"
+    ]
+   },
+   "domain": {
+    "resourcexmlapplicationcontext.java": [
+     "c",
+     "a Java source file name in a sample stack trace, not a domain"
+    ],
+    "java.net": [
+     "c",
+     "the Java package java.net (java.net.ConnectException) in a sample log line, not a domain"
+    ],
+    "www.fastsecurey.info": [
+     "a",
+     "a C2 of SoxAgent, named in the body (Exploitation Status)"
+    ],
+    "org.apache.activemq.network": [
+     "c",
+     "the Java package org.apache.activemq.network in a sample log line, not a domain"
+    ],
+    "security-advisories.data": [
+     "c",
+     "the path segment security-advisories.data of a reference URL, not a domain"
+    ],
+    "xmlbeandefinitionreader.java": [
+     "c",
+     "a Java source file name in a sample stack trace, not a domain"
+    ]
+   },
+   "url": {
+    "http://<redacted>/evil.xml": [
+     "c",
+     "a URL whose host is the placeholder <REDACTED> in a sample log line; no real URL"
+    ]
+   }
+  },
+  "zh-tw/tw02-cycraft-toxicpanda-2026": {
+   "ipv4": {
+    "127.0.0.1": [
+     "b",
+     "the loopback address the ADB daemon listens on, named in the body; correct, not an indicator"
+    ]
+   },
+   "domain": {
+    "cycraft.ai": [
+     "b",
+     "the name of CyCraft's own blog (CyCraft.AI 部落格) in the site footer; the publisher's own, not an indicator"
+    ]
+   }
+  },
+  "zh-tw/tw04-nics-policy-151-2026": {
+   "ipv6": {
+    "04:20:17": [
+     "c",
+     "a time of day (下午 04:20:17) in the page's date line, not an IPv6 address"
+    ]
+   }
+  },
+  "zh-tw-2/tw02-cycraft-toxicpanda-2026": {
+   "ipv4": {
+    "127.0.0.1": [
+     "b",
+     "the loopback address the ADB daemon listens on, named in the body; correct, not an indicator"
+    ]
+   },
+   "domain": {
+    "cycraft.ai": [
+     "b",
+     "the name of CyCraft's own blog (CyCraft.AI 部落格) in the site footer; the publisher's own, not an indicator"
+    ]
+   }
+  },
+  "zh-tw-2/tw06-twcert-medusa-2026": {
+   "url": {
+    "http://185.238.231.85": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://37.221.66.239": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://85.155.186.121": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://143.110.243.154": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://185.238.231.16": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://155.2.215.69": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://23.234.89.195": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://146.70.172.247": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://erp.ranasons.com": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://185.135.86.185": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://185.238.231.4": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://185.238.231.98": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://155.2.215.71": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://167.88.166.173": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://185.238.231.77": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://94.156.67.145": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://23.234.93.112": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://83.138.53.139": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://37.19.21.180": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://23.234.106.242": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://143.244.47.89": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ]
+   },
+   "email": {
+    "int_report@cert.org.tw": [
+     "b",
+     "TWCERT/CC's own incident-report mailbox in the page footer, written int_report(at)cert.org.tw; not an indicator"
+    ],
+    "cert_service@cert.org.tw": [
+     "b",
+     "TWCERT/CC's own service mailbox in the page footer, written cert_service(at)cert.org.tw; not an indicator"
+    ],
+    "cve@cert.org.tw": [
+     "b",
+     "TWCERT/CC's own CVE mailbox in the page footer, written cve(at)cert.org.tw; not an indicator"
+    ]
+   },
+   "domain": {
+    "cert.org.tw": [
+     "b",
+     "TWCERT/CC's own domain, in its footer mailboxes; not an indicator"
+    ]
+   }
+  },
+  "zh-tw-2/tw07-nics-tech-113q3-2024": {
+   "domain": {
+    "escape.tech": [
+     "b",
+     "a referral tag (?ref=escape.tech) in a reference URL; a correct name, not an indicator"
+    ],
+    "polyfill.io": [
+     "a",
+     "the Polyfill.io platform domain, named in the body as the source of the malicious JavaScript"
+    ],
+    "www.twilio.com": [
+     "b",
+     "the host of Twilio reference links in the references; not an indicator"
+    ],
+    "www.crowdstrike.com": [
+     "b",
+     "the host of a CrowdStrike reference link; not an indicator"
+    ],
+    "media.defense.gov": [
+     "b",
+     "the host of a U.S. DoD reference link; not an indicator"
+    ],
+    "www.reddit.com": [
+     "b",
+     "the host of a Reddit reference link; not an indicator"
+    ],
+    "www.googie-anaiytics.com": [
+     "a",
+     "the second-stage malicious domain named in the body (www.googie-anaiytics[.]com, imitating Google Analytics)"
+    ],
+    "kuurza.com": [
+     "a",
+     "the phishing site named in the body (kuurza[.]com)"
+    ],
+    "blog.cloudflare.com": [
+     "b",
+     "the host of a Cloudflare reference link; not an indicator"
+    ],
+    "cdn.polyfill.io": [
+     "a",
+     "the malicious domain cdn.polyfill.io named in the body"
+    ],
+    "dodcio.defense.gov": [
+     "b",
+     "the host of a U.S. DoD reference link; not an indicator"
+    ],
+    "sansec.io": [
+     "b",
+     "the host of a Sansec reference link; not an indicator"
+    ]
+   },
+   "url": {
+    "http://bootcdn.net": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "kuurza.com/redirect?from=bitget": [
+     "a",
+     "the phishing URL the body names (kuurza[.]com/redirect?from=bitget), as the report writes it, without a scheme"
+    ],
+    "http://unionadjs.com": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "https://www.crowdstrike.com/wp-content/uploads/2024/08/Channel-File-291-Incident-Root-Cause-Analysis-": [
+     "c",
+     "a reference URL cut at the line break; its rest (08.06.2024.pdf) is on the next line"
+    ],
+    "http://連線惡意域名newcrbpc.com": [
+     "c",
+     "Chinese text (連線惡意域名) glued into the host of a URL with an added http://; no such URL"
+    ],
+    "http://xhsbpza.com": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "https://www.twilio.com/en-us/blog/august-2022-social-engineering-attack": [
+     "b",
+     "a Twilio reference link in the references; not an indicator"
+    ],
+    "http://www.reddit.com/r/antivirus/comments/1f9ps3e/kaspersky_beginning_transition_of_us_users_to/?rdt=56659": [
+     "c",
+     "the report writes this reference as ttps://www.reddit.com/...; the tool gave it an http:// the report does not have"
+    ],
+    "https://www.twilio.com/en-us/changelog/Security_Alert_Authy_App_Android_iOS?ref=escape.tech": [
+     "b",
+     "a Twilio reference link in the references; not an indicator"
+    ],
+    "http://連線惡意域名union.macoms.la": [
+     "c",
+     "Chinese text (連線惡意域名) glued into the host of a URL with an added http://; no such URL"
+    ],
+    "https://blog.cloudflare.com/automatically-replacing-polyfill-io-links-with-cloudflares-mirror-for-a-safer-internet/": [
+     "b",
+     "a Cloudflare reference link in the references; not an indicator"
+    ],
+    "https://sansec.io/research/polyfill-supply-chain-attack": [
+     "b",
+     "a Sansec reference link in the references; not an indicator"
+    ],
+    "http://bootcss.com": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://www.googie-anaiytics.com/ga.js": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged body URL written without a scheme; the report does not contain that URL"
+    ],
+    "http://kuurza.com/redirect?from=bitget": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged body URL written without a scheme; the report does not contain that URL"
+    ],
+    "https://www.crowdstrike.com/wp-content/uploads/2024/08/Channel-File-291-Incident-Root-Cause-Analysis-08.06.2024.pdf": [
+     "b",
+     "a CrowdStrike reference link, whole across the line break; not an indicator"
+    ],
+    "www.reddit.com/r/antivirus/comments/1f9ps3e/kaspersky_beginning_transition_of_us_users_to/?rdt=56659": [
+     "b",
+     "a Reddit reference link as the report writes it (after a broken 'ttps://'); not an indicator"
+    ],
+    "http://連線惡意域名www.unionadjs.com": [
+     "c",
+     "Chinese text (連線惡意域名) glued into the host of a URL with an added http://; no such URL"
+    ],
+    "http://newcrbpc.com": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://staticfile.org": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "https://media.defense.gov/2024/Apr/09/2003434442/-1/-1/0/CSI_DATA_PILLAR_ZT.PDF": [
+     "b",
+     "a U.S. DoD reference link in the references; not an indicator"
+    ],
+    "www.googie-anaiytics.com/ga.js": [
+     "a",
+     "the second-stage malicious script URL named in the body, as the report writes it, without a scheme"
+    ],
+    "https://dodcio.defense.gov/Portals/0/Documents/Library/DoD-ZTStrategy.pdf": [
+     "b",
+     "a U.S. DoD reference link in the references; not an indicator"
+    ],
+    "http://macoms.la": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://staticfile.net": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ]
+   }
+  }
+ }
+}
