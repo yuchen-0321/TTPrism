@@ -1275,6 +1275,282 @@
      "a time of day (下午 04:20:17) in the page's date line, not an IPv6 address"
     ]
    }
+  },
+  "zh-tw-2/tw02-cycraft-toxicpanda-2026": {
+   "ipv4": {
+    "127.0.0.1": [
+     "b",
+     "the loopback address the ADB daemon listens on, named in the body; correct, not an indicator"
+    ]
+   },
+   "domain": {
+    "cycraft.ai": [
+     "b",
+     "the name of CyCraft's own blog (CyCraft.AI 部落格) in the site footer; the publisher's own, not an indicator"
+    ]
+   }
+  },
+  "zh-tw-2/tw06-twcert-medusa-2026": {
+   "url": {
+    "http://185.238.231.85": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://37.221.66.239": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://85.155.186.121": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://143.110.243.154": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://185.238.231.16": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://155.2.215.69": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://23.234.89.195": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://146.70.172.247": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://erp.ranasons.com": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://185.135.86.185": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://185.238.231.4": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://185.238.231.98": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://155.2.215.71": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://167.88.166.173": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://185.238.231.77": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://94.156.67.145": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://23.234.93.112": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://83.138.53.139": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://37.19.21.180": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://23.234.106.242": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://143.244.47.89": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged address in the IOC table written without a scheme; the report does not contain that URL"
+    ]
+   },
+   "email": {
+    "int_report@cert.org.tw": [
+     "b",
+     "TWCERT/CC's own incident-report mailbox in the page footer, written int_report(at)cert.org.tw; not an indicator"
+    ],
+    "cert_service@cert.org.tw": [
+     "b",
+     "TWCERT/CC's own service mailbox in the page footer, written cert_service(at)cert.org.tw; not an indicator"
+    ],
+    "cve@cert.org.tw": [
+     "b",
+     "TWCERT/CC's own CVE mailbox in the page footer, written cve(at)cert.org.tw; not an indicator"
+    ]
+   },
+   "domain": {
+    "cert.org.tw": [
+     "b",
+     "TWCERT/CC's own domain, in its footer mailboxes; not an indicator"
+    ]
+   }
+  },
+  "zh-tw-2/tw07-nics-tech-113q3-2024": {
+   "domain": {
+    "escape.tech": [
+     "b",
+     "a referral tag (?ref=escape.tech) in a reference URL; a correct name, not an indicator"
+    ],
+    "polyfill.io": [
+     "a",
+     "the Polyfill.io platform domain, named in the body as the source of the malicious JavaScript"
+    ],
+    "www.twilio.com": [
+     "b",
+     "the host of Twilio reference links in the references; not an indicator"
+    ],
+    "www.crowdstrike.com": [
+     "b",
+     "the host of a CrowdStrike reference link; not an indicator"
+    ],
+    "media.defense.gov": [
+     "b",
+     "the host of a U.S. DoD reference link; not an indicator"
+    ],
+    "www.reddit.com": [
+     "b",
+     "the host of a Reddit reference link; not an indicator"
+    ],
+    "www.googie-anaiytics.com": [
+     "a",
+     "the second-stage malicious domain named in the body (www.googie-anaiytics[.]com, imitating Google Analytics)"
+    ],
+    "kuurza.com": [
+     "a",
+     "the phishing site named in the body (kuurza[.]com)"
+    ],
+    "blog.cloudflare.com": [
+     "b",
+     "the host of a Cloudflare reference link; not an indicator"
+    ],
+    "cdn.polyfill.io": [
+     "a",
+     "the malicious domain cdn.polyfill.io named in the body"
+    ],
+    "dodcio.defense.gov": [
+     "b",
+     "the host of a U.S. DoD reference link; not an indicator"
+    ],
+    "sansec.io": [
+     "b",
+     "the host of a Sansec reference link; not an indicator"
+    ]
+   },
+   "url": {
+    "http://bootcdn.net": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "kuurza.com/redirect?from=bitget": [
+     "a",
+     "the phishing URL the body names (kuurza[.]com/redirect?from=bitget), as the report writes it, without a scheme"
+    ],
+    "http://unionadjs.com": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "https://www.crowdstrike.com/wp-content/uploads/2024/08/Channel-File-291-Incident-Root-Cause-Analysis-": [
+     "c",
+     "a reference URL cut at the line break; its rest (08.06.2024.pdf) is on the next line"
+    ],
+    "http://連線惡意域名newcrbpc.com": [
+     "c",
+     "Chinese text (連線惡意域名) glued into the host of a URL with an added http://; no such URL"
+    ],
+    "http://xhsbpza.com": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "https://www.twilio.com/en-us/blog/august-2022-social-engineering-attack": [
+     "b",
+     "a Twilio reference link in the references; not an indicator"
+    ],
+    "http://www.reddit.com/r/antivirus/comments/1f9ps3e/kaspersky_beginning_transition_of_us_users_to/?rdt=56659": [
+     "c",
+     "the report writes this reference as ttps://www.reddit.com/...; the tool gave it an http:// the report does not have"
+    ],
+    "https://www.twilio.com/en-us/changelog/Security_Alert_Authy_App_Android_iOS?ref=escape.tech": [
+     "b",
+     "a Twilio reference link in the references; not an indicator"
+    ],
+    "http://連線惡意域名union.macoms.la": [
+     "c",
+     "Chinese text (連線惡意域名) glued into the host of a URL with an added http://; no such URL"
+    ],
+    "https://blog.cloudflare.com/automatically-replacing-polyfill-io-links-with-cloudflares-mirror-for-a-safer-internet/": [
+     "b",
+     "a Cloudflare reference link in the references; not an indicator"
+    ],
+    "https://sansec.io/research/polyfill-supply-chain-attack": [
+     "b",
+     "a Sansec reference link in the references; not an indicator"
+    ],
+    "http://bootcss.com": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://www.googie-anaiytics.com/ga.js": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged body URL written without a scheme; the report does not contain that URL"
+    ],
+    "http://kuurza.com/redirect?from=bitget": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged body URL written without a scheme; the report does not contain that URL"
+    ],
+    "https://www.crowdstrike.com/wp-content/uploads/2024/08/Channel-File-291-Incident-Root-Cause-Analysis-08.06.2024.pdf": [
+     "b",
+     "a CrowdStrike reference link, whole across the line break; not an indicator"
+    ],
+    "www.reddit.com/r/antivirus/comments/1f9ps3e/kaspersky_beginning_transition_of_us_users_to/?rdt=56659": [
+     "b",
+     "a Reddit reference link as the report writes it (after a broken 'ttps://'); not an indicator"
+    ],
+    "http://連線惡意域名www.unionadjs.com": [
+     "c",
+     "Chinese text (連線惡意域名) glued into the host of a URL with an added http://; no such URL"
+    ],
+    "http://newcrbpc.com": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://staticfile.org": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "https://media.defense.gov/2024/Apr/09/2003434442/-1/-1/0/CSI_DATA_PILLAR_ZT.PDF": [
+     "b",
+     "a U.S. DoD reference link in the references; not an indicator"
+    ],
+    "www.googie-anaiytics.com/ga.js": [
+     "a",
+     "the second-stage malicious script URL named in the body, as the report writes it, without a scheme"
+    ],
+    "https://dodcio.defense.gov/Portals/0/Documents/Library/DoD-ZTStrategy.pdf": [
+     "b",
+     "a U.S. DoD reference link in the references; not an indicator"
+    ],
+    "http://macoms.la": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ],
+    "http://staticfile.net": [
+     "c",
+     "a URL with an http:// that the tool added to a defanged name in the IOC table written without a scheme; the report does not contain that URL"
+    ]
+   }
   }
  }
 }
