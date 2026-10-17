@@ -1,55 +1,35 @@
+**English** | [繁體中文](https://github.com/yuchen-0321/TTPrism/blob/main/README.zh-TW.md)
+
 # TTPrism
 
+[![PyPI](https://img.shields.io/pypi/v/ttprism)](https://pypi.org/project/ttprism/)
+[![Python](https://img.shields.io/pypi/pyversions/ttprism)](https://pypi.org/project/ttprism/)
+[![License](https://img.shields.io/github/license/yuchen-0321/TTPrism)](https://github.com/yuchen-0321/TTPrism/blob/main/LICENSE)
 [![CI](https://github.com/yuchen-0321/TTPrism/actions/workflows/ci.yml/badge.svg)](https://github.com/yuchen-0321/TTPrism/actions/workflows/ci.yml)
 
 **TTPrism splits a threat report or sandbox run into its IOCs and MITRE ATT&CK techniques**, the
-way a prism splits light into a spectrum.
+way a prism splits light into a spectrum. It also reads the full-width and CJK-bracket defanging
+of Chinese-language reports (`evil【.】com`, `１９８．５１．１００．２３`).
 
-- **Extracts IOCs** (URLs, domains, IPv4/IPv6, emails, MD5/SHA-1/SHA-256, CVE IDs) from report text
-  and from CAPE sandbox reports, and **undoes defanging**: ASCII forms (`evil[.]com`, `hxxp://`) and
-  full-width and CJK forms (`evil【.】com`, `evil．com`, `attacker［＠］mail．com`,
-  `１９８．５１．１００．２３`), which English-oriented extractors missed in a synthetic test. In the
-  real reports [evaluated so far](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-real-reports.md)
-  no one writes indicators that way: eight Simplified-Chinese reports with an IOC appendix; a first
-  set of four Traditional-Chinese reports, of which only one is a real IOC list (two are lists of
-  reference links, one has an English body); and a second set of four with real IOC lists in
-  Traditional Chinese (one shared with the first), two of which defang with ASCII `[.]`. TTPrism's
-  handling of full-width and CJK-bracket writing is supported only by synthetic tests. On the
-  Simplified-Chinese reports TTPrism's measured advantages were repairing names and URLs split
-  across PDF lines and reporting fewer wrong values (partly through fixes made on those same
-  reports); on the second Traditional-Chinese set, held out from those fixes, TTPrism and ioc-finder
-  found every indicator but two SHA-256 that a table cell split over two lines (no tool found
-  those), and TTPrism reported no wrong value, ioc-finder one and iocextract 36.
-- **Maps sandbox behaviour to ATT&CK** with YAML rules for CAPE signatures, command lines, API call
-  sequences and registry writes. It also **normalises outdated technique IDs**: about a quarter of
-  the TTP labels in CAPE's signatures point at techniques ATT&CK has since revoked.
-- **Exports** JSON, CSV or a STIX 2.1 bundle.
-- **Treats its input as hostile.** Regexes run in linear time, input size is capped, nothing is
-  executed or fetched, and CSV output is safe to open in Excel. See the
-  [threat model](https://github.com/yuchen-0321/TTPrism/blob/main/docs/threat-model.md).
+On the 12 real Chinese-language IOC lists evaluated so far, none of which uses full-width or
+CJK-bracket defanging (so that handling is supported only by synthetic tests), TTPrism's measured
+advantages were fewer wrong values and repairing values split across PDF lines, with the same
+recall as ioc-finder; see [Evaluation](https://github.com/yuchen-0321/TTPrism#evaluation).
 
 > **Status:** 0.1.0, the first release. Feedback and detection-quality reports are very
 > welcome.
 
-## Install
+## Quick start
 
 Python 3.11 or newer:
 
 ```sh
-pip install git+https://github.com/yuchen-0321/TTPrism.git
+pip install ttprism
 ```
 
-## Usage
+If you only want the command, `pipx install ttprism` puts it in its own environment.
 
-```sh
-ttprism extract report.md                        # JSON to stdout
-ttprism extract report.md -f csv -o iocs.csv     # CSV file
-ttprism extract cape/report.json -f stix         # STIX 2.1 bundle from a CAPE report
-ttprism extract report.md --defang -f csv        # hxxps[://]evil[.]com, safe to paste in chat
-cat report.txt | ttprism extract -               # read standard input
-```
-
-A Chinese-language report with mixed defang styles:
+Save this Chinese-language report excerpt, with mixed defang styles, as `report.txt`:
 
 ```text
 C2 為 update-check【.】example 與 198.51.100[.]23，下載 hxxps://cdn.update-check［.］example/stage2.bin
@@ -67,49 +47,170 @@ cve,CVE-2023-23397,text,
 attack-technique,T1059.001,reported,PowerShell (reported as T1086)
 ```
 
-(`--include-reserved` is only needed here because the example uses documentation addresses and
-the reserved `.example` TLD, which are filtered out by default.)
+`--include-reserved` is only needed because the example uses documentation addresses and the
+reserved `.example` TLD. Without it they are filtered out like any other reserved value, and only
+the CVE and the technique remain:
 
-From a CAPE report, each technique says why it was assigned:
-
-```json
-{
-  "id": "T1053.005",
-  "name": "Scheduled Task",
-  "reported": false,
-  "rules": ["cmd.scheduled-task"],
-  "confidence": "high",
-  "evidence": ["command: s^c^h^t^a^s^k^s /create /tn upd /tr C:\\Users\\analyst\\upd.exe /sc minute"],
-  "original_ids": []
-}
+```sh
+$ ttprism extract report.txt -f csv
+type,value,sources,detail
+cve,CVE-2023-23397,text,
+attack-technique,T1059.001,reported,PowerShell (reported as T1086)
 ```
 
-### Inputs
+The outdated `T1086` is reported as the current `T1059.001`. Leave out `-f csv` for JSON, which
+also counts what was filtered under `suppressed`.
+
+## What it does and what it does not
+
+- **Extracts IOCs** (URLs, domains, IPv4/IPv6, emails, MD5/SHA-1/SHA-256, CVE IDs) from report text
+  and from CAPE sandbox reports, and **undoes defanging**: ASCII forms (`evil[.]com`, `hxxp://`) and
+  full-width and CJK forms (`evil【.】com`, `evil．com`, `attacker［＠］mail．com`,
+  `１９８．５１．１００．２３`), which English-oriented extractors missed in a
+  [synthetic test](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-existing-tools.md).
+  It also finds domains glued to Chinese text without a space, as ioc-finder does.
+- **Maps sandbox behaviour to ATT&CK** with YAML rules for CAPE signatures, command lines, API call
+  sequences and registry writes. It also **normalises outdated technique IDs**: about a quarter of
+  the TTP labels in CAPE's signatures point at techniques ATT&CK has since revoked or deprecated.
+- **Exports** JSON, CSV or a STIX 2.1 bundle.
+- **Treats its input as hostile.** Regexes run in linear time, input size is capped, nothing is
+  executed or fetched, and CSV output is safe to open in Excel. See the
+  [threat model](https://github.com/yuchen-0321/TTPrism/blob/main/docs/threat-model.md).
+
+What it does not do:
+
+- **Only static analysis.** It never executes, unpacks or downloads samples, and never visits or
+  resolves the indicators it finds.
+- **No PDF reading.** Convert a PDF to text first (see [Turn a PDF report into an IOC CSV](https://github.com/yuchen-0321/TTPrism#turn-a-pdf-report-into-an-ioc-csv)).
+- **CAPE is the only sandbox format so far.**
+- **No techniques guessed from prose.** For text reports it records the technique IDs the author
+  wrote.
 
 | Input | How it is read |
 | --- | --- |
 | Plain text, Markdown | IOC extraction plus the ATT&CK technique IDs written in the text |
-| PDF reports | Convert to text first (for example `pdftotext report.pdf`); TTPrism does not parse PDFs. The [evaluation on real reports](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-real-reports.md) used pypdf (`page.extract_text()`), headers and footers included; converters differ in how they break lines and write hyphens |
+| PDF reports | Convert to text first (for example `pdftotext -raw report.pdf`); TTPrism does not parse PDFs. The [evaluation on real reports](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-real-reports.md) used pypdf (`page.extract_text()`), headers and footers included; converters differ in how they break lines and write hyphens |
 | CAPE `report.json` | Detected automatically (input that looks like JSON but does not parse is analysed as text, with a warning); network, files, commands, API calls, registry, signatures |
 
 Non-UTF-8 text (for example Big5 or GB18030) needs `--encoding big5`.
 
-### Options
+## Common tasks
 
-| Option | Effect |
-| --- | --- |
-| `-f json\|csv\|stix` | Output format (default `json`) |
-| `-o FILE` | Write to a file instead of standard output |
-| `--defang` | Defang IOC values in JSON/CSV output |
-| `--include-reserved` | Keep private/documentation IPs and `example`/`test` domains |
-| `--allowlist FILE` | Add an allowlist (repeatable); `--no-default-allowlist` disables the built-in one |
-| `--rules PATH` | Add ATT&CK rule files (repeatable); `--no-default-rules` disables the built-in rules |
-| `--input-format auto\|text\|cape` | Override input detection |
-| `--max-size SIZE` | Refuse larger inputs (default `64m`) |
+### Turn a PDF report into an IOC CSV
 
-`ttprism validate-rules [PATH ...]` checks rule files against the bundled ATT&CK catalog.
+For a PDF whose page reads:
 
-### As a library
+```text
+攻擊者從 hxxps://cdn.update-check[.]example/KB-Auto-win-
+update.exe 下載第二階段酬載，C2 為 203.0.113[.]7。
+樣本 SHA-256：8ddcb559924bcba8d5497d45f66c01316bb77d5cf8618b9771e62166fdbbce05
+```
+
+convert it with `pdftotext -raw` (from poppler), then extract:
+
+```sh
+$ pdftotext -raw report.pdf report.txt
+$ ttprism extract report.txt -f csv -o iocs.csv --include-reserved
+$ cat iocs.csv
+type,value,sources,detail
+url,https://cdn.update-check.example/KB-Auto-win-update.exe,text,
+domain,cdn.update-check.example,text,
+ipv4,203.0.113.7,text,
+sha256,8ddcb559924bcba8d5497d45f66c01316bb77d5cf8618b9771e62166fdbbce05,text,
+```
+
+The URL broken after its own hyphen is joined again. Use `-raw`: pdftotext's default mode joins
+a line ending in a hyphen to the next and drops the hyphen, which here gives
+`/KB-Auto-winupdate.exe`. pypdf (`page.extract_text()`), which the evaluation used, works too.
+How line breaks are joined, and where that goes wrong, is listed under
+[Limitations](https://github.com/yuchen-0321/TTPrism#limitations).
+
+### Defang the output to paste it into chat
+
+```sh
+$ ttprism extract report.txt -f csv --defang --include-reserved
+type,value,sources,detail
+url,hxxps[://]cdn[.]update-check[.]example/stage2.bin,text,
+domain,cdn[.]update-check[.]example,text,
+domain,update-check[.]example,text,
+ipv4,198[.]51[.]100[.]23,text,
+cve,CVE-2023-23397,text,
+attack-technique,T1059.001,reported,PowerShell (reported as T1086)
+```
+
+`--defang` works for JSON and CSV. It changes the scheme, host and `@` only; URL paths are left as
+they are.
+
+### Turn a CAPE report into ATT&CK techniques and STIX
+
+CAPE's `report.json` is detected automatically:
+
+```sh
+$ ttprism extract report.json -f csv --include-reserved
+type,value,sources,detail
+url,http://update-check.example/gate.php?id=1,cape:network.http,
+url,http://update-check.example/p.ps1,cape:commands,
+url,https://cdn.update-check.example/stage2.bin,cape:network.http,
+domain,cdn.update-check.example,cape:network.dns;cape:network.http,
+domain,update-check.example,cape:commands;cape:network.domains;cape:network.http,
+ipv4,192.0.2.80,cape:network.domains,
+ipv4,198.51.100.23,cape:network.domains;cape:network.hosts,
+ipv4,203.0.113.5,cape:network.hosts,
+ipv4,203.0.113.7,cape:network.dns,
+md5,1b2062450bd3d9b1f41aadadae4f44f1,cape:dropped,
+md5,5f89cef4c9ed3f109bc7c400d822e60e,cape:target,
+sha1,a2eebf3d37a530f407d8907e869f880fa5346b29,cape:target,
+sha1,fe077a501a66e0b4be2672b15928a38ae34068af,cape:dropped,
+sha256,334486bd1343a3dd88c93f57d0b16f08d906bccb7cf084f1e545547defabb6dc,cape:dropped,
+sha256,8ddcb559924bcba8d5497d45f66c01316bb77d5cf8618b9771e62166fdbbce05,cape:target,
+attack-technique,T1027.002,reported;rule:cape.packer-known,Software Packing (reported as T1045)
+attack-technique,T1053.005,rule:cmd.scheduled-task,Scheduled Task
+attack-technique,T1055,reported,Process Injection
+attack-technique,T1055.012,rule:cape.injection-runpe;rule:api.process-hollowing,Process Hollowing
+attack-technique,T1059.001,rule:cmd.powershell,PowerShell
+attack-technique,T1105,rule:api.download-to-file;rule:cmd.download,Ingress Tool Transfer
+attack-technique,T1490,rule:cmd.inhibit-recovery,Inhibit System Recovery
+attack-technique,T1497,reported,Virtualization/Sandbox Evasion
+attack-technique,T1497.001,rule:cape.antivm,System Checks
+attack-technique,T1547.001,rule:reg.run-keys,Registry Run Keys / Startup Folder
+```
+
+In the JSON output (`ttprism extract report.json --include-reserved`), each technique says why it
+was assigned. Here a CAPE signature carried the revoked `T1045` and a TTPrism rule matched the same
+signature:
+
+```json
+{
+  "id": "T1027.002",
+  "name": "Software Packing",
+  "tactics": [
+    "stealth"
+  ],
+  "status": "active",
+  "reported": true,
+  "rules": [
+    "cape.packer-known"
+  ],
+  "confidence": "high",
+  "evidence": [
+    "CAPE signature packer_upx: T1045",
+    "signature: packer_upx"
+  ],
+  "original_ids": [
+    "T1045"
+  ],
+  "url": "https://attack.mitre.org/techniques/T1027/002/"
+}
+```
+
+For a STIX 2.1 bundle, with an `indicator` per IOC, a `vulnerability` per CVE, an `attack-pattern`
+per technique and a `grouping` that ties them together:
+
+```sh
+$ ttprism extract report.json -f stix -o bundle.json --include-reserved
+```
+
+### Use it as a Python library
 
 ```python
 import ttprism
@@ -121,9 +222,94 @@ for ioc in result.iocs:
     print(ioc.type, ioc.value)          # domain c2.example.com
 print(result.techniques[0].name)        # Web Protocols
 
-result = ttprism.analyze_file("cape/report.json")
+result = ttprism.analyze_file("report.json")
 bundle = ttprism.to_stix_bundle(result)
 ```
+
+### Add your own allowlist and rules
+
+An allowlist drops values you never want reported, such as your own organisation's names. It is
+YAML with the keys `domains`, `url_hosts`, `ips` (addresses or CIDR ranges), `hashes` and
+`emails`; `"name"` matches exactly and `"*.name"` matches the name and all its subdomains. An entry
+under `domains` drops only the domain itself: URLs on that host are still reported unless the host
+is also under `url_hosts`. The built-in list is
+[`allowlist.yaml`](https://github.com/yuchen-0321/TTPrism/blob/main/src/ttprism/data/allowlist.yaml).
+
+`my-allowlist.yaml`:
+
+```yaml
+domains:
+  - "*.corp.example"
+```
+
+`incident.txt`:
+
+```text
+受害主機 hr.corp.example 連線至 update-check【.】example
+```
+
+```sh
+$ ttprism extract incident.txt -f csv --include-reserved --allowlist my-allowlist.yaml
+type,value,sources,detail
+domain,update-check.example,text,
+```
+
+In the JSON output the dropped name is counted as `"suppressed": {"allowlisted": 1}`.
+
+ATT&CK rules are YAML too; the format is in
+[`rules/attack/README.md`](https://github.com/yuchen-0321/TTPrism/blob/main/rules/attack/README.md).
+`my-rules.yaml`:
+
+```yaml
+attack_version: "19.2"
+
+rules:
+  - id: local.powershell-hidden-window
+    technique: T1564.003
+    confidence: medium
+    description: PowerShell started with a hidden window.
+    references:
+      - https://attack.mitre.org/techniques/T1564/003/
+    match:
+      commands:
+        - [powershell, -w hidden]
+        - [powershell, -windowstyle hidden]
+```
+
+Check it against the bundled ATT&CK catalog, then use it alongside the built-in rules:
+
+```sh
+$ ttprism validate-rules my-rules.yaml
+1 rules checked against ATT&CK 19.2: OK
+$ ttprism extract report.json -f csv --include-reserved --rules my-rules.yaml
+```
+
+On the CAPE report above, this adds one row to the output:
+
+```text
+attack-technique,T1564.003,rule:local.powershell-hidden-window,Hidden Window
+```
+
+## Options
+
+`ttprism extract [options] INPUT`, where `INPUT` is a file or `-` for standard input
+(`cat report.txt | ttprism extract -`).
+
+| Option | Effect |
+| --- | --- |
+| `-f json\|csv\|stix` | Output format (default `json`) |
+| `-o FILE` | Write to a file instead of standard output |
+| `--defang` | Defang IOC values in JSON/CSV output |
+| `--include-reserved` | Keep private/documentation IPs and `example`/`test` domains |
+| `--allowlist FILE` | Add an allowlist (repeatable); `--no-default-allowlist` disables the built-in one |
+| `--rules PATH` | Add ATT&CK rule files or directories (repeatable); `--no-default-rules` disables the built-in rules |
+| `--input-format auto\|text\|cape` | Override input detection |
+| `--encoding NAME` | Input text encoding (default UTF-8; for example `big5`, `gb18030`) |
+| `--max-size SIZE` | Refuse larger inputs (default `64m`) |
+| `-q`, `--quiet` | Do not print warnings |
+
+`ttprism validate-rules [PATH ...]` checks rule files against the bundled ATT&CK catalog (the
+built-in rules when no path is given). `ttprism --version` prints the version.
 
 ## How ATT&CK mapping works
 
@@ -169,6 +355,13 @@ By default TTPrism drops (the name in brackets is the key under `suppressed`):
   (`dynamic-` / `dns.net`), since that hyphen may or may not belong to the name. See Limitations.
 
 Counts of what was dropped are reported under `suppressed`, so nothing disappears silently.
+
+A CAPE report is also read only up to fixed limits, and what lies beyond them is counted under
+`suppressed` too: at most 10,000 distinct API names, command lines, registry writes, signatures
+and TTP labels each (`truncated_apis`, `truncated_commands`, `truncated_registry_writes`,
+`truncated_signatures`, `truncated_ttps`), and command lines up to 8 Mi characters in total for
+rule matching and for IOC search (`truncated_rule_commands`, `truncated_ioc_commands`, also named
+in a warning).
 
 ## Limitations
 
@@ -225,6 +418,38 @@ Counts of what was dropped are reported under `suppressed`, so nothing disappear
   lines can repeat.
 - CAPE is the only sandbox format so far.
 
+## Evaluation
+
+TTPrism was compared with iocextract and ioc-finder on public TLP:CLEAR Chinese-language reports,
+using each report's own IOC list as the ground truth. The method, every number and every judgement
+are in the
+[research note](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-real-reports.md).
+
+- **The reports.** Eight Simplified-Chinese reports with an IOC appendix (2018–2020), and four
+  Traditional-Chinese reports with a real IOC list (the note's set 2). An earlier Traditional-Chinese
+  set of four, chosen under a literal reading of "indicators", held only one real IOC list: two were
+  lists of reference links and one had an English body.
+- **CJK defanging is untested on real reports.** None of the 12 reports with a real IOC list writes
+  indicators with full-width or CJK-bracket defanging; the only defanging in them is ASCII (`[.]`,
+  one `hxxp`). TTPrism's handling of those writings is supported only by synthetic tests.
+- **What was measured in TTPrism's favour:** fewer wrong values, and repairing names and URLs split
+  across PDF lines.
+  - On the Simplified-Chinese reports TTPrism found 7 of 9 domain names that a line break had split
+    and that the other tools missed, and reported 7 wrong values against 41 for ioc-finder and 48 for
+    iocextract. These numbers were made after fixes derived from the same eight reports, so they are
+    optimistic.
+  - On the Traditional-Chinese set 2, measured with TTPrism's code frozen before those reports were
+    added, TTPrism reported no wrong value, ioc-finder one and iocextract 36. Set 2 was chosen after
+    the earlier set had been measured, from candidates already looked at.
+- **Otherwise recall is the same as ioc-finder's.** On set 2 both found 73 of 75 values
+  (iocextract 71); the two missed by every tool are SHA-256 hashes that a table cell split over two
+  lines. On the Simplified-Chinese reports, before the fixes, TTPrism and ioc-finder found the same
+  domains (162 of 171; ioc-finder also missed two MD5 hashes glued to a bracket); the 7 more that
+  TTPrism found after the fixes are the split names above.
+- **Caveats.** The samples are small and the results descriptive. One rater, the evaluator (Claude,
+  an AI assistant working for the maintainer), built the ground truths and judged every value
+  outside them; no inter-rater agreement was measured.
+
 ## Security
 
 TTPrism only parses input statically. It never executes, unpacks or downloads samples, and this
@@ -238,12 +463,18 @@ and missed IOCs are not vulnerabilities; open a *Detection quality* issue instea
 
 ## Contributing
 
-See [CONTRIBUTING.md](https://github.com/yuchen-0321/TTPrism/blob/main/CONTRIBUTING.md). Rule contributions need no Python. Please use only
-TLP:CLEAR material.
+See [CONTRIBUTING.md](https://github.com/yuchen-0321/TTPrism/blob/main/CONTRIBUTING.md). Please use
+only TLP:CLEAR material.
 
-## 繁體中文簡介
-
-TTPrism 從威脅報告與沙箱輸出中抽取 IOC，並把行為對應到 MITRE ATT&CK。除了 ASCII 的 defang 寫法，它也處理全形與中日韓括號寫法，例如 `【.】`、`．`、`［＠］`、全形數字，在合成測試中，既有的英文導向工具漏掉了這些寫法（見[研究紀錄](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-existing-tools.md)）；它也能抽出緊接中文字、沒有空白的網域，這點 ioc-finder 同樣做得到。不過目前評估的真實報告都沒有用到這些寫法：有 IOC 附錄的簡體中文報告 8 份；繁體中文第一組 4 份，其中只有 1 份是真正的 IOC 清單，另外 2 份是參考連結清單、1 份是英文內文；繁體中文第二組（修正後規則）4 份都是以繁體中文撰寫的真正 IOC 清單（其中 1 份與第一組相同），其中 2 份用 ASCII 的 `[.]` defang。TTPrism 對全形與中日韓括號寫法的處理只有合成測試支持。在 8 份簡體中文報告上，TTPrism 量到的優勢是修復被 PDF 斷行切開的網域與 URL，以及抽出較少錯誤的值，其中一部分來自針對同一批報告所做的修正；在修正期間保留不看的繁體中文第二組上，TTPrism 和 ioc-finder 抽到所有指標，只漏了表格儲存格中被斷成兩行的 2 個 SHA-256（三個工具都沒抽到），而錯誤的值 TTPrism 為 0、ioc-finder 為 1、iocextract 為 36（見[真實報告評估](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-real-reports.md)）。ATT&CK 對應規則以 YAML 撰寫，分析師不必寫程式也能貢獻。安全漏洞請依 [SECURITY.md](https://github.com/yuchen-0321/TTPrism/blob/main/SECURITY.md) 私下回報；誤報、漏報請開公開 issue。
+- **ATT&CK rules need no Python.** They are YAML files in
+  [`rules/attack/`](https://github.com/yuchen-0321/TTPrism/blob/main/rules/attack/README.md);
+  `ttprism validate-rules` checks them.
+- **Report detection problems.** A missed IOC, a value wrongly extracted, an unrecognised defang
+  form or a wrong ATT&CK mapping goes in a
+  [Detection quality](https://github.com/yuchen-0321/TTPrism/issues/new?template=detection_quality.yml)
+  issue, with the smallest excerpt that shows it.
+- **Code**: extraction, parsers, exporters, tests; the development setup and checks are in
+  CONTRIBUTING.md.
 
 ## License
 

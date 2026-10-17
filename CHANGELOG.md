@@ -7,6 +7,15 @@ their advisory.
 
 ## [Unreleased]
 
+### Documentation
+
+- Reorganised the README around common tasks (PDF report to IOC CSV, defanged output for chat, CAPE
+  to ATT&CK and STIX, library use, custom allowlists and rules), with a quick start, an options table
+  and a separate evaluation summary; every example was run and its output pasted as printed. Links
+  are absolute so they work on PyPI.
+- Added `README.zh-TW.md`, a full Traditional-Chinese README that replaces the short Chinese
+  summary at the end of the English one.
+
 ## [0.1.0] - 2026-10-18
 
 ### Added

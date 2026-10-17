@@ -84,6 +84,10 @@ git-ignored `eval-data/`.
 - The README's Limitations and Filtering sections describe exact behaviour (line-wrap joining, soft
   hyphens, `suppressed` keys); keep them in sync when behaviour changes, and add user-visible changes to
   `CHANGELOG.md` under *Unreleased*.
+- `README.zh-TW.md` mirrors `README.md` section for section, with the same commands and output. When
+  behaviour, options or examples change, update both in the same change; the English README is the
+  reference if they disagree. All links in both are absolute GitHub URLs, because `README.md` is also
+  the PyPI page.
 - Bundled data updates: `scripts/update_attack_catalog.py` (then bump `attack_version` in rule files after
   reviewing `validate-rules` warnings) and `scripts/update_tlds.py`.
 
