@@ -196,7 +196,101 @@
      "sha256": []
     }
    },
-   "line_wrap_fragments": []
+   "line_wrap_fragments": [],
+   "recall": {
+    "ttprism-default": {
+     "ipv4": [
+      7,
+      7
+     ]
+    },
+    "ttprism-raw": {
+     "ipv4": [
+      7,
+      7
+     ]
+    },
+    "iocextract": {
+     "ipv4": [
+      7,
+      7
+     ]
+    },
+    "ioc-finder": {
+     "ipv4": [
+      7,
+      7
+     ]
+    }
+   },
+   "recall_by_class": {
+    "ttprism-default": {
+     "plain": [
+      7,
+      7
+     ]
+    },
+    "ttprism-raw": {
+     "plain": [
+      7,
+      7
+     ]
+    },
+    "iocextract": {
+     "plain": [
+      7,
+      7
+     ]
+    },
+    "ioc-finder": {
+     "plain": [
+      7,
+      7
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 7,
+     "a": 0,
+     "b": 0,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 7,
+     "a": 0,
+     "b": 0,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 7,
+     "a": 0,
+     "b": 0,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 7,
+     "a": 0,
+     "b": 0,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    }
+   },
+   "unjudged_by_tool": {},
+   "lost_by_default_filtering": {},
+   "writing": {
+    "fullwidth_cjk_indicators_in_appendix": 0,
+    "fullwidth_cjk_indicators_in_body": 0,
+    "fullwidth_cjk_in_any_value": 0,
+    "uses_fullwidth_cjk": false
+   }
   },
   {
    "id": "tw02-cycraft-toxicpanda-2026",
@@ -413,7 +507,133 @@
      "sha256": []
     }
    },
-   "line_wrap_fragments": []
+   "line_wrap_fragments": [],
+   "recall": {
+    "ttprism-default": {
+     "url": [
+      13,
+      13
+     ],
+     "domain": [
+      12,
+      12
+     ],
+     "url-host": [
+      12,
+      12
+     ]
+    },
+    "ttprism-raw": {
+     "url": [
+      13,
+      13
+     ],
+     "domain": [
+      12,
+      12
+     ],
+     "url-host": [
+      12,
+      12
+     ]
+    },
+    "iocextract": {
+     "url": [
+      13,
+      13
+     ],
+     "domain": [
+      12,
+      12
+     ],
+     "url-host": [
+      12,
+      12
+     ]
+    },
+    "ioc-finder": {
+     "url": [
+      13,
+      13
+     ],
+     "domain": [
+      12,
+      12
+     ],
+     "url-host": [
+      12,
+      12
+     ]
+    }
+   },
+   "recall_by_class": {
+    "ttprism-default": {
+     "plain": [
+      25,
+      25
+     ]
+    },
+    "ttprism-raw": {
+     "plain": [
+      25,
+      25
+     ]
+    },
+    "iocextract": {
+     "plain": [
+      25,
+      25
+     ]
+    },
+    "ioc-finder": {
+     "plain": [
+      25,
+      25
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 24,
+     "a": 0,
+     "b": 1,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 25,
+     "a": 0,
+     "b": 2,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 13,
+     "a": 0,
+     "b": 1,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 25,
+     "a": 0,
+     "b": 2,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    }
+   },
+   "unjudged_by_tool": {},
+   "lost_by_default_filtering": {},
+   "writing": {
+    "fullwidth_cjk_indicators_in_appendix": 0,
+    "fullwidth_cjk_indicators_in_body": 0,
+    "fullwidth_cjk_in_any_value": 0,
+    "uses_fullwidth_cjk": false
+   }
   },
   {
    "id": "tw06-twcert-medusa-2026",
@@ -711,7 +931,213 @@
      "sha256": []
     }
    },
-   "line_wrap_fragments": []
+   "line_wrap_fragments": [],
+   "recall": {
+    "ttprism-default": {
+     "url": [
+      2,
+      2
+     ],
+     "domain": [
+      2,
+      2
+     ],
+     "ipv4": [
+      20,
+      20
+     ],
+     "md5": [
+      6,
+      6
+     ],
+     "sha1": [
+      1,
+      1
+     ],
+     "sha256": [
+      0,
+      2
+     ],
+     "url-host": [
+      2,
+      2
+     ]
+    },
+    "ttprism-raw": {
+     "url": [
+      2,
+      2
+     ],
+     "domain": [
+      2,
+      2
+     ],
+     "ipv4": [
+      20,
+      20
+     ],
+     "md5": [
+      6,
+      6
+     ],
+     "sha1": [
+      1,
+      1
+     ],
+     "sha256": [
+      0,
+      2
+     ],
+     "url-host": [
+      2,
+      2
+     ]
+    },
+    "iocextract": {
+     "url": [
+      2,
+      2
+     ],
+     "domain": [
+      2,
+      2
+     ],
+     "ipv4": [
+      20,
+      20
+     ],
+     "md5": [
+      6,
+      6
+     ],
+     "sha1": [
+      1,
+      1
+     ],
+     "sha256": [
+      0,
+      2
+     ],
+     "url-host": [
+      2,
+      2
+     ]
+    },
+    "ioc-finder": {
+     "url": [
+      2,
+      2
+     ],
+     "domain": [
+      2,
+      2
+     ],
+     "ipv4": [
+      20,
+      20
+     ],
+     "md5": [
+      6,
+      6
+     ],
+     "sha1": [
+      1,
+      1
+     ],
+     "sha256": [
+      0,
+      2
+     ],
+     "url-host": [
+      2,
+      2
+     ]
+    }
+   },
+   "recall_by_class": {
+    "ttprism-default": {
+     "plain": [
+      7,
+      9
+     ],
+     "ascii-defang": [
+      24,
+      24
+     ]
+    },
+    "ttprism-raw": {
+     "plain": [
+      7,
+      9
+     ],
+     "ascii-defang": [
+      24,
+      24
+     ]
+    },
+    "iocextract": {
+     "plain": [
+      7,
+      9
+     ],
+     "ascii-defang": [
+      24,
+      24
+     ]
+    },
+    "ioc-finder": {
+     "plain": [
+      7,
+      9
+     ],
+     "ascii-defang": [
+      24,
+      24
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 32,
+     "a": 0,
+     "b": 3,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 32,
+     "a": 0,
+     "b": 3,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 30,
+     "a": 0,
+     "b": 3,
+     "c": 21,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 32,
+     "a": 0,
+     "b": 4,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    }
+   },
+   "unjudged_by_tool": {},
+   "lost_by_default_filtering": {},
+   "writing": {
+    "fullwidth_cjk_indicators_in_appendix": 0,
+    "fullwidth_cjk_indicators_in_body": 0,
+    "fullwidth_cjk_in_any_value": 0,
+    "uses_fullwidth_cjk": false
+   }
   },
   {
    "id": "tw07-nics-tech-113q3-2024",
@@ -994,7 +1420,754 @@
      "sha1": [],
      "sha256": []
     }
+   },
+   "recall": {
+    "ttprism-default": {
+     "domain": [
+      10,
+      10
+     ]
+    },
+    "ttprism-raw": {
+     "domain": [
+      10,
+      10
+     ]
+    },
+    "iocextract": {
+     "domain": [
+      8,
+      10
+     ]
+    },
+    "ioc-finder": {
+     "domain": [
+      10,
+      10
+     ]
+    }
+   },
+   "recall_by_class": {
+    "ttprism-default": {
+     "ascii-defang": [
+      10,
+      10
+     ]
+    },
+    "ttprism-raw": {
+     "ascii-defang": [
+      10,
+      10
+     ]
+    },
+    "iocextract": {
+     "ascii-defang": [
+      8,
+      10
+     ]
+    },
+    "ioc-finder": {
+     "ascii-defang": [
+      10,
+      10
+     ]
+    }
+   },
+   "precision": {
+    "ttprism-default": {
+     "truth": 10,
+     "a": 4,
+     "b": 14,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ttprism-raw": {
+     "truth": 10,
+     "a": 4,
+     "b": 14,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "iocextract": {
+     "truth": 0,
+     "a": 0,
+     "b": 6,
+     "c": 15,
+     "masked": 0,
+     "ambiguous": 0
+    },
+    "ioc-finder": {
+     "truth": 10,
+     "a": 6,
+     "b": 15,
+     "c": 1,
+     "masked": 0,
+     "ambiguous": 0
+    }
+   },
+   "unjudged_by_tool": {},
+   "lost_by_default_filtering": {},
+   "writing": {
+    "fullwidth_cjk_indicators_in_appendix": 0,
+    "fullwidth_cjk_indicators_in_body": 0,
+    "fullwidth_cjk_in_any_value": 0,
+    "uses_fullwidth_cjk": false
    }
   }
- ]
+ ],
+ "status": "final",
+ "judgements_sha256": "8573597153c3604226597e5227ffd07321d8190336840fc7e3c683583c357a08",
+ "totals": {
+  "ttprism-default": {
+   "recall": {
+    "domain": [
+     24,
+     24,
+     1.0
+    ],
+    "ipv4": [
+     27,
+     27,
+     1.0
+    ],
+    "md5": [
+     6,
+     6,
+     1.0
+    ],
+    "sha1": [
+     1,
+     1,
+     1.0
+    ],
+    "sha256": [
+     0,
+     2,
+     0.0
+    ],
+    "url": [
+     15,
+     15,
+     1.0
+    ],
+    "url-host": [
+     14,
+     14,
+     1.0
+    ]
+   },
+   "recall_by_class": {
+    "plain": [
+     39,
+     41,
+     0.9512
+    ],
+    "ascii-defang": [
+     34,
+     34,
+     1.0
+    ]
+   },
+   "precision": {
+    "truth": 73,
+    "a": 4,
+    "b": 18,
+    "c": 0,
+    "masked": 0,
+    "ambiguous": 0,
+    "judged_total": 95,
+    "strict": 0.8105,
+    "lenient": 1.0
+   },
+   "errors": 0,
+   "unjudged": 0,
+   "status": "final"
+  },
+  "ttprism-raw": {
+   "recall": {
+    "domain": [
+     24,
+     24,
+     1.0
+    ],
+    "ipv4": [
+     27,
+     27,
+     1.0
+    ],
+    "md5": [
+     6,
+     6,
+     1.0
+    ],
+    "sha1": [
+     1,
+     1,
+     1.0
+    ],
+    "sha256": [
+     0,
+     2,
+     0.0
+    ],
+    "url": [
+     15,
+     15,
+     1.0
+    ],
+    "url-host": [
+     14,
+     14,
+     1.0
+    ]
+   },
+   "recall_by_class": {
+    "plain": [
+     39,
+     41,
+     0.9512
+    ],
+    "ascii-defang": [
+     34,
+     34,
+     1.0
+    ]
+   },
+   "precision": {
+    "truth": 74,
+    "a": 4,
+    "b": 19,
+    "c": 0,
+    "masked": 0,
+    "ambiguous": 0,
+    "judged_total": 97,
+    "strict": 0.8041,
+    "lenient": 1.0
+   },
+   "errors": 0,
+   "unjudged": 0,
+   "status": "final"
+  },
+  "iocextract": {
+   "recall": {
+    "domain": [
+     22,
+     24,
+     0.9167
+    ],
+    "ipv4": [
+     27,
+     27,
+     1.0
+    ],
+    "md5": [
+     6,
+     6,
+     1.0
+    ],
+    "sha1": [
+     1,
+     1,
+     1.0
+    ],
+    "sha256": [
+     0,
+     2,
+     0.0
+    ],
+    "url": [
+     15,
+     15,
+     1.0
+    ],
+    "url-host": [
+     14,
+     14,
+     1.0
+    ]
+   },
+   "recall_by_class": {
+    "plain": [
+     39,
+     41,
+     0.9512
+    ],
+    "ascii-defang": [
+     32,
+     34,
+     0.9412
+    ]
+   },
+   "precision": {
+    "truth": 50,
+    "a": 0,
+    "b": 10,
+    "c": 36,
+    "masked": 0,
+    "ambiguous": 0,
+    "judged_total": 96,
+    "strict": 0.5208,
+    "lenient": 0.625
+   },
+   "errors": 0,
+   "unjudged": 0,
+   "status": "final"
+  },
+  "ioc-finder": {
+   "recall": {
+    "domain": [
+     24,
+     24,
+     1.0
+    ],
+    "ipv4": [
+     27,
+     27,
+     1.0
+    ],
+    "md5": [
+     6,
+     6,
+     1.0
+    ],
+    "sha1": [
+     1,
+     1,
+     1.0
+    ],
+    "sha256": [
+     0,
+     2,
+     0.0
+    ],
+    "url": [
+     15,
+     15,
+     1.0
+    ],
+    "url-host": [
+     14,
+     14,
+     1.0
+    ]
+   },
+   "recall_by_class": {
+    "plain": [
+     39,
+     41,
+     0.9512
+    ],
+    "ascii-defang": [
+     34,
+     34,
+     1.0
+    ]
+   },
+   "precision": {
+    "truth": 74,
+    "a": 6,
+    "b": 21,
+    "c": 1,
+    "masked": 0,
+    "ambiguous": 0,
+    "judged_total": 102,
+    "strict": 0.7843,
+    "lenient": 0.9902
+   },
+   "errors": 0,
+   "unjudged": 0,
+   "status": "final"
+  }
+ },
+ "totals_by_format": {
+  "html": {
+   "ttprism-default": {
+    "recall": {
+     "domain": [
+      14,
+      14,
+      1.0
+     ],
+     "ipv4": [
+      27,
+      27,
+      1.0
+     ],
+     "md5": [
+      6,
+      6,
+      1.0
+     ],
+     "sha1": [
+      1,
+      1,
+      1.0
+     ],
+     "sha256": [
+      0,
+      2,
+      0.0
+     ],
+     "url": [
+      15,
+      15,
+      1.0
+     ],
+     "url-host": [
+      14,
+      14,
+      1.0
+     ]
+    },
+    "recall_by_class": {
+     "plain": [
+      39,
+      41,
+      0.9512
+     ],
+     "ascii-defang": [
+      24,
+      24,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 63,
+     "a": 0,
+     "b": 4,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0,
+     "judged_total": 67,
+     "strict": 0.9403,
+     "lenient": 1.0
+    },
+    "errors": 0,
+    "unjudged": 0,
+    "status": "final"
+   },
+   "ttprism-raw": {
+    "recall": {
+     "domain": [
+      14,
+      14,
+      1.0
+     ],
+     "ipv4": [
+      27,
+      27,
+      1.0
+     ],
+     "md5": [
+      6,
+      6,
+      1.0
+     ],
+     "sha1": [
+      1,
+      1,
+      1.0
+     ],
+     "sha256": [
+      0,
+      2,
+      0.0
+     ],
+     "url": [
+      15,
+      15,
+      1.0
+     ],
+     "url-host": [
+      14,
+      14,
+      1.0
+     ]
+    },
+    "recall_by_class": {
+     "plain": [
+      39,
+      41,
+      0.9512
+     ],
+     "ascii-defang": [
+      24,
+      24,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 64,
+     "a": 0,
+     "b": 5,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0,
+     "judged_total": 69,
+     "strict": 0.9275,
+     "lenient": 1.0
+    },
+    "errors": 0,
+    "unjudged": 0,
+    "status": "final"
+   },
+   "iocextract": {
+    "recall": {
+     "domain": [
+      14,
+      14,
+      1.0
+     ],
+     "ipv4": [
+      27,
+      27,
+      1.0
+     ],
+     "md5": [
+      6,
+      6,
+      1.0
+     ],
+     "sha1": [
+      1,
+      1,
+      1.0
+     ],
+     "sha256": [
+      0,
+      2,
+      0.0
+     ],
+     "url": [
+      15,
+      15,
+      1.0
+     ],
+     "url-host": [
+      14,
+      14,
+      1.0
+     ]
+    },
+    "recall_by_class": {
+     "plain": [
+      39,
+      41,
+      0.9512
+     ],
+     "ascii-defang": [
+      24,
+      24,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 50,
+     "a": 0,
+     "b": 4,
+     "c": 21,
+     "masked": 0,
+     "ambiguous": 0,
+     "judged_total": 75,
+     "strict": 0.6667,
+     "lenient": 0.72
+    },
+    "errors": 0,
+    "unjudged": 0,
+    "status": "final"
+   },
+   "ioc-finder": {
+    "recall": {
+     "domain": [
+      14,
+      14,
+      1.0
+     ],
+     "ipv4": [
+      27,
+      27,
+      1.0
+     ],
+     "md5": [
+      6,
+      6,
+      1.0
+     ],
+     "sha1": [
+      1,
+      1,
+      1.0
+     ],
+     "sha256": [
+      0,
+      2,
+      0.0
+     ],
+     "url": [
+      15,
+      15,
+      1.0
+     ],
+     "url-host": [
+      14,
+      14,
+      1.0
+     ]
+    },
+    "recall_by_class": {
+     "plain": [
+      39,
+      41,
+      0.9512
+     ],
+     "ascii-defang": [
+      24,
+      24,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 64,
+     "a": 0,
+     "b": 6,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0,
+     "judged_total": 70,
+     "strict": 0.9143,
+     "lenient": 1.0
+    },
+    "errors": 0,
+    "unjudged": 0,
+    "status": "final"
+   }
+  },
+  "pdf": {
+   "ttprism-default": {
+    "recall": {
+     "domain": [
+      10,
+      10,
+      1.0
+     ]
+    },
+    "recall_by_class": {
+     "ascii-defang": [
+      10,
+      10,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 10,
+     "a": 4,
+     "b": 14,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0,
+     "judged_total": 28,
+     "strict": 0.5,
+     "lenient": 1.0
+    },
+    "errors": 0,
+    "unjudged": 0,
+    "status": "final"
+   },
+   "ttprism-raw": {
+    "recall": {
+     "domain": [
+      10,
+      10,
+      1.0
+     ]
+    },
+    "recall_by_class": {
+     "ascii-defang": [
+      10,
+      10,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 10,
+     "a": 4,
+     "b": 14,
+     "c": 0,
+     "masked": 0,
+     "ambiguous": 0,
+     "judged_total": 28,
+     "strict": 0.5,
+     "lenient": 1.0
+    },
+    "errors": 0,
+    "unjudged": 0,
+    "status": "final"
+   },
+   "iocextract": {
+    "recall": {
+     "domain": [
+      8,
+      10,
+      0.8
+     ]
+    },
+    "recall_by_class": {
+     "ascii-defang": [
+      8,
+      10,
+      0.8
+     ]
+    },
+    "precision": {
+     "truth": 0,
+     "a": 0,
+     "b": 6,
+     "c": 15,
+     "masked": 0,
+     "ambiguous": 0,
+     "judged_total": 21,
+     "strict": 0.0,
+     "lenient": 0.2857
+    },
+    "errors": 0,
+    "unjudged": 0,
+    "status": "final"
+   },
+   "ioc-finder": {
+    "recall": {
+     "domain": [
+      10,
+      10,
+      1.0
+     ]
+    },
+    "recall_by_class": {
+     "ascii-defang": [
+      10,
+      10,
+      1.0
+     ]
+    },
+    "precision": {
+     "truth": 10,
+     "a": 6,
+     "b": 15,
+     "c": 1,
+     "masked": 0,
+     "ambiguous": 0,
+     "judged_total": 32,
+     "strict": 0.5,
+     "lenient": 0.9688
+    },
+    "errors": 0,
+    "unjudged": 0,
+    "status": "final"
+   }
+  }
+ },
+ "reports_using_fullwidth_cjk": [],
+ "lost_by_default_filtering": {},
+ "unjudged": {}
 }
