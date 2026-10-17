@@ -1168,7 +1168,68 @@
           "method": "curl -sS -L --compressed -D <headers file> -o <file> <original_url>",
           "tool": "curl 8.5.0"
         },
-        "http_charset": "utf-8"
+        "http_charset": "utf-8",
+        "truth_review": {
+          "draft_sha256": "97b481f6acfbc1ca332b358bbf10c85cabc23cf1f08ee3ce2fb0d84968220aee",
+          "reviewed_by": "Claude (the evaluator, an AI assistant working for the maintainer); has not seen any tool's output on these reports",
+          "reviewed_at": "2026-10-17T19:00:17Z",
+          "pages_checked": [
+            "html/tw05-teamt5-sharepoint-2025.html screenshot 2",
+            "html/tw05-teamt5-sharepoint-2025.html screenshot 3"
+          ],
+          "checked_every_line": true,
+          "warnings": {},
+          "add": [],
+          "remove": [],
+          "ambiguous": [],
+          "values": {
+            "ipv4": [
+              {
+                "value": "104.238.159.149",
+                "writing": "104.238.159.149",
+                "class": "plain",
+                "location": "html/tw05-teamt5-sharepoint-2025.html line 40"
+              },
+              {
+                "value": "107.191.58.76",
+                "writing": "107.191.58.76",
+                "class": "plain",
+                "location": "html/tw05-teamt5-sharepoint-2025.html line 41"
+              },
+              {
+                "value": "34.121.207.116",
+                "writing": "34.121.207.116",
+                "class": "plain",
+                "location": "html/tw05-teamt5-sharepoint-2025.html line 42"
+              },
+              {
+                "value": "34.72.225.196",
+                "writing": "34.72.225.196",
+                "class": "plain",
+                "location": "html/tw05-teamt5-sharepoint-2025.html line 43"
+              },
+              {
+                "value": "45.191.66.77",
+                "writing": "45.191.66.77",
+                "class": "plain",
+                "location": "html/tw05-teamt5-sharepoint-2025.html line 44"
+              },
+              {
+                "value": "45.77.155.170",
+                "writing": "45.77.155.170",
+                "class": "plain",
+                "location": "html/tw05-teamt5-sharepoint-2025.html line 45"
+              },
+              {
+                "value": "96.9.125.147",
+                "writing": "96.9.125.147",
+                "class": "plain",
+                "location": "html/tw05-teamt5-sharepoint-2025.html line 46"
+              }
+            ]
+          },
+          "masked": {}
+        }
       },
       {
         "id": "tw02-cycraft-toxicpanda-2026",
@@ -1189,7 +1250,104 @@
           "method": "curl -sS -L --compressed -D <headers file> -o <file> <original_url>",
           "tool": "curl 8.5.0"
         },
-        "http_charset": "utf-8"
+        "http_charset": "utf-8",
+        "truth_review": {
+          "draft_sha256": "0f7541dc9112bd6575d8b548836fffc6b62e80bc6e3d21860fc7f5a9b2d67030",
+          "reviewed_by": "Claude (the evaluator, an AI assistant working for the maintainer); has not seen any tool's output on these reports",
+          "reviewed_at": "2026-10-17T17:36:10Z",
+          "pages_checked": [
+            "html/tw02-cycraft-toxicpanda-2026.html screenshot 12",
+            "html/tw02-cycraft-toxicpanda-2026.html screenshot 13"
+          ],
+          "checked_every_line": true,
+          "warnings": {},
+          "add": [],
+          "remove": [],
+          "ambiguous": [],
+          "values": {
+            "url": [
+              {
+                "value": "http://xcmtxc1oam1.s3.ap-south-1.amazonaws.com",
+                "writing": "http://xcmtxc1oam1.s3.ap-south-1.amazonaws.com",
+                "class": "plain",
+                "location": "html/tw02-cycraft-toxicpanda-2026.html line 302"
+              },
+              {
+                "value": "https://api.telegram.org/file/bot8331125434:AAEsxWq7_xZWUjN0IFLO3fTU54ZCBnZS4YI/documents/file_22526.apk",
+                "writing": "https://api.telegram.org/file/bot8331125434:AAEsxWq7_xZWUjN0IFLO3fTU54ZCBnZS4YI/documents/file_22526.apk",
+                "class": "plain",
+                "location": "html/tw02-cycraft-toxicpanda-2026.html line 305"
+              },
+              {
+                "value": "https://api.telegram.org/file/bot8978201863:AAG4vnsJVOAbABfF6dXhhM8YJ14pd5LaxVw/documents/file_1389.apk",
+                "writing": "https://api.telegram.org/file/bot8978201863:AAG4vnsJVOAbABfF6dXhhM8YJ14pd5LaxVw/documents/file_1389.apk",
+                "class": "plain",
+                "location": "html/tw02-cycraft-toxicpanda-2026.html line 306"
+              },
+              {
+                "value": "https://cctvv2.com/panel",
+                "writing": "https://cctvv2.com/panel",
+                "class": "plain",
+                "location": "html/tw02-cycraft-toxicpanda-2026.html line 295"
+              },
+              {
+                "value": "https://ejjsi5fbl.s3.ap-southeast-1.amazonaws.com/",
+                "writing": "https://ejjsi5fbl.s3.ap-southeast-1.amazonaws.com/",
+                "class": "plain",
+                "location": "html/tw02-cycraft-toxicpanda-2026.html line 308"
+              },
+              {
+                "value": "https://g8688808.com",
+                "writing": "https://g8688808.com",
+                "class": "plain",
+                "location": "html/tw02-cycraft-toxicpanda-2026.html line 298"
+              },
+              {
+                "value": "https://github.com/Zimperium/IOC/tree/master/2026-08-ToxicPanda",
+                "writing": "https://github.com/Zimperium/IOC/tree/master/2026-08-ToxicPanda",
+                "class": "plain",
+                "location": "html/tw02-cycraft-toxicpanda-2026.html line 291"
+              },
+              {
+                "value": "https://googleplaydown.com/dUyFpz0Ai7Sp",
+                "writing": "https://googleplaydown.com/dUyFpz0Ai7Sp",
+                "class": "plain",
+                "location": "html/tw02-cycraft-toxicpanda-2026.html line 304"
+              },
+              {
+                "value": "https://osy4u8pmu.s3.ap-southeast-1.amazonaws.com/",
+                "writing": "https://osy4u8pmu.s3.ap-southeast-1.amazonaws.com/",
+                "class": "plain",
+                "location": "html/tw02-cycraft-toxicpanda-2026.html line 307"
+              },
+              {
+                "value": "https://svhc5arco.s3.ap-southeast-1.amazonaws.com/",
+                "writing": "https://svhc5arco.s3.ap-southeast-1.amazonaws.com/",
+                "class": "plain",
+                "location": "html/tw02-cycraft-toxicpanda-2026.html line 309"
+              },
+              {
+                "value": "https://ui920fht4m1.s3.mx-central-1.amazonaws.com/",
+                "writing": "https://ui920fht4m1.s3.mx-central-1.amazonaws.com/",
+                "class": "plain",
+                "location": "html/tw02-cycraft-toxicpanda-2026.html line 303"
+              },
+              {
+                "value": "https://www.v17001.com/panel",
+                "writing": "https://www.v17001.com/panel",
+                "class": "plain",
+                "location": "html/tw02-cycraft-toxicpanda-2026.html line 296"
+              },
+              {
+                "value": "https://www.w17907.com/panel",
+                "writing": "https://www.w17907.com/panel",
+                "class": "plain",
+                "location": "html/tw02-cycraft-toxicpanda-2026.html line 297"
+              }
+            ]
+          },
+          "masked": {}
+        }
       },
       {
         "id": "tw06-twcert-medusa-2026",
@@ -1210,7 +1368,283 @@
           "method": "curl -sS -L --compressed -D <headers file> -o <file> <original_url>",
           "tool": "curl 8.5.0"
         },
-        "http_charset": "utf-8"
+        "http_charset": "utf-8",
+        "truth_review": {
+          "draft_sha256": "80c8e269fe5dbfc6f8e02117737a89119b55d1886f680c92d71e56e30b2b733b",
+          "reviewed_by": "Claude (the evaluator, an AI assistant working for the maintainer); has not seen any tool's output on these reports",
+          "reviewed_at": "2026-10-17T19:00:17Z",
+          "pages_checked": [
+            "html/tw06-twcert-medusa-2026.html screenshot 2",
+            "html/tw06-twcert-medusa-2026.html screenshot 3",
+            "html/tw06-twcert-medusa-2026.html screenshot 4"
+          ],
+          "checked_every_line": true,
+          "warnings": {
+            "W1": {
+              "kind": "hex-cut",
+              "line": 61,
+              "message": "the line ends in 33 hex digits, the length of no hash: 04b13b6cd5e5...",
+              "resolution": "corrected",
+              "note": "the cell holds one SHA-256 in two paragraphs (33 + 31 hex digits); added whole (screenshot 4)"
+            },
+            "W2": {
+              "kind": "hex-cut",
+              "line": 63,
+              "message": "the line is 31 hex digits, the length of no hash: 7fd3bc3777c5...",
+              "resolution": "corrected",
+              "note": "the cell holds one SHA-256 in two paragraphs (33 + 31 hex digits); added whole (screenshot 4)"
+            },
+            "W3": {
+              "kind": "hex-cut",
+              "line": 65,
+              "message": "the line ends in 33 hex digits, the length of no hash: b29defbbc4eb...",
+              "resolution": "corrected",
+              "note": "the cell holds one SHA-256 in two paragraphs (33 + 31 hex digits); added whole (screenshot 4)"
+            },
+            "W4": {
+              "kind": "hex-cut",
+              "line": 67,
+              "message": "the line is 31 hex digits, the length of no hash: 1b6fb864c39e...",
+              "resolution": "corrected",
+              "note": "the cell holds one SHA-256 in two paragraphs (33 + 31 hex digits); added whole (screenshot 4)"
+            }
+          },
+          "add": [
+            {
+              "type": "sha256",
+              "value": "04b13b6cd5e5291b1cde78975a140feea7fd3bc3777c53caa1ab33426c83bfcc",
+              "writing": "04b13b6cd5e5291b1cde78975a140feea / 7fd3bc3777c53caa1ab33426c83bfcc",
+              "class": "plain",
+              "location": "html/tw06-twcert-medusa-2026.html lines 171-173 (table 檔名 / Hash, row command.cmd)",
+              "reason": "the Hash cell of command.cmd holds one SHA-256 in two <p> paragraphs, shown on two lines; 33 + 31 hex digits",
+              "warnings": [
+                "W1",
+                "W2"
+              ]
+            },
+            {
+              "type": "sha256",
+              "value": "b29defbbc4ebaa243c1712ccc4943374f1b6fb864c39ed9f70fceb17eee098db",
+              "writing": "b29defbbc4ebaa243c1712ccc4943374f / 1b6fb864c39ed9f70fceb17eee098db",
+              "class": "plain",
+              "location": "html/tw06-twcert-medusa-2026.html lines 175-177 (table 檔名 / Hash, row RunFileCopy.cmd)",
+              "reason": "the Hash cell of RunFileCopy.cmd holds one SHA-256 in two <p> paragraphs, shown on two lines; 33 + 31 hex digits",
+              "warnings": [
+                "W3",
+                "W4"
+              ]
+            }
+          ],
+          "remove": [],
+          "ambiguous": [],
+          "values": {
+            "url": [
+              {
+                "value": "http://45.61.150.94:8000/storm.exe",
+                "writing": "http://45.61.150[.]94:8000/storm[.]exe",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 155"
+              },
+              {
+                "value": "https://3324.requestcatcher.com/hihi",
+                "writing": "https://3324.requestcatcher[.]com/hihi",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 119"
+              }
+            ],
+            "domain": [
+              {
+                "value": "erp.ranasons.com",
+                "writing": "erp.ranasons[.]com",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 121"
+              }
+            ],
+            "ipv4": [
+              {
+                "value": "143.110.243.154",
+                "writing": "143.110.243[.]154",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 121"
+              },
+              {
+                "value": "143.244.47.89",
+                "writing": "143.244.47[.]89",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 115"
+              },
+              {
+                "value": "146.70.172.247",
+                "writing": "146.70.172[.]247",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 127"
+              },
+              {
+                "value": "155.2.215.69",
+                "writing": "155.2.215[.]69",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 137"
+              },
+              {
+                "value": "155.2.215.71",
+                "writing": "155.2.215[.]71",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 129"
+              },
+              {
+                "value": "167.88.166.173",
+                "writing": "167.88.166[.]173",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 117"
+              },
+              {
+                "value": "185.135.86.185",
+                "writing": "185.135.86[.]185",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 143"
+              },
+              {
+                "value": "185.238.231.16",
+                "writing": "185.238.231[.]16",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 123"
+              },
+              {
+                "value": "185.238.231.4",
+                "writing": "185.238.231[.]4",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 147"
+              },
+              {
+                "value": "185.238.231.77",
+                "writing": "185.238.231[.]77",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 149"
+              },
+              {
+                "value": "185.238.231.85",
+                "writing": "185.238.231[.]85",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 151"
+              },
+              {
+                "value": "185.238.231.98",
+                "writing": "185.238.231[.]98",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 139"
+              },
+              {
+                "value": "23.234.106.242",
+                "writing": "23.234.106[.]242",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 131"
+              },
+              {
+                "value": "23.234.89.195",
+                "writing": "23.234.89[.]195",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 125"
+              },
+              {
+                "value": "23.234.93.112",
+                "writing": "23.234.93[.]112",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 133"
+              },
+              {
+                "value": "37.19.21.180",
+                "writing": "37.19.21[.]180",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 135"
+              },
+              {
+                "value": "37.221.66.239",
+                "writing": "37.221.66[.]239",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 141"
+              },
+              {
+                "value": "83.138.53.139",
+                "writing": "83.138.53[.]139",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 145"
+              },
+              {
+                "value": "85.155.186.121",
+                "writing": "85.155.186[.]121",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 153"
+              },
+              {
+                "value": "94.156.67.145",
+                "writing": "94.156.67[.]145",
+                "class": "ascii-defang",
+                "location": "html/tw06-twcert-medusa-2026.html line 157"
+              }
+            ],
+            "md5": [
+              {
+                "value": "2c7f328feeb94608aaaf99ec70cb0323",
+                "writing": "2C7F328FEEB94608AAAF99EC70CB0323",
+                "class": "plain",
+                "location": "html/tw06-twcert-medusa-2026.html line 163"
+              },
+              {
+                "value": "44370f5c977e415981febf7dbb87a85c",
+                "writing": "44370f5c977e415981febf7dbb87a85c",
+                "class": "plain",
+                "location": "html/tw06-twcert-medusa-2026.html line 179"
+              },
+              {
+                "value": "4d0b6e3c9c33550a005e41663a1977cb",
+                "writing": "4D0B6E3C9C33550A005E41663A1977CB",
+                "class": "plain",
+                "location": "html/tw06-twcert-medusa-2026.html line 167"
+              },
+              {
+                "value": "8f11d9067da087cb4185fa804caac2df",
+                "writing": "8f11d9067da087cb4185fa804caac2df",
+                "class": "plain",
+                "location": "html/tw06-twcert-medusa-2026.html line 181"
+              },
+              {
+                "value": "d796259c44be852327623fd2e40c47f2",
+                "writing": "D796259C44BE852327623FD2E40C47F2",
+                "class": "plain",
+                "location": "html/tw06-twcert-medusa-2026.html line 165"
+              },
+              {
+                "value": "eb05429d25fc57b476428cdb0a134b2f",
+                "writing": "eb05429d25fc57b476428cdb0a134b2f",
+                "class": "plain",
+                "location": "html/tw06-twcert-medusa-2026.html line 169"
+              }
+            ],
+            "sha1": [
+              {
+                "value": "2df705c9be0465f1c73a9f5d35147723deb16b5e",
+                "writing": "2df705c9be0465f1c73a9f5d35147723deb16b5e",
+                "class": "plain",
+                "location": "html/tw06-twcert-medusa-2026.html line 183"
+              }
+            ],
+            "sha256": [
+              {
+                "value": "04b13b6cd5e5291b1cde78975a140feea7fd3bc3777c53caa1ab33426c83bfcc",
+                "writing": "04b13b6cd5e5291b1cde78975a140feea / 7fd3bc3777c53caa1ab33426c83bfcc",
+                "class": "plain",
+                "location": "html/tw06-twcert-medusa-2026.html lines 171-173 (table 檔名 / Hash, row command.cmd)"
+              },
+              {
+                "value": "b29defbbc4ebaa243c1712ccc4943374f1b6fb864c39ed9f70fceb17eee098db",
+                "writing": "b29defbbc4ebaa243c1712ccc4943374f / 1b6fb864c39ed9f70fceb17eee098db",
+                "class": "plain",
+                "location": "html/tw06-twcert-medusa-2026.html lines 175-177 (table 檔名 / Hash, row RunFileCopy.cmd)"
+              }
+            ]
+          },
+          "masked": {}
+        }
       },
       {
         "id": "tw07-nics-tech-113q3-2024",
@@ -1230,6 +1664,85 @@
           "kind": "server",
           "method": "curl -sS -L --compressed -D <headers file> -o <file> <original_url>",
           "tool": "curl 8.5.0"
+        },
+        "truth_review": {
+          "draft_sha256": "fd9b72f1d1da51ab9718cd304d36164a7bdf1e21e2b53cb7c7cb9dce1394c72e",
+          "reviewed_by": "Claude (the evaluator, an AI assistant working for the maintainer); has not seen any tool's output on these reports",
+          "reviewed_at": "2026-10-17T19:00:17Z",
+          "pages_checked": [
+            "pdf/tw07-nics-tech-113q3-2024.pdf page 27",
+            "pdf/tw07-nics-tech-113q3-2024.pdf page 28"
+          ],
+          "checked_every_line": true,
+          "warnings": {},
+          "add": [],
+          "remove": [],
+          "ambiguous": [],
+          "values": {
+            "domain": [
+              {
+                "value": "bootcdn.net",
+                "writing": "bootcdn[.]net",
+                "class": "ascii-defang",
+                "location": "pdf/tw07-nics-tech-113q3-2024.pdf page 27 line 12"
+              },
+              {
+                "value": "bootcss.com",
+                "writing": "bootcss[.]com",
+                "class": "ascii-defang",
+                "location": "pdf/tw07-nics-tech-113q3-2024.pdf page 27 line 14"
+              },
+              {
+                "value": "macoms.la",
+                "writing": "macoms[.]la",
+                "class": "ascii-defang",
+                "location": "pdf/tw07-nics-tech-113q3-2024.pdf page 28 line 7"
+              },
+              {
+                "value": "newcrbpc.com",
+                "writing": "newcrbpc[.]com",
+                "class": "ascii-defang",
+                "location": "pdf/tw07-nics-tech-113q3-2024.pdf page 28 line 9"
+              },
+              {
+                "value": "staticfile.net",
+                "writing": "staticfile[.]net",
+                "class": "ascii-defang",
+                "location": "pdf/tw07-nics-tech-113q3-2024.pdf page 27 line 16"
+              },
+              {
+                "value": "staticfile.org",
+                "writing": "staticfile[.]org",
+                "class": "ascii-defang",
+                "location": "pdf/tw07-nics-tech-113q3-2024.pdf page 27 line 21"
+              },
+              {
+                "value": "union.macoms.la",
+                "writing": "union[.]macoms[.]la",
+                "class": "ascii-defang",
+                "location": "pdf/tw07-nics-tech-113q3-2024.pdf page 28 line 7"
+              },
+              {
+                "value": "unionadjs.com",
+                "writing": "unionadjs[.]com",
+                "class": "ascii-defang",
+                "location": "pdf/tw07-nics-tech-113q3-2024.pdf page 27 line 23"
+              },
+              {
+                "value": "www.unionadjs.com",
+                "writing": "www[.]unionadjs[.]com",
+                "class": "ascii-defang",
+                "location": "pdf/tw07-nics-tech-113q3-2024.pdf page 27 line 23"
+              },
+              {
+                "value": "xhsbpza.com",
+                "writing": "xhsbpza[.]com",
+                "class": "ascii-defang",
+                "location": "pdf/tw07-nics-tech-113q3-2024.pdf page 28 line 5"
+              }
+            ]
+          },
+          "masked": {}
         }
       }
     ]
@@ -1375,7 +1888,7 @@
         "reason": "2026-10-12, newer than the report taken: No domain, URL, IP address, e-mail address or hash in its text (AI-agent risk guide). The ThreatSonar Plus datasheet PDF it links to holds only 1 e-mail address."
       },
       {
-        "title": "奧義賽博科技入選 2026 年 Gartner® AI 應用安全新創市場象限　獲評 AI 應用安全領跑者（Pace Setter）",
+        "title": "奧義賽博科技入選 2026 年 Gartner® AI 應用安全新創市場象限\u3000獲評 AI 應用安全領跑者（Pace Setter）",
         "publisher": "CyCraft 奧義智慧科技",
         "url": "https://www.cycraft.com/news/gartner-ai-pace-setter-20261014",
         "reason": "2026-10-14, the same date as the report taken, with no time of day on either page: a company press release; no list or table of five values (4 linked article titles, 2 citations without a URL, 1 URL in prose)"
@@ -1899,7 +2412,7 @@
         "reason": "2026-01-27, newer than the report taken: No IOC list: the text presents no domain, URL, IP address, e-mail address or hash as an indicator of malicious activity (product/guide article)"
       },
       {
-        "title": "杜浦數位安全攜手橙鋐科技　打造金融機構資安韌性",
+        "title": "杜浦數位安全攜手橙鋐科技\u3000打造金融機構資安韌性",
         "publisher": "TeamT5 杜浦數位安全",
         "url": "https://teamt5.org/tw/news-press/orangered-technology-collaboration",
         "reason": "2026-01-22, newer than the report taken: No IOC list: press release; no value is presented as an indicator of malicious activity"
@@ -1947,7 +2460,7 @@
         "reason": "2025-12-16, newer than the report taken: No IOC list: vulnerability research with code; no indicators"
       },
       {
-        "title": "TeamT5 與 Netpoleon 深化亞太區合作　共同拓展資安防護版圖",
+        "title": "TeamT5 與 Netpoleon 深化亞太區合作\u3000共同拓展資安防護版圖",
         "publisher": "TeamT5 杜浦數位安全",
         "url": "https://teamt5.org/tw/news-press/teamt5-and-netpoleon-deepen-partnership-in-the-asia-pacific-region-to-enhance-regional-resilience-cybersecurity-capabilities",
         "reason": "2025-12-11, newer than the report taken: No IOC list: press release; its only value is a media-contact e-mail address (contact addresses are not indicators)"
@@ -2379,7 +2892,7 @@
         "reason": "undated, newer than the report taken: Opened only because its sitemap lastmod is 2026-10-14; it is an undated product page linked from the site menu, not a report, advisory or blog post, and has no IOC list"
       },
       {
-        "title": "奧義賽博科技入選 2026 年 Gartner® AI 應用安全新創市場象限　獲評 AI 應用安全領跑者（Pace Setter）",
+        "title": "奧義賽博科技入選 2026 年 Gartner® AI 應用安全新創市場象限\u3000獲評 AI 應用安全領跑者（Pace Setter）",
         "publisher": "CyCraft 奧義智慧科技",
         "url": "https://www.cycraft.com/news/gartner-ai-pace-setter-20261014",
         "reason": "2026-10-14, the same day as the report taken: Same-day company press release (Gartner quadrant, XecART/XecGuard); no IOC list: no value presented as an indicator of malicious activity (only 4 related-article links, 2 citations without URL and a contact-us URL in prose); links no IOC file"
@@ -2937,7 +3450,7 @@
         "reason": "2026-10-07, newer than the report taken: [decided from pass-1 verifier text] Policy/law digest; its only list is the 參考資料 reference links (not indicators); no IOC list."
       },
       {
-        "title": "資安院強化AI資安防禦量能　建構「快、廣、深」國家資安防護",
+        "title": "資安院強化AI資安防禦量能\u3000建構「快、廣、深」國家資安防護",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/News/eef0e351-4999-4169-85a1-88de76b022da/",
         "reason": "2026-10-05, newer than the report taken: [decided from pass-1 verifier text] Press release / event news; no IOC list."
@@ -3285,7 +3798,7 @@
         "reason": "2026-08-17, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
       },
       {
-        "title": "TWCERT/CC舉辦「2026企業資安藍隊演練」　20家企業投入演練提升資安應變能力",
+        "title": "TWCERT/CC舉辦「2026企業資安藍隊演練」\u300020家企業投入演練提升資安應變能力",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/bee7dcea-800a-4cb4-a0aa-964865a1ad91/",
         "reason": "2026-08-17, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
@@ -3345,7 +3858,7 @@
         "reason": "2026-08-10, newer than the report taken: [decided from pass-1 verifier text] Vulnerability bulletin (CVE, affected versions, fix, vendor/NVD reference links); reference links and CVE IDs are not indicators; no IOC list."
       },
       {
-        "title": "資安院培育資安高階治理人才　 厚植產業資安領航量能",
+        "title": "資安院培育資安高階治理人才\u3000 厚植產業資安領航量能",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/2ef965b1-69c8-48cd-9ca1-b23821bb06f2/",
         "reason": "2026-08-07, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
@@ -3549,7 +4062,7 @@
         "reason": "2026-07-09, newer than the report taken: [decided from pass-1 verifier text] Weekly dashboard (statistics, figures, CVE tables, references); no list of five or more indicators of malicious activity."
       },
       {
-        "title": "旅遊 eSIM 流量路徑恐繞境外　資安院提醒使用前應確認業者背景",
+        "title": "旅遊 eSIM 流量路徑恐繞境外\u3000資安院提醒使用前應確認業者背景",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/cd1fb32a-a2b9-479d-8568-3d70154ebb5d/",
         "reason": "2026-07-09, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
@@ -4059,13 +4572,13 @@
         "reason": "2026-04-28, newer than the report taken: [decided from pass-1 verifier text] Vulnerability bulletin (CVE, affected versions, fix, vendor/NVD reference links); reference links and CVE IDs are not indicators; no IOC list."
       },
       {
-        "title": "資安院與日月光簽署MOU　攜手提升半導體產業資安韌性",
+        "title": "資安院與日月光簽署MOU\u3000攜手提升半導體產業資安韌性",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/4280e109-fafe-4fce-9e33-b3f53a065a5d/",
         "reason": "2026-04-28, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
       },
       {
-        "title": "資安院首屆漏洞獵捕找出20項有效漏洞　助攻廠商提前修補產品風險",
+        "title": "資安院首屆漏洞獵捕找出20項有效漏洞\u3000助攻廠商提前修補產品風險",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/71eac939-2133-481b-9e1d-c5de0a8606ea/",
         "reason": "2026-04-27, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
@@ -4545,7 +5058,7 @@
         "reason": "2026-02-11, newer than the report taken: [decided from pass-1 verifier text] Policy/law digest; its only list is the 參考資料 reference links (not indicators); no IOC list."
       },
       {
-        "title": "資安院發布 Synology 裝置資安警示　高風險漏洞可遭串聯利用　呼籲民眾與 中小企業儘速更新",
+        "title": "資安院發布 Synology 裝置資安警示\u3000高風險漏洞可遭串聯利用\u3000呼籲民眾與 中小企業儘速更新",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/6395c358-142e-4599-87a3-c863d729d38f/",
         "reason": "2026-02-09, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
@@ -4611,7 +5124,7 @@
         "reason": "2026-01-28, newer than the report taken: [decided from pass-1 verifier text] Policy/law digest; its only list is the 參考資料 reference links (not indicators); no IOC list."
       },
       {
-        "title": "資安院攜手產業建立情資聯防　與合勤投控簽署MOU強化供應鏈防護",
+        "title": "資安院攜手產業建立情資聯防\u3000與合勤投控簽署MOU強化供應鏈防護",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/96d21a75-dbde-477e-b5ca-772ad8b1fe47/",
         "reason": "2026-01-27, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
@@ -4779,7 +5292,7 @@
         "reason": "2025-12-31, newer than the report taken: [decided from pass-1 verifier text] Policy/law digest; its only list is the 參考資料 reference links (not indicators); no IOC list."
       },
       {
-        "title": "看得到才治得到　資安院建置國家資安治理 AI 平台強化我國資安治理能力",
+        "title": "看得到才治得到\u3000資安院建置國家資安治理 AI 平台強化我國資安治理能力",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/adc9a64a-89c5-41fd-847a-090094c26534/",
         "reason": "2025-12-30, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
@@ -4947,7 +5460,7 @@
         "reason": "2025-12-01, newer than the report taken: [decided from pass-1 verifier text] KEV weekly / update note: CVE IDs with vendor advisory, patch and NVD links only; not indicators; no IOC list."
       },
       {
-        "title": "資安院結合國內外產官學能量　工控資安實作教育訓練培育關鍵基礎設施資安人才",
+        "title": "資安院結合國內外產官學能量\u3000工控資安實作教育訓練培育關鍵基礎設施資安人才",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/25b183ce-5251-4882-bfe5-eaa66a79972f/",
         "reason": "2025-12-01, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
@@ -5091,7 +5604,7 @@
         "reason": "2025-11-05, newer than the report taken: [decided from pass-1 verifier text] Policy/law digest; its only list is the 參考資料 reference links (not indicators); no IOC list."
       },
       {
-        "title": "資安院啟動產品資安漏洞獵捕活動　11家廠商投入、獎金總超過700萬元",
+        "title": "資安院啟動產品資安漏洞獵捕活動\u300011家廠商投入、獎金總超過700萬元",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/bff02806-0862-4236-a13b-e675f12174ea/",
         "reason": "2025-11-04, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
@@ -5289,7 +5802,7 @@
         "reason": "2025-10-08, newer than the report taken: [decided from pass-1 verifier text] KEV weekly / update note: CVE IDs with vendor advisory, patch and NVD links only; not indicators; no IOC list."
       },
       {
-        "title": "中國數位監控技術跨境輸出　資安院院長林盈達：台灣社會需保持對高風險國家數位環境警覺",
+        "title": "中國數位監控技術跨境輸出\u3000資安院院長林盈達：台灣社會需保持對高風險國家數位環境警覺",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/cb45fe71-f31a-4ab8-9ff0-f340c4de1821/",
         "reason": "2025-10-07, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
@@ -5385,7 +5898,7 @@
         "reason": "2025-09-16, newer than the report taken: [decided from pass-1 verifier text] KEV weekly / update note: CVE IDs with vendor advisory, patch and NVD links only; not indicators; no IOC list."
       },
       {
-        "title": "40家企業模擬應對駭客滲透　TWCERT/CC藍隊演練提升防護力",
+        "title": "40家企業模擬應對駭客滲透\u3000TWCERT/CC藍隊演練提升防護力",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/bbcdf8d9-fd05-459f-89e0-da47f48ef2ea/",
         "reason": "2025-09-16, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
@@ -5409,13 +5922,13 @@
         "reason": "2025-09-11, newer than the report taken: [decided from pass-1 verifier text] Weekly dashboard (statistics, figures, CVE tables, references); no list of five or more indicators of malicious activity."
       },
       {
-        "title": "資安院推資安週報　助資安社群掌握國家資安防護趨勢",
+        "title": "資安院推資安週報\u3000助資安社群掌握國家資安防護趨勢",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/4622ddd3-1b86-4f5d-8b70-e7f7f92dac2c/",
         "reason": "2025-09-11, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
       },
       {
-        "title": "資安院9月24日舉辦產品資安論壇　與產官學研共築產品資安責任鏈",
+        "title": "資安院9月24日舉辦產品資安論壇\u3000與產官學研共築產品資安責任鏈",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/bf23181f-485e-444c-9eb0-53fb42ce0d6f/",
         "reason": "2025-09-10, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
@@ -5469,7 +5982,7 @@
         "reason": "2025-09-03, newer than the report taken: [decided from pass-1 verifier text] Event/course announcement; no IOC list."
       },
       {
-        "title": "WinRAR曾遭嚴重零時差攻擊　資安院呼籲民眾立即更新至最新版",
+        "title": "WinRAR曾遭嚴重零時差攻擊\u3000資安院呼籲民眾立即更新至最新版",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/f0c51c5e-43b4-4773-937b-31bb8d23ef27/",
         "reason": "2025-09-02, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
@@ -5559,7 +6072,7 @@
         "reason": "2025-08-14, newer than the report taken: [decided from pass-1 verifier text] Weekly dashboard (statistics, figures, CVE tables, references); no list of five or more indicators of malicious activity."
       },
       {
-        "title": "雲端平台成駭客中繼站　資安院籲強化郵件與雲端安全防護",
+        "title": "雲端平台成駭客中繼站\u3000資安院籲強化郵件與雲端安全防護",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/36976db1-bced-4597-bbb3-f0f1738f486b/",
         "reason": "2025-08-14, newer than the report taken: [decided from pass-1 verifier text] Advisory on cloud services abused as C2; gives no indicators; no IOC list."
@@ -5673,7 +6186,7 @@
         "reason": "2025-07-24, newer than the report taken: [decided from pass-1 verifier text] Weekly dashboard (statistics, figures, CVE tables, references); no list of five or more indicators of malicious activity."
       },
       {
-        "title": "資安院攜手思科啟動NPO資安人才共學計畫　打造公益數位防線  以資安共學落實全民數位韌性　助力第三部門強化資訊防護與永續發展",
+        "title": "資安院攜手思科啟動NPO資安人才共學計畫\u3000打造公益數位防線  以資安共學落實全民數位韌性\u3000助力第三部門強化資訊防護與永續發展",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/c5f9a613-fd6c-4889-8b2e-c1acc89a029d/",
         "reason": "2025-07-24, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
@@ -6111,7 +6624,7 @@
         "reason": "2025-03-12, newer than the report taken: [decided from pass-1 verifier text] KEV weekly / update note: CVE IDs with vendor advisory, patch and NVD links only; not indicators; no IOC list."
       },
       {
-        "title": "攜手資安署建構全社會資安韌性　資安院啟動2.0八大重點業務",
+        "title": "攜手資安署建構全社會資安韌性\u3000資安院啟動2.0八大重點業務",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/09fc7905-63a6-4281-ada0-30d077789c26/",
         "reason": "2025-03-12, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
@@ -6471,7 +6984,7 @@
         "reason": "2024-11-27, newer than the report taken: [decided from pass-1 verifier text] KEV weekly / update note: CVE IDs with vendor advisory, patch and NVD links only; not indicators; no IOC list."
       },
       {
-        "title": "輔仁大學攜手國家資通安全研究院　打造資安人才新高地！",
+        "title": "輔仁大學攜手國家資通安全研究院\u3000打造資安人才新高地！",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/announcements_1750/",
         "reason": "2024-11-27, newer than the report taken: [decided from pass-1 verifier text] Announcement, press release or article; no IOC list."
@@ -6717,7 +7230,7 @@
         "reason": "2024-09-25: 第一輪以 IoC 讀法打開，比該來源最新的合格報告舊"
       },
       {
-        "title": "資安院協助強化中部機械及金屬製造業資安韌性　持續推動金融與醫療資安長培訓",
+        "title": "資安院協助強化中部機械及金屬製造業資安韌性\u3000持續推動金融與醫療資安長培訓",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/1743/",
         "reason": "2024-09-20: 第一輪以 IoC 讀法打開，比該來源最新的合格報告舊"
@@ -7053,7 +7566,7 @@
         "reason": "2024-06-26: 第一輪以 IoC 讀法打開，比該來源最新的合格報告舊"
       },
       {
-        "title": "資安院與北科大再次攜手合作開辦資安長高階領導班　積極培訓產業高階資安管理人才",
+        "title": "資安院與北科大再次攜手合作開辦資安長高階領導班\u3000積極培訓產業高階資安管理人才",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/1737/",
         "reason": "2024-06-21: 第一輪以 IoC 讀法打開，比該來源最新的合格報告舊"
@@ -7137,7 +7650,7 @@
         "reason": "2024-06-05: 第一輪以 IoC 讀法打開，比該來源最新的合格報告舊"
       },
       {
-        "title": "資安院攜手臺科大　擴大培訓資安人才及技研合作",
+        "title": "資安院攜手臺科大\u3000擴大培訓資安人才及技研合作",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/announcements_1734/",
         "reason": "2024-06-05: 第一輪以 IoC 讀法打開，比該來源最新的合格報告舊"
@@ -7269,7 +7782,7 @@
         "reason": "2024-05-02: 第一輪以 IoC 讀法打開，比該來源最新的合格報告舊"
       },
       {
-        "title": "資安院營運TWCERT/CC　推動公私協作聯防強化企業資安",
+        "title": "資安院營運TWCERT/CC\u3000推動公私協作聯防強化企業資安",
         "publisher": "國家資通安全研究院",
         "url": "https://www.nics.nat.gov.tw/latest_news/announcements/Latest_Announcement/1733/",
         "reason": "2024-04-24: 第一輪以 IoC 讀法打開，比該來源最新的合格報告舊"
