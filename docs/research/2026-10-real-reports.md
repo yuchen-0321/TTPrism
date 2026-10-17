@@ -611,3 +611,57 @@ git commit -m "Reviewed zh-TW ground truth"
 The source files go in `eval-data/<set>/pdf/<id>.pdf` or `eval-data/<set>/html/<id>.html`; the
 results list the SHA-256 of each source file and of its text, and each step stops if what it was made
 from changed.
+
+## 8. The held-out Traditional-Chinese set
+
+### 8.1 Selection
+
+The selection rule was committed on 2026-10-14 (9aa5de1), before any candidate was looked through.
+The four sources' lists were read on 2026-10-17, once the environment's network policy let the
+container reach them, and the four files were saved in `eval-data/zh-tw/` at 17:30 UTC that day, at
+HEAD 982e5b2 (the evaluation tool as of bbd961b, which section 6.9 freezes). antiransom.tw sends its
+certificate without the intermediate certificate; the TWCA intermediate that www.twcert.org.tw sends
+completed the chain, and TLS verification stayed on.
+
+Each source was read by one agent, newest item first, and checked by a second that read the lists
+again on its own. No extraction tool, and not `evaluate.py`, was run on any candidate, and no listed
+value was fetched. The first pass read "indicators" as indicators of compromise; the maintainer was
+then asked, and ruled on 2026-10-17:
+
+1. Indicators are read literally: five distinct domains, URLs, IP addresses, e-mail addresses or
+   hashes together in one list or table qualify, whatever they are (reference links, patch pages,
+   legitimate services' domains included). A second pass applied this.
+2. A compilation that reprints an item (TWCERT/CC's September 2026 newsletter, which reprints its
+   Medusa article of the same day) is that item, not a newer report.
+3. A post's zh-TW version counts as Traditional-Chinese text even when its body is the English post
+   with a Chinese title, preface and summary (TeamT5's ActiveMQ alert).
+4. A URL that stands only in a link's `href`, not in the text, does not count ("whose text can be
+   selected"; `HtmlText` reads no attributes either). This keeps TWCERT/CC's Cisco Nexus bulletin of
+   2026-10-14 (6 links behind advisory titles and CVE IDs) out.
+5. Product and CVE label lines between the URLs of one reference list do not split it into several
+   lists (TWCERT/CC's KEV report).
+6. `skipped` lists the items opened and not taken that are newer than the report taken; the older
+   ones opened during the two passes are only counted here.
+
+Dates are those readers in Taiwan see: TeamT5's CMS stores midnight Taiwan time as 16:00 UTC of the
+day before, and its server-rendered pages show the UTC date.
+
+| id | Source | Report | Published | Its list or table |
+|---|---|---|---|---|
+| tw01 | TeamT5 | CVE-2026-34197：Apache ActiveMQ 漏洞 | 2026-06-11 | the Reference list: 5 URLs, 3 SHA-256 |
+| tw02 | CyCraft | 【精選威脅情資】ToxicPanda 2.0 全球擴張… | 2026-10-14 | 入侵指標: 12 URLs (C2 and phishing) |
+| tw03 | TWCERT/CC | 10/5至10/11 Known Exploited Vulnerabilities Catalog(KEV)週報 | 2026-10-13 | 15 patch and NVD links |
+| tw04 | NICS | 國際資安政策法制觀測週報 第151期 | 2026-10-14 | 參考資料: 70 URLs, 1 domain |
+
+All four are web pages; tw04 is saved as the DOM that Chromium rendered, because its server's HTML
+holds the article only in a script. Under ruling 1, the lists of tw03 and tw04 are reference
+lists rather than IOC appendices, and tw01's mixes reference URLs with three hashes; only tw02's lists
+indicators of compromise alone. The numbers below therefore say how the tools read such lists as
+much as IOC appendices. The first pass's picks changed for three sources: TeamT5's SharePoint post
+of 2025-07-24 (7 addresses) gave way to ActiveMQ under ruling 3, TWCERT/CC's Medusa article of
+2026-09-30 (IOC tables) to the KEV report under ruling 1, and NICS, where no web page had five
+indicators of compromise in one list, has the policy report under ruling 1. Items opened and not taken that are
+older than the report taken: TeamT5 60 (and the SharePoint post), TWCERT/CC 19 (and the Medusa
+article), NICS 688 in the first pass (its vulnerability bulletins, weekly reports and policy
+reports; a second agent read 1,073 pages to check it), CyCraft none. No PDF of any source was
+needed: every item that qualified first was a web page.

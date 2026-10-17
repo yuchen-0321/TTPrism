@@ -321,10 +321,325 @@
         }
       }
     ],
-    "zh-tw": []
+    "zh-tw": [
+      {
+        "id": "tw01-teamt5-activemq-2026",
+        "title": "CVE-2026-34197：Apache ActiveMQ 漏洞",
+        "publisher": "TeamT5 杜浦數位安全",
+        "published": "2026-06-11",
+        "original_url": "https://teamt5.org/tw/blog/alert-exploitation-of-cve-2026-34197-in-apache-active-mq",
+        "url_source": "the publisher's list https://teamt5.org/tw/blog links to it (read 2026-10-17). The page shows 2026.06.10, its server rendering the CMS date_created 2026-06-10T16:00:00Z in UTC; that is 2026-06-11 in Taiwan, the date given here. The zh-TW page is the English post with a Chinese title, preface and summary; the maintainer ruled on 2026-10-17 that a zh-TW version counts as Traditional-Chinese text",
+        "format": "html",
+        "appendix": {
+          "start": "[1] CVE-2024-32114",
+          "end": "目錄"
+        },
+        "retrieved": "2026-10-17T17:30:12Z",
+        "final_url": "https://teamt5.org/tw/blog/alert-exploitation-of-cve-2026-34197-in-apache-active-mq",
+        "saved": {
+          "kind": "server",
+          "method": "curl -sS -L --compressed -D <headers file> -o <file> <original_url>",
+          "tool": "curl 8.5.0"
+        },
+        "http_charset": "utf-8"
+      },
+      {
+        "id": "tw02-cycraft-toxicpanda-2026",
+        "title": "【精選威脅情資】ToxicPanda 2.0 全球擴張：Android 無障礙服務遭濫用，近 350 家金融機構受影響",
+        "publisher": "CyCraft 奧義智慧科技",
+        "published": "2026-10-14",
+        "original_url": "https://www.cycraft.com/post/toxicpanda-20261014",
+        "url_source": "the publisher's list https://www.cycraft.com/blog links to it (read 2026-10-17); the page shows 2026-10-14",
+        "format": "html",
+        "appendix": {
+          "start": "入侵指標（Indicator of Compromise, IoCs）",
+          "end": "參考資料"
+        },
+        "retrieved": "2026-10-17T17:30:13Z",
+        "final_url": "https://www.cycraft.com/post/toxicpanda-20261014",
+        "saved": {
+          "kind": "server",
+          "method": "curl -sS -L --compressed -D <headers file> -o <file> <original_url>",
+          "tool": "curl 8.5.0"
+        },
+        "http_charset": "utf-8"
+      },
+      {
+        "id": "tw03-twcert-kev-2026",
+        "title": "10/5至10/11 Known Exploited Vulnerabilities Catalog(KEV)週報",
+        "publisher": "TWCERT/CC 台灣電腦網路危機處理暨協調中心",
+        "published": "2026-10-13",
+        "original_url": "https://www.twcert.org.tw/tw/cp-168-11269-a2e25-1.html",
+        "url_source": "the publisher's list https://www.twcert.org.tw/tw/lp-168-1.html (漏洞警示) links to it (read 2026-10-17); the page gives 發布日期 2026-10-13",
+        "format": "html",
+        "appendix": {
+          "start": "修補說明請參考以下官方連結：",
+          "end": "相關連結"
+        },
+        "retrieved": "2026-10-17T17:30:13Z",
+        "final_url": "https://www.twcert.org.tw/tw/cp-168-11269-a2e25-1.html",
+        "saved": {
+          "kind": "server",
+          "method": "curl -sS -L --compressed -D <headers file> -o <file> <original_url>",
+          "tool": "curl 8.5.0"
+        },
+        "http_charset": "utf-8"
+      },
+      {
+        "id": "tw04-nics-policy-151-2026",
+        "title": "國際資安政策法制觀測週報 第151期 (10/3-10/9, Week 1)",
+        "publisher": "國家資通安全研究院",
+        "published": "2026-10-14",
+        "original_url": "https://www.nics.nat.gov.tw/core_business/information_security_information_sharing/International_Cybersecurity_Policy_Observation/9ba43507-d4aa-436d-add8-01a663b55129",
+        "url_source": "the publisher's list https://www.nics.nat.gov.tw/core_business/information_security_information_sharing/International_Cybersecurity_Policy_Observation/ links to it (read 2026-10-17); the page gives 2026/10/14 下午 04:20:17. The full text is also offered as a PDF on download.nics.nat.gov.tw; the list links to the web page, which is the form evaluated",
+        "format": "html",
+        "appendix": {
+          "start": "參考資料",
+          "end": "返回列表"
+        },
+        "retrieved": "2026-10-17T17:30:23Z",
+        "final_url": "https://www.nics.nat.gov.tw/core_business/information_security_information_sharing/International_Cybersecurity_Policy_Observation/9ba43507-d4aa-436d-add8-01a663b55129/",
+        "saved": {
+          "kind": "rendered",
+          "method": "chrome --headless=new --no-sandbox --disable-gpu --virtual-time-budget=15000 --dump-dom <original_url> > <file>",
+          "tool": "Chromium 141.0.7390.37",
+          "reason": "the server's HTML carries the article only in its <script id=\"__NEXT_DATA__\"> JSON, which HtmlText drops with every script: the page builds its text with JavaScript",
+          "note": "the server answers the original URL with a 308 redirect to the same URL with a trailing slash (final_url); Chromium writes the DOM as UTF-8"
+        }
+      }
+    ]
   },
   "skipped": {
-    "zh-tw": []
+    "zh-tw": [
+      {
+        "title": "TeamT5 於 FIRST 年會分享網路犯罪情資案例，呼籲持續關注新形態攻擊手法",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/news-press/teamt5-shares-cybercrime-intelligence-cases-at-firstcon-urges-continued-attention-to-emerging-attack-techniques",
+        "reason": "2026-06-15, newer than the report taken: Fewer than five values in a list or table: its only value is 1 contact e-mail (press release)."
+      },
+      {
+        "title": "ITOCHU 伊藤忠商事 CSIRT 將威脅狩獵服務擴及海外據點",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/customer-stories/extend-threat-hunting-services-to-overseas-bases-by-itochu-csirt",
+        "reason": "2026-06-25, newer than the report taken: Fewer than five values in a list or table: 1 URL in prose (customer story). The file it links to is a product brochure PDF."
+      },
+      {
+        "title": "資源有限、威脅無限：為何需要「情資導向」的資安決策？",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/blog/limited-resources-endless-threats-why-you-need-intelligence-driven-security-decisions",
+        "reason": "2026-07-07, newer than the report taken: No domain, URL, IP address, e-mail address or hash in its text (product article)."
+      },
+      {
+        "title": "【資安事件應變處理案例】勒索加密找上門，該如何應變？",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/use-case/ir-use-case-how-to-respond-to-ransomware-attack",
+        "reason": "2026-07-08, newer than the report taken: No domain, URL, IP address, e-mail address or hash in its text (case study; only a file path)."
+      },
+      {
+        "title": "【資安事件應變處理案例】當 APT 威脅埋伏於環境中，該如何有效處置？",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/use-case/ir-use-case-how-to-respond-to-advanced-persistent-threat-apt",
+        "reason": "2026-07-08, newer than the report taken: No domain, URL, IP address, e-mail address or hash in its text (case study)."
+      },
+      {
+        "title": "【資安事件應變處理案例】個資外洩遭駭客利用，該如何處置與防範？",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/use-case/ir-use-case-how-to-respond-to-private-data-breach",
+        "reason": "2026-07-08, newer than the report taken: No domain, URL, IP address, e-mail address or hash in its text (case study; 4 hyperlinked names only)."
+      },
+      {
+        "title": "TeamT5 年度演講紀錄 【2025】",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/blog/teamt5-global-speaking-engagements-2025",
+        "reason": "2026-07-17, newer than the report taken: No value in its text. The talks table has 6 hyperlinked conference names, but the URLs are only in href attributes, which HtmlText does not read, so the table shows no value."
+      },
+      {
+        "title": "TeamT5 年度演講紀錄 【2026】",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/blog/teamt5-global-speaking-engagements-2026",
+        "reason": "2026-07-17, newer than the report taken: No value in its text. The talks table has 5 hyperlinked conference names, but the URLs are only in href attributes, so the table shows no value."
+      },
+      {
+        "title": "Understanding Modern Cyber Operations in APAC [Podcast Series]",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/blog/understanding-modern-cyber-operations-in-apac-podcast-series",
+        "reason": "2026-07-23, newer than the report taken: its 5 YouTube URLs each stand under a different heading, so no list holds more than 1 value; its text is entirely English"
+      },
+      {
+        "title": "企業面對 3 大資安挑戰，就交給 MDR 服務！",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/white-paper/whitepaper-tw-managed-detection-and-response-mdr",
+        "reason": "2026-07-28, newer than the report taken: The landing page has no values, and the white paper comes only through a lead form with no public file linked."
+      },
+      {
+        "title": "認識威脅情資與威脅格局的運用方式",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/white-paper/whitepaper-tw-understanding-threat-intelligence-and-the-threat-landscape-with-teamt5",
+        "reason": "2026-07-28, newer than the report taken: The landing page has no values, and the white paper comes only through a lead form with no public file linked."
+      },
+      {
+        "title": "運用 ThreatVision 將威脅情資轉化為資安決策",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/blog/turning-threat-intelligence-into-security-decisions-with-threat-vision",
+        "reason": "2026-07-28, newer than the report taken: No domain, URL, IP address, e-mail address or hash in its text (product article)."
+      },
+      {
+        "title": "從自動化到自主化：掌握 OWASP AI Agent 十大資安風險與防禦實務",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/blog/from-automation-to-autonomy-understanding-the-owasp-top-10-for-agentic-applications-and-defense-best-practices",
+        "reason": "2026-07-30, newer than the report taken: No domain, URL, IP address, e-mail address or hash in its text (product article)."
+      },
+      {
+        "title": "AI Agent 是什麼？企業不可忽視的資安風險解析",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/blog/what-is-an-ai-agent",
+        "reason": "2026-08-06, newer than the report taken: No domain, URL, IP address, e-mail address or hash in its text (product article)."
+      },
+      {
+        "title": "關於 SEMI E187：半導體設備供應商必懂的資安標準",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/blog/understanding-semi-e187-a-cybersecurity-standard-every-semiconductor-equipment-supplier-should-know",
+        "reason": "2026-08-10, newer than the report taken: Fewer than five values in a list or table: its reference list holds 1 URL."
+      },
+      {
+        "title": "AI Agent 安全防禦新維度：從影子 AI 氾濫到端點行為可視化",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/blog/a-new-dimension-of-ai-agent-security-defense",
+        "reason": "2026-08-13, newer than the report taken: No domain, URL, IP address, e-mail address or hash in its text (product article)."
+      },
+      {
+        "title": "如何準備 SEMI E187 驗證？設備供應商必看的檢查清單",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/blog/how-to-prepare-for-semi-e187-validation-an-essential-checklist-for-equipment-suppliers",
+        "reason": "2026-08-17, newer than the report taken: No domain, URL, IP address, e-mail address or hash in its text (product article)."
+      },
+      {
+        "title": "如何將 SEMI E187 要求轉換成設備安全檢測流程？",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/blog/how-to-turn-semi-e187-requirements-into-an-equipment-security-assessment-process",
+        "reason": "2026-08-24, newer than the report taken: No domain, URL, IP address, e-mail address or hash in its text (product article)."
+      },
+      {
+        "title": "Chinese Darcula Phishing Kit Harvesting Taiwanese Credit Card Data",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/blog/chinese-darcula-phishing-kit-harvesting-taiwanese-credit-card-data",
+        "reason": "2026-09-07, newer than the report taken: no list or table holds five values; its only list of values has 4 URLs, and 2 footnote URLs form a separate list"
+      },
+      {
+        "title": "TeamT5 與 Imperum 進行技術合作，將威脅情資導入 AI 驅動的 SOC 工作流程",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/news-press/teamt5-and-imperum-form-technology-alliance-to-operationalize-threat-intelligence-in-ai-driven-soc-workflows",
+        "reason": "2026-09-30, newer than the report taken: Fewer than five values in a list or table: its only value is 1 media-contact e-mail (press release)."
+      },
+      {
+        "title": "【白皮書】看見 AI 代理的隱形攻擊面—從端點安全主動建構 AI 治理韌性",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/white-paper/tw-white-paper-exposing-the-hidden-attack-surface-of-ai-agents",
+        "reason": "2026-10-05, newer than the report taken: The landing page has no values, and the white paper comes only through a lead form: download_link is empty and no public file is linked. Its time, 09:30 Taiwan (01:30:56Z), makes it newer than the same-day governance post, which is dated only (16:00Z, Taiwan midnight)."
+      },
+      {
+        "title": "你的公司電腦裡，現在正跑著幾個 AI Agent？從國內外規範看企業的第一步",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/blog/ai-agent-governance-enterprise-first-step",
+        "reason": "2026-10-05, newer than the report taken: Fewer than five values in a list or table. The regulations table has 4 hyperlinked document titles and the reference list 3 hyperlinked source names, and neither shows a URL or domain as text. The linked ThreatSonar Plus datasheet PDF holds 1 e-mail address."
+      },
+      {
+        "title": "AI Agent 有哪些資安風險？企業導入前的風險評估指南",
+        "publisher": "TeamT5 杜浦數位安全",
+        "url": "https://teamt5.org/tw/blog/what-are-the-security-risks-of-ai-agents",
+        "reason": "2026-10-12, newer than the report taken: No domain, URL, IP address, e-mail address or hash in its text (AI-agent risk guide). The ThreatSonar Plus datasheet PDF it links to holds only 1 e-mail address."
+      },
+      {
+        "title": "奧義賽博科技入選 2026 年 Gartner® AI 應用安全新創市場象限　獲評 AI 應用安全領跑者（Pace Setter）",
+        "publisher": "CyCraft 奧義智慧科技",
+        "url": "https://www.cycraft.com/news/gartner-ai-pace-setter-20261014",
+        "reason": "2026-10-14, the same date as the report taken, with no time of day on either page: a company press release; no list or table of five values (4 linked article titles, 2 citations without a URL, 1 URL in prose)"
+      },
+      {
+        "title": "台灣智園｜Tronclass - 存在3個漏洞 (TVN-202610003)",
+        "publisher": "TWCERT/CC 台灣電腦網路危機處理暨協調中心",
+        "url": "https://www.twcert.org.tw/tw/cp-132-11272-91666-1.html",
+        "reason": "2026-10-14, newer than the report taken: No list or table holds any domain, URL, IP, e-mail or hash in its text. The TVN table holds CVE IDs, CVSS vectors, versions and the reporter's name. 相關連結 shows 3 CVE IDs; the URLs are only link targets, and there are fewer than five anyway."
+      },
+      {
+        "title": "互動資通｜TeamPlus Messenger - 存在2個漏洞 (TVN-202610002)",
+        "publisher": "TWCERT/CC 台灣電腦網路危機處理暨協調中心",
+        "url": "https://www.twcert.org.tw/tw/cp-132-11270-88d86-1.html",
+        "reason": "2026-10-14, newer than the report taken: No values in text: the TVN table holds CVE IDs, CVSS vectors and versions. 相關連結 shows 2 CVE IDs (link targets only)."
+      },
+      {
+        "title": "Cisco NX-OS Software NX-API 存在重大資安漏洞(CVE-2026-76471)",
+        "publisher": "TWCERT/CC 台灣電腦網路危機處理暨協調中心",
+        "url": "https://www.twcert.org.tw/tw/cp-169-11284-1c474-1.html",
+        "reason": "2026-10-14, newer than the report taken: No values in text: the body lists versions. 相關連結 has 2 links whose text is an advisory title and a CVE ID."
+      },
+      {
+        "title": "Cisco License (Smart Software Manager) On-Prem 存在2個重大資安漏洞",
+        "publisher": "TWCERT/CC 台灣電腦網路危機處理暨協調中心",
+        "url": "https://www.twcert.org.tw/tw/cp-169-11283-7536b-1.html",
+        "reason": "2026-10-14, newer than the report taken: No values in text. 相關連結 has 3 links (texts: an advisory title and 2 CVE IDs)."
+      },
+      {
+        "title": "FortiAnalyzer、FortiManager、FortiManager Cloud 和 FortiAnalyzer Cloud 存在重大資安漏洞(CVE-2025-46773)",
+        "publisher": "TWCERT/CC 台灣電腦網路危機處理暨協調中心",
+        "url": "https://www.twcert.org.tw/tw/cp-169-11282-d479f-1.html",
+        "reason": "2026-10-14, newer than the report taken: No values in text: the lists hold product versions, which are not values. 相關連結 has 2 links (title and CVE ID)."
+      },
+      {
+        "title": "FortiSandbox GUI 存在重大資安漏洞(CVE-2026-107656)",
+        "publisher": "TWCERT/CC 台灣電腦網路危機處理暨協調中心",
+        "url": "https://www.twcert.org.tw/tw/cp-169-11281-14cf7-1.html",
+        "reason": "2026-10-14, newer than the report taken: No values in text (versions only). 相關連結 has 1 link (title)."
+      },
+      {
+        "title": "FortiSIEM 存在重大資安漏洞(CVE-2026-106173)",
+        "publisher": "TWCERT/CC 台灣電腦網路危機處理暨協調中心",
+        "url": "https://www.twcert.org.tw/tw/cp-169-11280-8bf6d-1.html",
+        "reason": "2026-10-14, newer than the report taken: No values in text. 相關連結 has 2 links (title and CVE ID)."
+      },
+      {
+        "title": "Ivanti旗下Xtraction存在高風險資安漏洞(CVE-2026-106042)",
+        "publisher": "TWCERT/CC 台灣電腦網路危機處理暨協調中心",
+        "url": "https://www.twcert.org.tw/tw/cp-169-11279-6c31b-1.html",
+        "reason": "2026-10-14, newer than the report taken: No values in text. 相關連結 has 2 links (title and CVE ID)."
+      },
+      {
+        "title": "Ivanti Neurons for Intune 存在重大資安漏洞(CVE-2026-109412)",
+        "publisher": "TWCERT/CC 台灣電腦網路危機處理暨協調中心",
+        "url": "https://www.twcert.org.tw/tw/cp-169-11278-c1911-1.html",
+        "reason": "2026-10-14, newer than the report taken: No values in text. 相關連結 has 2 links (title and CVE ID)."
+      },
+      {
+        "title": "Splunk Enterprise存在高風險安全漏洞(CVE-2026-76268)，請儘速確認並進行處置",
+        "publisher": "TWCERT/CC 台灣電腦網路危機處理暨協調中心",
+        "url": "https://www.twcert.org.tw/tw/cp-169-11277-d2e66-1.html",
+        "reason": "2026-10-14, newer than the report taken: No values in text. 相關連結 has 2 links (title and CVE ID)."
+      },
+      {
+        "title": "Cisco 旗下 Nexus 3000 和 9000系列交換器存在4個重大資安漏洞",
+        "publisher": "TWCERT/CC 台灣電腦網路危機處理暨協調中心",
+        "url": "https://www.twcert.org.tw/tw/cp-169-11276-c3ddb-1.html",
+        "reason": "2026-10-14, newer than the report taken: Its only list with links is 相關連結 with 6 links. The list's text is 2 Cisco advisory titles and 4 CVE IDs. The 6 URLs (2 sec.cloudapps.cisco.com, 4 nvd.nist.gov) are only link targets (href attributes), not text in the item. No list or table in its text holds any value."
+      },
+      {
+        "title": "Veeam旗下Veeam Backup & Replication備份軟體存在重大資安漏洞(CVE-2025-64393)",
+        "publisher": "TWCERT/CC 台灣電腦網路危機處理暨協調中心",
+        "url": "https://www.twcert.org.tw/tw/cp-169-11275-1a695-1.html",
+        "reason": "2026-10-14, newer than the report taken: No values in text. 相關連結 has 2 links (title and CVE ID)."
+      },
+      {
+        "title": "SonicWall 旗下SMA1000系列產品存在重大資安漏洞 (CVE-2026-102255)",
+        "publisher": "TWCERT/CC 台灣電腦網路危機處理暨協調中心",
+        "url": "https://www.twcert.org.tw/tw/cp-169-11274-4f8dd-1.html",
+        "reason": "2026-10-14, newer than the report taken: No values in text. 相關連結 has 2 links (title and CVE ID)."
+      },
+      {
+        "title": "【資安院】資安長高階領導班第5期",
+        "publisher": "TWCERT/CC 台灣電腦網路危機處理暨協調中心",
+        "url": "https://www.twcert.org.tw/tw/cp-105-11285-f8dbf-1.html",
+        "reason": "2026-10-14, newer than the report taken: a training-course announcement, not a report, advisory or blog post; its text has 1 URL (a registration form) and 1 e-mail address"
+      }
+    ]
   },
   "skipped_fields": "reports considered for a set but not used: {\"title\", \"publisher\", \"url\", \"reason\", optional \"id\"}"
 }
