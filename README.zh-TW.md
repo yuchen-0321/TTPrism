@@ -120,7 +120,7 @@ cve,CVE-2023-23397,text,
 attack-technique,T1059.001,reported,PowerShell (reported as T1086)
 ```
 
-`--defang` 適用於 JSON 和 CSV。它讓 IOC 值無法點擊，如上面的輸出（`hxxps[://]cdn[.]update-check[.]example/stage2.bin`、`198[.]51[.]100[.]23`），電子郵件位址則變成 `ops[@]corp[.]example`。URL 的路徑和查詢字串保持原樣，所以出現在另一個 URL 路徑或查詢字串裡的 URL 仍然可以點擊。JSON 只對 IOC 值做 defang：技術證據（例如 CAPE 的指令列）裡的 URL 保持原樣，所以要貼到聊天室時請貼 CSV，不要貼 JSON。
+`--defang` 適用於 JSON 和 CSV。它讓 IOC 值無法點擊，如上面的輸出（`hxxps[://]cdn[.]update-check[.]example/stage2.bin`、`198[.]51[.]100[.]23`），電子郵件位址則變成 `ops[@]corp[.]example`。像 `::ffff:198.51.100.7` 這樣的 IPv6 位址，裡面的 IPv4 部分會保留它的點（`[:][:]ffff[:]198.51.100.7`）。URL 的路徑和查詢字串保持原樣，所以出現在另一個 URL 路徑或查詢字串裡的 URL 仍然可以點擊。JSON 只對 IOC 值做 defang：技術證據（例如 CAPE 的指令列）裡的 URL 保持原樣，所以要貼到聊天室時請貼 CSV，不要貼 JSON。
 
 ### CAPE 報告轉成 ATT&CK 技術與 STIX
 
@@ -292,7 +292,7 @@ TTPrism 不從報告內文推測技術。內建的目錄是 Enterprise ATT&CK **
 
 TTPrism 預設會拿掉下列的值（括號裡是 `suppressed` 底下的鍵名）：
 
-- **保留值**（`reserved`）：IP 位址，例如私有、loopback、link-local、多播和文件用的範圍，全球單播區塊 `2000::/3` 以外的 IPv6 位址，以及 6to4 和 Teredo（IPv4-mapped 和 NAT64 `64:ff9b::/96` 位址依它帶的 IPv4 位址判斷；完整清單是 [`extract.py`](https://github.com/yuchen-0321/TTPrism/blob/main/src/ttprism/extract.py) 裡的 `_RESERVED_IPV4` 和 `_RESERVED_IPV6`）；URL 主機 `localhost`；以及 `example.com`、`example.net`、`example.org`、`.test`、`.example`、`.invalid`、`.local`、`.localhost`、`.internal` 名稱。
+- **保留值**（`reserved`）：IP 位址，例如私有、loopback、link-local、多播和文件用的範圍，全球單播區塊 `2000::/3` 以外的 IPv6 位址，以及 6to4 和 Teredo（IPv4-mapped 和 NAT64 `64:ff9b::/96` 位址依它帶的 IPv4 位址判斷；完整規則見 [`extract.py`](https://github.com/yuchen-0321/TTPrism/blob/main/src/ttprism/extract.py) 的 `is_reserved_ip`）；URL 主機 `localhost`；以及 `example.com`、`example.net`、`example.org`、`.test`、`.example`、`.invalid`、`.local`、`.localhost`、`.internal` 名稱。
 - **allowlist 上的值**（`allowlisted`）：大型平台的根網域（`google.com`，但不含 `drive.google.com` 或其上的 URL）、沙箱的背景流量、憑證撤銷查詢主機、`attack.mitre.org` 這類參考網站，以及空檔案的雜湊值。見 [`allowlist.yaml`](https://github.com/yuchen-0321/TTPrism/blob/main/src/ttprism/data/allowlist.yaml)。
 - **看起來像網域的檔名**（`filename_like_domain`）：沒有寫在 URL 裡的 `payload.zip` 或 `setup.py`。
 - **公共後綴**（`public_suffix`）：沒有寫在 URL 裡的 `co.uk`、`com.tw` 或 `gov.tw`（底下的名稱，例如 `evil.co.uk`，會保留）。

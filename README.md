@@ -150,10 +150,11 @@ attack-technique,T1059.001,reported,PowerShell (reported as T1086)
 
 `--defang` works for JSON and CSV. It makes IOC values unclickable, as in the output above
 (`hxxps[://]cdn[.]update-check[.]example/stage2.bin`, `198[.]51[.]100[.]23`), and
-`ops[@]corp[.]example` for an e-mail address. URL paths and queries are left as they are, so a URL
-inside another URL's path or query stays clickable. In JSON only the IOC values are defanged:
-technique evidence, such as a CAPE command line, keeps its URLs live, so paste the CSV into chat,
-not the JSON.
+`ops[@]corp[.]example` for an e-mail address. The IPv4 part of an IPv6 address such as
+`::ffff:198.51.100.7` keeps its dots (`[:][:]ffff[:]198.51.100.7`). URL paths and queries are left
+as they are, so a URL inside another URL's path or query stays clickable. In JSON only the IOC
+values are defanged: technique evidence, such as a CAPE command line, keeps its URLs live, so paste
+the CSV into chat, not the JSON.
 
 ### Turn a CAPE report into ATT&CK techniques and STIX
 
@@ -346,7 +347,7 @@ By default TTPrism drops (the name in brackets is the key under `suppressed`):
 - **Reserved values** (`reserved`): IP addresses such as private, loopback, link-local, multicast
   and documentation ranges, IPv6 addresses outside the global unicast block `2000::/3`, 6to4 and
   Teredo (an IPv4-mapped or NAT64 `64:ff9b::/96` address is judged by the IPv4 address it carries;
-  the full lists are `_RESERVED_IPV4` and `_RESERVED_IPV6` in
+  the full rule is `is_reserved_ip` in
   [`extract.py`](https://github.com/yuchen-0321/TTPrism/blob/main/src/ttprism/extract.py)),
   the URL host `localhost`, and `example.com`, `example.net`, `example.org`, `.test`,
   `.example`, `.invalid`, `.local`, `.localhost` and `.internal` names.
