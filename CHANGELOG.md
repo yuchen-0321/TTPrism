@@ -15,6 +15,13 @@ their advisory.
   are absolute so they work on PyPI.
 - Added `README.zh-TW.md`, a full Traditional-Chinese README that replaces the short Chinese
   summary at the end of the English one.
+- Corrected README statements that did not match the code: rules match API calls in any order,
+  not sequences; the reserved names include `example.net`, `example.org`, `.localhost` and
+  `.internal`; `--defang` also changes dots in a URL's user name and password; non-UTF-8 text
+  needs `--encoding` with its own codec (`big5` or `gb18030`) unless it is UTF-16 or UTF-32 with
+  a byte-order mark; names mixing in Cyrillic or accented Latin letters are skipped, while CJK
+  and Thai letters end an IOC; how CAPE limits count repeated values. The quick start now creates
+  a virtual environment, and the PDF example no longer overwrites the quick start's `report.txt`.
 
 ## [0.1.0] - 2026-10-18
 

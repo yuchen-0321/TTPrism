@@ -24,6 +24,8 @@ recall as ioc-finder; see [Evaluation](https://github.com/yuchen-0321/TTPrism#ev
 Python 3.11 or newer:
 
 ```sh
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install ttprism
 ```
 
@@ -69,8 +71,8 @@ also counts what was filtered under `suppressed`.
   `１９８．５１．１００．２３`), which English-oriented extractors missed in a
   [synthetic test](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-existing-tools.md).
   It also finds domains glued to Chinese text without a space, as ioc-finder does.
-- **Maps sandbox behaviour to ATT&CK** with YAML rules for CAPE signatures, command lines, API call
-  sequences and registry writes. It also **normalises outdated technique IDs**: about a quarter of
+- **Maps sandbox behaviour to ATT&CK** with YAML rules for CAPE signatures, command lines, API calls
+  and registry writes. It also **normalises outdated technique IDs**: about a quarter of
   the TTP labels in CAPE's signatures point at techniques ATT&CK has since revoked or deprecated.
 - **Exports** JSON, CSV or a STIX 2.1 bundle.
 - **Treats its input as hostile.** Regexes run in linear time, input size is capped, nothing is
@@ -92,7 +94,10 @@ What it does not do:
 | PDF reports | Convert to text first (for example `pdftotext -raw report.pdf`); TTPrism does not parse PDFs. The [evaluation on real reports](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-real-reports.md) used pypdf (`page.extract_text()`), headers and footers included; converters differ in how they break lines and write hyphens |
 | CAPE `report.json` | Detected automatically (input that looks like JSON but does not parse is analysed as text, with a warning); network, files, commands, API calls, registry, signatures |
 
-Non-UTF-8 text (for example Big5 or GB18030) needs `--encoding big5`.
+Text that is not UTF-8 needs `--encoding`: `big5` for Big5, `gb18030` for GB18030. Without it,
+undecodable bytes are replaced and a warning is printed; with the wrong encoding (`big5` for GB18030
+text, for example) the ASCII values may survive while the full-width and CJK-bracket ones are
+lost. UTF-16 and UTF-32 with a byte-order mark are detected automatically.
 
 ## Common tasks
 
@@ -106,11 +111,12 @@ update.exe 下載第二階段酬載，C2 為 203.0.113[.]7。
 樣本 SHA-256：8ddcb559924bcba8d5497d45f66c01316bb77d5cf8618b9771e62166fdbbce05
 ```
 
-convert it with `pdftotext -raw` (from poppler), then extract:
+convert it with `pdftotext -raw` (from poppler: `brew install poppler`, or `apt install
+poppler-utils` on Debian/Ubuntu), then extract:
 
 ```sh
-$ pdftotext -raw report.pdf report.txt
-$ ttprism extract report.txt -f csv -o iocs.csv --include-reserved
+$ pdftotext -raw advisory.pdf advisory.txt
+$ ttprism extract advisory.txt -f csv -o iocs.csv --include-reserved
 $ cat iocs.csv
 type,value,sources,detail
 url,https://cdn.update-check.example/KB-Auto-win-update.exe,text,
@@ -138,8 +144,10 @@ cve,CVE-2023-23397,text,
 attack-technique,T1059.001,reported,PowerShell (reported as T1086)
 ```
 
-`--defang` works for JSON and CSV. It changes the scheme, host and `@` only; URL paths are left as
-they are.
+`--defang` works for JSON and CSV. It changes a URL's scheme and the dots before its path (in the
+host and in any user name or password, unless `://` is followed directly by a bracketed IPv6
+address), the dots of domains and IPv4 addresses, the colons of IPv6 addresses and the `@` of
+e-mail addresses; URL paths and queries are left as they are.
 
 ### Turn a CAPE report into ATT&CK techniques and STIX
 
@@ -304,7 +312,7 @@ attack-technique,T1564.003,rule:local.powershell-hidden-window,Hidden Window
 | `--include-reserved` | Keep private/documentation IPs and `example`/`test` domains |
 | `--allowlist FILE` | Add an allowlist (repeatable); `--no-default-allowlist` disables the built-in one |
 | `--rules PATH` | Add ATT&CK rule files or directories (repeatable); `--no-default-rules` disables the built-in rules |
-| `--input-format auto\|text\|cape` | Override input detection |
+| `--input-format auto\|text\|cape` | Input format (default `auto`: detected from the content) |
 | `--encoding NAME` | Input text encoding (default UTF-8; for example `big5`, `gb18030`) |
 | `--max-size SIZE` | Refuse larger inputs (default `64m`) |
 | `-q`, `--quiet` | Do not print warnings |
@@ -330,8 +338,9 @@ TTPrism does not guess techniques from report prose. The bundled catalog is Ente
 By default TTPrism drops (the name in brackets is the key under `suppressed`):
 
 - **Reserved values** (`reserved`): private, loopback and documentation IP ranges, IPv6 addresses
-  outside the global unicast block `2000::/3`, and `example.com`, `.test`, `.example`, `.invalid`,
-  `.local` names.
+  outside the global unicast block `2000::/3` (an IPv4-mapped or NAT64 `64:ff9b::/96` address is
+  judged by the IPv4 address it carries), and `example.com`, `example.net`, `example.org`, `.test`,
+  `.example`, `.invalid`, `.local`, `.localhost` and `.internal` names.
 - **Allowlisted values** (`allowlisted`): the root domains of large platforms (`google.com`, but not
   `drive.google.com` or URLs on it), sandbox background traffic, certificate revocation hosts,
   reference sites such as `attack.mitre.org`, and empty-file hashes. See
@@ -347,30 +356,33 @@ By default TTPrism drops (the name in brackets is the key under `suppressed`):
 - **Certificate serial numbers** (`certificate_serial`): hex right after a serial-number label
   (`SerialNumber:`, `Serial Number`, `序列号`, `序號`, `憑證序號`, with or without a colon) has the
   length of a hash but is not one.
-- **Masked names** (`masked_name`): names, e-mail addresses and URL hosts with a label of three or
-  more `x` (`wiki.xxxx.com`), which reports use to hide the real value.
+- **Masked names** (`masked_name`): in text reports, names, e-mail addresses and URL hosts with a
+  label of three or more `x` (`wiki.xxxx.com`), which reports use to hide the real value.
 - **Antivirus detection names** (`detection_name`): `Backdoor.Win32.Ht` or `Trojan.MSIL.Bot`, whose
   family happens to be a TLD.
 - **Fragments of names broken across lines** (`line_wrap_fragment`): the part of a name or e-mail
   address that starts a line when the line before ends in a letter or digit and a hyphen
   (`dynamic-` / `dns.net`), since that hyphen may or may not belong to the name. See Limitations.
 
-Counts of what was dropped are reported under `suppressed`, so nothing disappears silently.
+Each filter counts what it drops under `suppressed`.
 
 A CAPE report is also read only up to fixed limits, and what lies beyond them is counted under
-`suppressed` too: at most 10,000 distinct API names, command lines, registry writes, signatures
-and TTP labels each (`truncated_apis`, `truncated_commands`, `truncated_registry_writes`,
+`suppressed` too: at most 10,000 each of API names, command lines, registry writes, signatures and
+TTP labels (`truncated_apis`, `truncated_commands`, `truncated_registry_writes`,
 `truncated_signatures`, `truncated_ttps`), and command lines up to 8 Mi characters in total for
 rule matching and for IOC search (`truncated_rule_commands`, `truncated_ioc_commands`, also named
-in a warning).
+in a warning). Repeated API names, command lines and registry writes count once; signatures count
+as listed, and TTP labels once per technique and signature.
 
 ## Limitations
 
 - An ideographic full stop `。` is only treated as a dot inside brackets (`[。]`, `【。】`), since
   it also ends Chinese sentences.
-- Internationalised domain names are recognised only in punycode (`xn--`) form. A name written
-  with non-ASCII letters (an IDN or a homograph such as a Cyrillic `о`) is skipped rather than
-  reported in truncated form.
+- Internationalised domain names are recognised only in punycode (`xn--`) form. A name that mixes
+  in other non-ASCII letters, such as Cyrillic or accented Latin (`münchen.example`, or a homograph
+  with a Cyrillic `о`), is skipped rather than reported in truncated form. Letters of scripts
+  written without spaces (Chinese, Japanese, Korean, Thai and similar) end an IOC instead, so
+  `例子.c2.example` gives `c2.example`.
 - Alternative-root TLDs such as `.bit` and `.i2p` are not recognised; `.onion` is.
 - A URL directly followed by `;command` (for example `wget http://x/a.sh;chmod`) keeps that
   suffix, because `;` is legal inside URLs.
@@ -383,7 +395,8 @@ in a warning).
   (`.../a.exe：C2`) keeps that text; full-width `（），；！` do end a URL.
 - ATT&CK command rules split a line at cmd.exe's `&`, `&&` and `||` only: PowerShell statements
   joined by `;` are matched as one command.
-- `--defang` changes the scheme, host and `@` only; URL paths are left as they are.
+- `--defang` changes a URL's scheme and the dots before its path only (host, user name, password,
+  but not a bracketed IPv6 host right after `://`); paths and queries are left as they are.
 - Names and URLs broken across lines (as PDF converters leave them) are joined only where the
   hyphen at the break cannot belong to them (`evil.-` / `com`, `evil-` / `.com`) or where a URL
   breaks after one of its own hyphens (`/KB-Auto-win-` / `update.exe`, over as many lines as it
