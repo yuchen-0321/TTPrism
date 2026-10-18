@@ -19,9 +19,10 @@ their advisory.
   not sequences; the reserved names include `example.net`, `example.org`, `.localhost` and
   `.internal`; `--defang` also changes dots in a URL's user name and password; non-UTF-8 text
   needs `--encoding` with its own codec (`big5` or `gb18030`) unless it is UTF-16 or UTF-32 with
-  a byte-order mark; names mixing in Cyrillic or accented Latin letters are skipped, while CJK
-  and Thai letters end an IOC; how CAPE limits count repeated values. The quick start now creates
-  a virtual environment, and the PDF example no longer overwrites the quick start's `report.txt`.
+  a byte-order mark; names with other non-ASCII letters are skipped or cut short, while CJK, Thai
+  and right-to-left letters usually end an IOC; how CAPE limits count repeated values. The quick
+  start now creates a virtual environment, and the PDF example no longer overwrites the quick
+  start's `report.txt`.
 
 ## [0.1.0] - 2026-10-18
 

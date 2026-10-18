@@ -21,9 +21,11 @@
 
 ```sh
 python3 -m venv .venv
-source .venv/bin/activate        # Windows：.venv\Scripts\activate
+source .venv/bin/activate
 pip install ttprism
 ```
+
+Windows 上改用 `py -m venv .venv` 和 `.venv\Scripts\activate`；Debian 或 Ubuntu 若缺少 `venv`，先執行 `apt install python3-venv`。
 
 只要用指令的話，可以用 `pipx install ttprism`，它會裝在獨立的環境裡。
 
@@ -73,10 +75,10 @@ attack-technique,T1059.001,reported,PowerShell (reported as T1086)
 | 輸入 | 讀取方式 |
 | --- | --- |
 | 純文字、Markdown | 抽取 IOC，加上文中寫出的 ATT&CK 技術編號 |
-| PDF 報告 | 先轉成文字（例如 `pdftotext -raw report.pdf`）；TTPrism 不解析 PDF。[真實報告評估](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-real-reports.md)用的是 pypdf（`page.extract_text()`），頁首頁尾都包含在內；不同轉換工具斷行和寫連字號的方式不一樣 |
+| PDF 報告 | 先轉成文字（例如 `pdftotext -raw advisory.pdf`）；TTPrism 不解析 PDF。[真實報告評估](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-real-reports.md)用的是 pypdf（`page.extract_text()`），頁首頁尾都包含在內；不同轉換工具斷行和寫連字號的方式不一樣 |
 | CAPE `report.json` | 自動偵測（看起來像 JSON 但無法解析的輸入，會當成文字分析並顯示警告）；讀取網路、檔案、指令、API 呼叫、登錄機碼、簽章 |
 
-不是 UTF-8 的文字要用 `--encoding` 指定編碼：Big5 用 `big5`，GB18030 用 `gb18030`。沒指定時，無法解碼的位元組會被取代並出現警告；指定錯的編碼時（例如用 `big5` 解 GB18030 的文字），ASCII 的值可能還留得下來，全形和中日韓括號寫法的值卻會消失。有 BOM 的 UTF-16／UTF-32 會自動辨識。
+不是 UTF-8 的文字要用 `--encoding` 指定它的編碼：Big5 用 `big5`（在 Windows 上存的檔案用 `cp950`），GB18030 用 `gb18030`。沒指定或指定錯時，緊鄰中文的值可能消失或變成錯的值：Big5 的 `網域：c2.example` 不加 `--encoding` 讀，會得到 `gc2.example`。只有沒給 `--encoding` 時，才會出現無法解碼位元組的警告。有 BOM（位元組順序標記）的 UTF-16／UTF-32 會自動辨識。
 
 ## 常見用法
 
@@ -118,7 +120,7 @@ cve,CVE-2023-23397,text,
 attack-technique,T1059.001,reported,PowerShell (reported as T1086)
 ```
 
-`--defang` 適用於 JSON 和 CSV。它會改 URL 的協定和路徑前面的點（主機，以及使用者名稱或密碼裡的點；`://` 後面直接接中括號 IPv6 位址時不改）、網域和 IPv4 位址的點、IPv6 位址的冒號，以及電子郵件位址的 `@`；URL 的路徑和查詢字串保持原樣。
+`--defang` 適用於 JSON 和 CSV。它讓 IOC 值無法點擊，如上面的輸出（`hxxps[://]cdn[.]update-check[.]example/stage2.bin`、`198[.]51[.]100[.]23`），電子郵件位址則變成 `ops[@]corp[.]example`。URL 的路徑和查詢字串保持原樣，所以出現在另一個 URL 路徑或查詢字串裡的 URL 仍然可以點擊。JSON 只對 IOC 值做 defang：技術證據（例如 CAPE 的指令列）裡的 URL 保持原樣，所以要貼到聊天室時請貼 CSV，不要貼 JSON。
 
 ### CAPE 報告轉成 ATT&CK 技術與 STIX
 
@@ -272,7 +274,7 @@ attack-technique,T1564.003,rule:local.powershell-hidden-window,Hidden Window
 | `--allowlist FILE` | 加入 allowlist（可重複指定）；`--no-default-allowlist` 停用內建清單 |
 | `--rules PATH` | 加入 ATT&CK 規則檔或目錄（可重複指定）；`--no-default-rules` 停用內建規則 |
 | `--input-format auto\|text\|cape` | 輸入格式（預設 `auto`：依內容自動偵測） |
-| `--encoding NAME` | 輸入文字的編碼（預設 UTF-8；例如 `big5`、`gb18030`） |
+| `--encoding NAME` | 輸入文字的編碼（預設 UTF-8，有 BOM 時自動辨識 UTF-16／UTF-32；例如 `big5`、`gb18030`） |
 | `--max-size SIZE` | 拒絕超過這個大小的輸入（預設 `64m`） |
 | `-q`、`--quiet` | 不顯示警告 |
 
@@ -290,32 +292,30 @@ TTPrism 不從報告內文推測技術。內建的目錄是 Enterprise ATT&CK **
 
 TTPrism 預設會拿掉下列的值（括號裡是 `suppressed` 底下的鍵名）：
 
-- **保留值**（`reserved`）：私有、loopback 和文件用的 IP 範圍，全球單播區塊 `2000::/3` 以外的 IPv6 位址（IPv4-mapped 和 NAT64 `64:ff9b::/96` 位址依它帶的 IPv4 位址判斷），以及 `example.com`、`example.net`、`example.org`、`.test`、`.example`、`.invalid`、`.local`、`.localhost`、`.internal` 名稱。
+- **保留值**（`reserved`）：IP 位址，例如私有、loopback、link-local、多播和文件用的範圍，全球單播區塊 `2000::/3` 以外的 IPv6 位址，以及 6to4 和 Teredo（IPv4-mapped 和 NAT64 `64:ff9b::/96` 位址依它帶的 IPv4 位址判斷；完整清單是 [`extract.py`](https://github.com/yuchen-0321/TTPrism/blob/main/src/ttprism/extract.py) 裡的 `_RESERVED_IPV4` 和 `_RESERVED_IPV6`）；URL 主機 `localhost`；以及 `example.com`、`example.net`、`example.org`、`.test`、`.example`、`.invalid`、`.local`、`.localhost`、`.internal` 名稱。
 - **allowlist 上的值**（`allowlisted`）：大型平台的根網域（`google.com`，但不含 `drive.google.com` 或其上的 URL）、沙箱的背景流量、憑證撤銷查詢主機、`attack.mitre.org` 這類參考網站，以及空檔案的雜湊值。見 [`allowlist.yaml`](https://github.com/yuchen-0321/TTPrism/blob/main/src/ttprism/data/allowlist.yaml)。
 - **看起來像網域的檔名**（`filename_like_domain`）：沒有寫在 URL 裡的 `payload.zip` 或 `setup.py`。
 - **公共後綴**（`public_suffix`）：沒有寫在 URL 裡的 `co.uk`、`com.tw` 或 `gov.tw`（底下的名稱，例如 `evil.co.uk`，會保留）。
 - **程式識別名稱**（`code_identifier`）：`WScript.Shell`、`System.Net.Security` 這類 COM 和 .NET 名稱。
 - **瀏覽器版本**（`version_like`）：User-Agent 字串裡的 `Chrome/120.0.0.0` 不是 IPv4 位址。
 - **憑證序號**（`certificate_serial`）：緊接在序號標籤（`SerialNumber:`、`Serial Number`、`序列号`、`序號`、`憑證序號`，有沒有冒號都算）後面的十六進位值，長度和雜湊值一樣，但不是雜湊值。
-- **遮蔽過的名稱**（`masked_name`）：文字報告裡有一段是三個以上 `x` 的名稱、電子郵件位址和 URL 主機（`wiki.xxxx.com`），報告用這種寫法隱藏真正的值。
+- **遮蔽過的名稱**（`masked_name`）：有一段是三個以上 `x` 的名稱、電子郵件位址和 URL 主機（`wiki.xxxx.com`），報告用這種寫法隱藏真正的值。CAPE 報告 `network` 區段裡的 `hosts`、`domains`、`dns` 項目和 HTTP 的 `host` 欄位不做這項檢查。
 - **防毒軟體偵測名稱**（`detection_name`）：`Backdoor.Win32.Ht` 或 `Trojan.MSIL.Bot`，它們的家族名稱剛好是頂級網域。
 - **跨行斷開的名稱片段**（`line_wrap_fragment`）：上一行以字母或數字加連字號結尾時（`dynamic-` / `dns.net`），下一行開頭的名稱或電子郵件位址片段，因為那個連字號可能屬於名稱，也可能不屬於。見「限制」。
 
-每個過濾器拿掉的數量都記在 `suppressed` 底下。
-
-CAPE 報告也只讀到固定的上限，超出的部分同樣記在 `suppressed`：API 名稱、指令列、登錄機碼寫入、簽章和 TTP 標籤，各自最多讀 10,000 個（`truncated_apis`、`truncated_commands`、`truncated_registry_writes`、`truncated_signatures`、`truncated_ttps`）；指令列在規則比對和 IOC 搜尋時，各自最多讀總共 8 Mi 個字元（`truncated_rule_commands`、`truncated_ioc_commands`，並會在警告中列出）。重複的 API 名稱、指令列和登錄機碼寫入只算一次；簽章照列出的次數算，TTP 標籤則是每個技術和簽章的組合算一次。
+CAPE 報告也只讀到固定的上限，這些上限記在 `suppressed` 底下：API 名稱、指令列、登錄機碼寫入、簽章和 TTP 標籤，各自最多讀 10,000 個（`truncated_apis`、`truncated_commands`、`truncated_registry_writes`、`truncated_signatures`、`truncated_ttps`）；指令列在規則比對和 IOC 搜尋時，各自最多讀總共 8 Mi 個字元（`truncated_rule_commands`、`truncated_ioc_commands`，並會在警告中列出）。重複的 API 名稱、指令列和登錄機碼寫入只算一次；簽章照列出的次數算，TTP 標籤則是每個技術和簽章的組合算一次。
 
 ## 限制
 
 - 中文句號 `。` 只有在括號裡（`[。]`、`【。】`）才當成點，因為它也是中文句子的結尾。
-- 國際化網域名稱只認 punycode（`xn--`）形式。混了其他非 ASCII 字母（例如西里爾字母或帶重音的拉丁字母：`münchen.example`，或用西里爾字母 `о` 仿冒的同形字）的名稱會整個略過，不會以截斷的形式回報。中日韓、泰文這類字詞間不加空格的文字則會當成 IOC 的邊界，所以 `例子.c2.example` 會得到 `c2.example`。
+- 國際化網域名稱只認 punycode（`xn--`）形式。用其他非 ASCII 字母寫的名稱不會照原樣回報：依字母和它們的位置，可能整個略過（`münchen.example`，或用西里爾字母 `о` 仿冒的同形字），或被截短（`c2.example.рф` 會得到 `c2.example`）。中文、日文、韓文、泰文，以及阿拉伯文這類由右往左寫的文字，通常會被當成 IOC 周圍的文字，所以 `例子.c2.example` 會得到 `c2.example`。
 - `.bit`、`.i2p` 這類替代根的頂級網域不認得；`.onion` 認得。
 - URL 後面直接接 `;command`（例如 `wget http://x/a.sh;chmod`）時會保留這段後綴，因為 `;` 在 URL 裡是合法字元。
 - 只有一側有空白的 defang 記號（`update [.]example[.]com`）會被讀成一個單字加上一個以點開頭的名稱，得到 `example.com`；請寫成兩側都有空白的 ` [.] `，或兩側都沒有。
 - 兩個名稱字元之間的單一 bidi 記號會被當成名稱的一部分移除，所以只靠這種記號分隔的兩個 IOC（`198.51.100.7\u200f203.0.113.9`）不會被拆開。
 - 全形冒號 `：` 會讀成 `:`，所以 URL 後面直接接 `：` 和 ASCII 文字時（`.../a.exe：C2`），會連那段文字一起保留；全形的 `（），；！` 則會結束 URL。
 - ATT&CK 指令規則只在 cmd.exe 的 `&`、`&&` 和 `||` 切分一行：用 `;` 串起來的 PowerShell 敘述會被當成一個指令比對。
-- `--defang` 只改 URL 的協定和路徑前面的點（主機、使用者名稱、密碼，但 `://` 後面直接接的中括號 IPv6 主機不改），路徑和查詢字串保持原樣。
+- `--defang` 不改 URL 的路徑和查詢字串，在 JSON 裡也不處理技術證據。
 - 跨行斷開的名稱和 URL（PDF 轉換工具常留下這種結果）只在兩種情況會接回去：斷點的連字號不可能屬於它們（`evil.-` / `com`、`evil-` / `.com`），或 URL 在它自己的某個連字號後面斷開（`/KB-Auto-win-` / `update.exe`，跨幾行都會接；URL 還在主機部分時，只有一整行都是字母、數字、點和連字號，或接著進到連接埠或路徑的那一行，才會把它帶到再下一行，所以在使用者名稱或密碼後面又斷行的 URL 會在那裡被切斷）。以下情況會判斷錯誤：
   - 真的以 `-` 結尾、剛好位於行尾的 URL，會和下一行開頭接在一起；
   - 轉換工具在斷開 URL 時自己加上的連字號會被保留（即使 URL 其實是 `/downloadfile.exe`，`/download-` / `file.exe` 也會得到 `/download-file.exe`），跨幾行都一樣；
@@ -324,6 +324,7 @@ CAPE 報告也只讀到固定的上限，超出的部分同樣記在 `suppressed
 
   沒有連字號的斷行（`mp.weixi` / `n.qq.com`）看不出這一行還沒結束，所以這類名稱和 URL 不會被接起來，每一行上的部分可能各自被回報。
 - 每個軟連字號（U+00AD）都讀成一個連字號，一對一（兩個就是 `--`）：從 PDF 抽出的文字裡，它出現在頁面上顯示連字號的位置（字型使用 WinAnsi 編碼、以代碼 0xAD 畫出的連字號，pypdf 會給 U+00AD，`pdftotext -raw` 則給 `-`；除了下面說的軟連字號被刪除的情況，兩份文字抽出的 IOC 相同）。在行尾，它和換行之間最多隔 1,024 個空白或格式字元時，作用和 `-` 完全一樣。以下情況則會刪除它：緊接在行尾連字號之後（這時 `pdftotext -raw` 會給 `--`；在它前面的軟連字號仍算連字號）、在含有 U+2063 或 bidi embedding／isolate 結束字元的一串格式字元裡，以及在超過 64 個的一串格式字元裡。從網頁複製的文字則把軟連字號當成看不見的斷行提示（`&shy;`）：這時 `KB-Auto` 應該讀成 `KBAuto`，中間夾著軟連字號的雜湊值會遺失，而它的片段可能被回報成較短的雜湊值（從中間切開的 SHA-256 變成兩個 MD5）。刪掉所有軟連字號會改變任何回報的值時，TTPrism 會發出警告；為了判斷這一點，它會把這類文字最前面最多 8 Mi 個字元再抽取一次，並在沒有值能延續的地方切開（8 Mi 之前最後 64 Ki 個字元內的行尾或空白，沒有的話就在 8 Mi 處）。在更長的文字裡，它只找得到刪掉軟連字號後會多出來的值，找不到會消失的值。pdftotext 的預設模式和 `-raw` 不同，還會把行尾是連字號的那一行接到下一行並刪掉連字號，這是逐行讀取無論如何都重現不了的。
+- CAPE 報告的文字欄位各自只讀前 8,192 個字元，不計數也不警告，所以跨過這個位置的值可能被截短回報（`198.51.100.23` 變成 `198.51.100.2`）；超過 100 個字元的 API 名稱，以及 `signatures` 區段裡名稱超過 200 個字元的項目，會被略過，同樣不計數。
 - 沙箱格式目前只支援 CAPE。
 
 ## 評估
