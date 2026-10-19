@@ -277,6 +277,7 @@ def test_command_line_is_not_cut_inside_a_spaced_defang(value: str) -> None:
     command = head + "x" * (MAX_FIELD_CHARS - len(head) - last_blank - 3) + " " + value + " tail"
     assert command[:MAX_FIELD_CHARS].endswith(value[: last_blank + 2])
     report = {"info": {}, "behavior": {"summary": {"executed_commands": [command]}}}
+    assert parse_cape(report).behavior.commands == [command[: command.index(" " + value)]]
     result = analyze_cape(report, AnalysisOptions(include_reserved=True))
     assert [(i.type, i.value) for i in result.iocs] == [
         (IOCType.URL, "http://first.example.net/a"),

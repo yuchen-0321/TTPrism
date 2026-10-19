@@ -32,7 +32,7 @@ _FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
 # where the next URL starts, so each URL of "'http://a.example','http://b.example'" is found.
 _URL_START_RE = re.compile(
     r"(?<![A-Za-z0-9+.-])[A-Za-z][A-Za-z0-9+.-]{0,31}://"
-    r"(?:(?![A-Za-z][A-Za-z0-9+.-]{0,31}://)[^/?#\s]){0,1024}"
+    r"(?:(?![A-Za-z][A-Za-z0-9+-]{0,31}://)[^/?#\s]){0,1024}"
 )
 # A name anywhere but inside a longer name: also after "\", "@", "_" or "/", which DOMAIN_RE
 # excludes ("...\ZoneMap\Domains\evil.example", "dig @ns1.evil.example", "_dmarc.evil.example").

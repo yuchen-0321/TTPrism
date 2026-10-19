@@ -105,6 +105,13 @@ def test_defanged_json_defangs_evidence() -> None:
             'curl -d {"a":"http://a.example","b":"https://b.example","c":"ftp://c.example"}',
             'curl -d {"a":"hxxp[://]a[.]example","b":"hxxps[://]b[.]example","c":"fxp[://]c[.]example"}',
         ),
+        # A "://" right after a host does not make the host the next URL's scheme.
+        ("curl http://evil.example://", "curl hxxp[://]evil[.]example://"),
+        ("curl http://1evil.example://evil2.test/a", "curl hxxp[://]1evil[.]example://evil2[.]test/a"),
+        (
+            "iwr http://very-long-subdomain-name-here.evil.example-http://b.example",
+            "iwr hxxp[://]very-long-subdomain-name-here[.]evil[.]example-http://b[.]example",
+        ),
         # Names after characters that DOMAIN_RE does not start a name after.
         (
             "command: reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings"
