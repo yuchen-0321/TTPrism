@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from ttprism import IOCType, defang, refang
-from ttprism.refang import refang_soft_hyphens_as_hints
+from ttprism.refang import cut_between_values, refang_soft_hyphens_as_hints
 
 
 @pytest.mark.parametrize(
@@ -81,6 +81,19 @@ def test_bare_ideographic_full_stop_is_left_alone() -> None:
         ("https://evil.com/a.php?x=1.2", IOCType.URL, "hxxps[://]evil[.]com/a.php?x=1.2"),
         ("ftp://user@files.evil.com:21/x", IOCType.URL, "fxp[://]user@files[.]evil[.]com:21/x"),
         ("http://[2001:db8::1]/x", IOCType.URL, "hxxp[://][2001:db8::1]/x"),
+        # The IPv4 part of an IPv6 address, also in a URL host, has its dots defanged.
+        ("::ffff:198.51.100.7", IOCType.IPV6, "[:][:]ffff[:]198[.]51[.]100[.]7"),
+        ("64:ff9b::198.51.100.7", IOCType.IPV6, "64[:]ff9b[:][:]198[.]51[.]100[.]7"),
+        (
+            "http://[::ffff:198.51.100.7]:8080/a.b",
+            IOCType.URL,
+            "hxxp[://][::ffff:198[.]51[.]100[.]7]:8080/a.b",
+        ),
+        (
+            "http://u.ser:p.w@[64:ff9b::198.51.100.7]/",
+            IOCType.URL,
+            "hxxp[://]u[.]ser:p[.]w@[64:ff9b::198[.]51[.]100[.]7]/",
+        ),
         ("d41d8cd98f00b204e9800998ecf8427e", IOCType.MD5, "d41d8cd98f00b204e9800998ecf8427e"),
     ],
 )
@@ -357,3 +370,20 @@ def test_soft_hyphens_can_be_read_as_break_hints(text: str, expected: str) -> No
 )
 def test_soft_hyphens_that_both_readings_share(text: str) -> None:
     assert refang_soft_hyphens_as_hints(text) is None
+
+
+@pytest.mark.parametrize(
+    ("text", "limit", "expected"),
+    [
+        ("a b", 3, "a b"),  # at most the limit: not cut
+        ("a b c", 4, "a b"),
+        ("abcde", 4, None),
+        ("a {.} b", 6, None),  # every blank touches a bracket
+        ("x a [ . ] b", 9, "x"),
+        ("x a \uff08 at \uff09 b", 9, "x"),
+        ("x a \ufe59.\ufe5a b", 7, "x"),  # small parentheses fold to ASCII
+        ("x evil-\nnet", 10, "x"),  # a line-end hyphen may join the lines
+    ],
+)
+def test_cut_between_values(text: str, limit: int, expected: str | None) -> None:
+    assert cut_between_values(text, limit, limit) == expected

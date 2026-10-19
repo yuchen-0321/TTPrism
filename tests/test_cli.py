@@ -77,6 +77,25 @@ def test_extract_defang(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> N
     assert "hxxps[://]evil[.]com/x" in out
 
 
+def test_extract_defang_evidence(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+    commands = [
+        'reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings\\ZoneMap'
+        '\\Domains\\evil.example" /v http /t REG_DWORD /d 2 /f',
+        "powershell -enc AAAA 'http://a.example','http://b.example' ping 198.51.100.7",
+    ]
+    report = tmp_path / "r.json"
+    report.write_text(json.dumps({"info": {}, "behavior": {"summary": {"executed_commands": commands}}}))
+    code, out, err = run(capsys, "extract", str(report), "--defang", "--include-reserved")
+    assert (code, err) == (0, "")
+    evidence = {t["id"]: t["evidence"] for t in json.loads(out)["techniques"]}
+    assert evidence["T1059.001"] == [
+        "command: powershell -enc AAAA 'hxxp[://]a[.]example','hxxp[://]b[.]example' ping 198[.]51[.]100[.]7"
+    ]
+    assert evidence["T1112"] == [
+        "command: " + commands[0].replace("evil.example", "evil[.]example"),
+    ]
+
+
 def test_stdin(capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO("evil【.】com".encode())))
     code, out, _ = run(capsys, "extract", "-")
@@ -88,12 +107,48 @@ def test_encoding_option(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> 
     report = tmp_path / "big5.txt"
     report.write_bytes("惡意網域 evil．com".encode("big5", errors="ignore") + b" evil2.com")
     code, out, err = run(capsys, "extract", str(report))
-    assert code == 0
+    assert code == 1
+    assert out == ""
     assert "not valid UTF-8" in err
     code, out, err = run(capsys, "extract", str(report), "--encoding", "big5")
     assert code == 0
     assert err == ""
     assert {i["value"] for i in json.loads(out)["iocs"]} == {"evil.com", "evil2.com"}
+
+
+@pytest.mark.parametrize("output", [None, "out.json"])
+def test_text_that_is_not_utf8_needs_encoding(
+    capsys: pytest.CaptureFixture[str], tmp_path: Path, output: str | None
+) -> None:
+    # Read as UTF-8 with the bad bytes replaced, the last byte of "：" glued to the name: gc2.example.
+    report = tmp_path / "big5.txt"
+    report.write_bytes("網域：c2.example".encode("big5"))
+    args = ["-o", str(tmp_path / output)] if output else []
+    code, out, err = run(capsys, "extract", str(report), *args)
+    assert code == 1
+    assert out == ""
+    assert err == (
+        "ttprism: error: input is not valid UTF-8 (byte 0xba at offset 0); pass its encoding, e.g. "
+        "--encoding big5, cp950 or gb18030 for Chinese text\n"
+    )
+    assert not (tmp_path / "out.json").exists()
+    for encoding in ("big5", "cp950"):
+        code, out, err = run(capsys, "extract", str(report), "--encoding", encoding, "--include-reserved")
+        assert (code, err) == (0, "")
+        assert [i["value"] for i in json.loads(out)["iocs"]] == ["c2.example"]
+
+
+def test_utf8_with_a_byte_order_mark(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+    report = tmp_path / "r.txt"
+    report.write_bytes(codecs.BOM_UTF8 + "evil.com 網域\n".encode())
+    code, out, err = run(capsys, "extract", str(report))
+    assert (code, err) == (0, "")
+    assert [i["value"] for i in json.loads(out)["iocs"]] == ["evil.com"]
+    # The offset counts the byte-order mark.
+    report.write_bytes(codecs.BOM_UTF8 + b"evil.com \xff")
+    code, out, err = run(capsys, "extract", str(report))
+    assert code == 1
+    assert "(byte 0xff at offset 12)" in err
 
 
 def test_max_size(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
@@ -413,6 +468,21 @@ def test_bom_is_stripped_with_explicit_encoding(capsys: pytest.CaptureFixture[st
         assert "T1490" in {t["id"] for t in data["techniques"]}
 
 
+def test_two_byte_order_marks(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+    # A tool that adds a byte-order mark to a file that has one leaves two.
+    report = tmp_path / "bom.json"
+    report.write_bytes(
+        codecs.BOM_UTF8 * 2
+        + b'{"info": {}, "behavior": {"summary": {"executed_commands": ["vssadmin delete shadows /all"]}}}'
+    )
+    for extra in ([], ["--input-format", "cape"]):
+        code, out, err = run(capsys, "extract", str(report), *extra)
+        assert (code, err) == (0, "")
+        data = json.loads(out)
+        assert data["input"]["format"] == "cape"
+        assert "T1490" in {t["id"] for t in data["techniques"]}
+
+
 def test_max_size_ceiling(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
     report = _report(tmp_path)
     with pytest.raises(SystemExit) as exit_info:
@@ -486,6 +556,19 @@ def test_utf32_and_bomless_utf16(capsys: pytest.CaptureFixture[str], tmp_path: P
     code, out, err = run(capsys, "extract", str(report), "--encoding", "utf-16-le")
     assert err == ""
     assert [i["value"] for i in json.loads(out)["iocs"]] == ["evil.com"]
+
+    # With a CJK character it is not valid UTF-8; the error names UTF-16, not a Chinese codec.
+    for codec in ("utf-16-le", "utf-16-be"):
+        report.write_bytes("網域 c2.example\n".encode(codec))
+        code, out, err = run(capsys, "extract", str(report))
+        assert (code, out) == (1, "")
+        assert err.endswith(
+            "it is probably UTF-16 or UTF-32 without a byte-order mark: pass --encoding utf-16-le "
+            "(or utf-16-be, utf-32)\n"
+        )
+        code, out, err = run(capsys, "extract", str(report), "--encoding", codec, "--include-reserved")
+        assert (code, err) == (0, "")
+        assert [i["value"] for i in json.loads(out)["iocs"]] == ["c2.example"]
 
 
 def test_missing_standard_streams(

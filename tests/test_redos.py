@@ -14,6 +14,8 @@ import reference_matcher
 from timing import seconds_per_mb, size_mb
 from ttprism import AnalysisOptions, analyze_text
 from ttprism.attack import Behavior, RuleSet
+from ttprism.cape import MAX_FIELD_CHARS, parse_cape
+from ttprism.export import defang_text
 from ttprism.inputs import InputError, load_json
 
 SIZE = 1_000_000
@@ -24,6 +26,8 @@ TEXT_SECONDS_PER_MB = 10.0
 SOFT_HYPHEN_CHECK_RATIO = 3.0
 COMMAND_SECONDS_PER_MB = 5.0
 JSON_SECONDS_PER_MB = 10.0
+# Repeats of one long command line: the cost of cutting it once, spread over all of them.
+REPEATED_COMMAND_SECONDS_PER_MB = 0.01
 # Everyday command lines: about 0.03 to 0.1 s/MB in the development container, and 19 to 28 times
 # faster than the matcher that tried every phrase list on every command (tests/reference_matcher.py).
 EVERYDAY_COMMAND_SECONDS_PER_MB = 0.25
@@ -273,6 +277,49 @@ def test_soft_hyphen_check_cut_is_linear(text: str) -> None:
     ):
         cost = seconds_per_mb(lambda: analyze._checked_part(text), size_mb(text))
     assert cost < TEXT_SECONDS_PER_MB, f"{cost:.2f} s/MB"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        *PATHOLOGICAL.values(),
+        "a://" * (SIZE // 4),
+        " a" * (SIZE // 2),
+        "a" * SIZE + "://",
+        "a://" + "a" * SIZE,
+        "a://a," * (SIZE // 6),
+        "a://" + "a" * 31 + "+" * (SIZE // 2),
+        "_a1." * (SIZE // 4),
+        "\\a-a.a" * (SIZE // 6),
+        "@a." * (SIZE // 3),
+    ],
+    ids=[
+        *PATHOLOGICAL.keys(),
+        "schemes",
+        "short words",
+        "long scheme",
+        "long authority",
+        "url list",
+        "scheme-like authority",
+        "names after underscores",
+        "names after backslashes",
+        "names after at signs",
+    ],
+)
+def test_evidence_defanging_is_linear(text: str) -> None:
+    cost = seconds_per_mb(lambda: defang_text(text), size_mb(text))
+    assert cost < TEXT_SECONDS_PER_MB, f"{cost:.2f} s/MB"
+
+
+def test_repeated_long_command_lines_are_cut_once() -> None:
+    # Each distinct line over MAX_FIELD_CHARS is cut once, not once per repeat: 5,000 repeats of a
+    # line with a blank every other character used to cost about 0.05 s/MB here, and now cost
+    # nothing per repeat.
+    command = "a " * (MAX_FIELD_CHARS // 2 + 100)
+    count = 5000
+    report = {"info": {}, "behavior": {"summary": {"executed_commands": [command] * count}}}
+    cost = seconds_per_mb(lambda: parse_cape(report), size_mb(command) * count)
+    assert cost < REPEATED_COMMAND_SECONDS_PER_MB, f"{cost:.4f} s/MB"
 
 
 @pytest.mark.parametrize("command", PATHOLOGICAL_COMMANDS.values(), ids=PATHOLOGICAL_COMMANDS.keys())
