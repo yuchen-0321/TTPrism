@@ -449,11 +449,11 @@ signature's is counted (`merged_ttps`).
   hash with one inside it is lost, while its pieces may be reported as shorter hashes (a SHA-256
   split in the middle as two MD5s). TTPrism warns when deleting every soft hyphen would change any
   value it reports; to find out, it extracts at most the first 8 Mi characters of such a text a
-  second time, cut where no value can go on (a line end or a space in the last 64 Ki characters
-  before that, or at 8 Mi if there is none). In a longer text it finds only values that deleting the
-  soft hyphens would add, not those it would lose. pdftotext's default mode, unlike `-raw`, also
-  joins a line ending in a hyphen to the next and drops the hyphen, which no reading of separate
-  lines can repeat.
+  second time, cut where no value can go on (a line end or a space at 8 Mi or in the last 64 Ki
+  characters before it, or at 8 Mi if there is none). In a longer text it finds only values that
+  deleting the soft hyphens would add, not those it would lose. pdftotext's default mode, unlike
+  `-raw`, also joins a line ending in a hyphen to the next and drops the hyphen, which no reading
+  of separate lines can repeat.
 - CAPE is the only sandbox format so far.
 
 ## Evaluation

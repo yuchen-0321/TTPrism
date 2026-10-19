@@ -24,12 +24,11 @@ their advisory.
 - CAPE text fields over 8,192 characters are left out and counted (`truncated_fields`) instead of
   being cut, which could report a value cut short (`198.51.100.2` for `198.51.100.23`); a command
   line that long is cut at its last blank at or before that point that refang does not join a
-  value across (not one next to a bracket, as in `evil [.] com`, in any width), and left out if
-  there is no such place; a command line repeated in the report is cut and counted once.
-- That cut keeps a value that ends exactly at the 8,192-character limit (it dropped
-  `198.51.100.23`, which 0.1.0 reported), and judges a run of blanks that goes on past the limit
-  up to its real end, so a bracket, or a line break after a hyphen, right after the limit no
-  longer leaves a value cut short (`c2.example` for `c2.example.net`).
+  value across (not one next to a bracket, as in `evil [.] com`, in any width, judging a run of
+  blanks that goes on past that point up to its end), and left out if there is no such place; a
+  command line repeated in the report is cut and counted once.
+- The soft-hyphen check can also cut its first 8 Mi characters at a blank right at 8 Mi, so a
+  value that ends there is checked too.
 - CAPE drops that were not counted now are: API names over 100 characters (`long_api_names`),
   signatures whose name is over 200 (`long_signature_names`), TTP labels that the 200-character cut
   of a signature name merges with another signature's (`merged_ttps`), and filtered values in HTTP

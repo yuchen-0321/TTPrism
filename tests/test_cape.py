@@ -320,6 +320,8 @@ def test_command_line_value_ending_at_the_field_limit_is_kept(
         (" c2.example ", "\u200b\uff08\u9ede\uff09 net tail"),
         (" c2.example.- ", "\nnet tail"),
         (" c2.example.-\r", "\nnet tail"),
+        (" c2.example ", "\u200b\u200b\uff08\u9ede\uff09 net tail"),
+        (" c2.example.\uff0d ", "\u3000\nnet tail"),
     ],
 )
 def test_blank_run_over_the_field_limit_is_checked_at_its_end(before_limit: str, after_limit: str) -> None:

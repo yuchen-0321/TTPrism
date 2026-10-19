@@ -167,8 +167,11 @@ def cut_between_values(text: str, limit: int, window: int) -> str | None:
     if len(text) <= limit:
         return text
     blank_run, leaves_space = blank_run_res()
-    for run in reversed(list(blank_run.finditer(text, max(0, limit - window), limit + 1))):
+    first = max(0, limit - window)
+    for run in reversed(list(blank_run.finditer(text, first, limit + 1))):
         start, end = run.span()
+        if start == first > 0 and blank_run.match(text, start - 1, start):  # starts before the window
+            continue
         if end > limit:  # the run goes on past the limit: check it at its real end
             run = blank_run.match(text, start) or run
             end = run.end()
