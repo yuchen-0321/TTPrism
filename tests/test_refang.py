@@ -377,6 +377,7 @@ def test_soft_hyphens_that_both_readings_share(text: str) -> None:
     [
         ("a b", 3, "a b"),  # at most the limit: not cut
         ("a b c", 4, "a b"),
+        ("ab cd", 2, "ab"),  # a blank right at the limit
         ("abcde", 4, None),
         ("a {.} b", 6, None),  # every blank touches a bracket
         ("x a [ . ] b", 9, "x"),

@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 
 from timing import seconds_per_mb, size_mb
-from ttprism import AnalysisOptions, AttackCatalog, IOCType, analyze_cape
+from ttprism import AnalysisOptions, AttackCatalog, IOCType, analyze_cape, analyze_text
 from ttprism.cape import (
     MAX_API_CHARS,
     MAX_FIELD_CHARS,
@@ -278,6 +278,61 @@ def test_command_line_is_not_cut_inside_a_spaced_defang(value: str) -> None:
     assert command[:MAX_FIELD_CHARS].endswith(value[: last_blank + 2])
     report = {"info": {}, "behavior": {"summary": {"executed_commands": [command]}}}
     assert parse_cape(report).behavior.commands == [command[: command.index(" " + value)]]
+    result = analyze_cape(report, AnalysisOptions(include_reserved=True))
+    assert [(i.type, i.value) for i in result.iocs] == [
+        (IOCType.URL, "http://first.example.net/a"),
+        (IOCType.DOMAIN, "first.example.net"),
+    ]
+    assert result.suppressed == {"truncated_fields": 1}
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("198.51.100.23", [(IOCType.IPV4, "198.51.100.23")]),
+        ("c2.example.net", [(IOCType.DOMAIN, "c2.example.net")]),
+        (
+            "http://c2.example.net/a",
+            [(IOCType.URL, "http://c2.example.net/a"), (IOCType.DOMAIN, "c2.example.net")],
+        ),
+        ("c2【.】example.net", [(IOCType.DOMAIN, "c2.example.net")]),
+    ],
+)
+def test_command_line_value_ending_at_the_field_limit_is_kept(
+    value: str, expected: list[tuple[IOCType, str]]
+) -> None:
+    # The blank after the value is the character at the limit, which the search for the cut used to
+    # leave out: the line was cut before the value and the value lost.
+    head = "cmd /c echo "
+    command = head + "x" * (MAX_FIELD_CHARS - len(head) - len(value) - 1) + " " + value + " tail"
+    assert command[:MAX_FIELD_CHARS].endswith(" " + value)
+    report = {"info": {}, "behavior": {"summary": {"executed_commands": [command]}}}
+    assert parse_cape(report).behavior.commands == [command[:MAX_FIELD_CHARS]]
+    result = analyze_cape(report, AnalysisOptions(include_reserved=True))
+    assert [(i.type, i.value) for i in result.iocs] == expected
+    assert result.suppressed == {"truncated_fields": 1}
+
+
+@pytest.mark.parametrize(
+    ("before_limit", "after_limit"),
+    [
+        (" c2.example ", "\u200b[.] net tail"),
+        (" c2.example ", "\u200b\uff08\u9ede\uff09 net tail"),
+        (" c2.example.- ", "\nnet tail"),
+        (" c2.example.-\r", "\nnet tail"),
+    ],
+)
+def test_blank_run_over_the_field_limit_is_checked_at_its_end(before_limit: str, after_limit: str) -> None:
+    # The limit falls inside the blank run after c2.example. Its end, a bracket or a line break after
+    # a hyphen, is past the limit; judged by the part before the limit, the run was cut and
+    # c2.example reported for c2.example.net. The line is cut before the value instead.
+    head = "curl http://first.example.net/a "
+    command = head + "x" * (MAX_FIELD_CHARS - len(head) - len(before_limit)) + before_limit + after_limit
+    assert command[:MAX_FIELD_CHARS].endswith(before_limit)
+    whole = analyze_text(command, AnalysisOptions(include_reserved=True))
+    assert (IOCType.DOMAIN, "c2.example.net") in [(i.type, i.value) for i in whole.iocs]
+    report = {"info": {}, "behavior": {"summary": {"executed_commands": [command]}}}
+    assert parse_cape(report).behavior.commands == [command[: command.index(" c2.example")]]
     result = analyze_cape(report, AnalysisOptions(include_reserved=True))
     assert [(i.type, i.value) for i in result.iocs] == [
         (IOCType.URL, "http://first.example.net/a"),

@@ -388,9 +388,10 @@ rule matching and for IOC search (`truncated_rule_commands`, `truncated_ioc_comm
 in a warning). Repeated API names, command lines and registry writes count once; signatures count
 as listed, and TTP labels once per technique and signature. A text field over 8,192 characters is
 left out (`truncated_fields`, counted each time, a repeated command line once), except that a
-command line is cut at its last space or line break before that point that refang does not join a
-value across (not one next to a bracket, as in `evil [.] com`, nor a line break after a hyphen),
-and left out only if it has none. API names over 100 characters (`long_api_names`, once per name)
+command line is cut at its last space or line break at or before that point that refang does not
+join a value across (not one next to a bracket, as in `evil [.] com`, nor a line break after a
+hyphen, judging blanks that go on past that point up to their end), and left out only if it has
+none. API names over 100 characters (`long_api_names`, once per name)
 and signatures whose name is over 200 (`long_signature_names`, as listed) are skipped; for TTP
 labels such a name is cut to 200 characters, and a label that the cut makes the same as another
 signature's is counted (`merged_ttps`).

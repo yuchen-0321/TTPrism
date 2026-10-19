@@ -17,6 +17,7 @@ from ttprism.attack import Behavior, RuleSet
 from ttprism.cape import MAX_FIELD_CHARS, parse_cape
 from ttprism.export import defang_text
 from ttprism.inputs import InputError, load_json
+from ttprism.refang import cut_between_values
 
 SIZE = 1_000_000
 TEXT_SECONDS_PER_MB = 10.0
@@ -276,6 +277,25 @@ def test_soft_hyphen_check_cut_is_linear(text: str) -> None:
         mock.patch.object(analyze, "_CUT_WINDOW", len(text)),
     ):
         cost = seconds_per_mb(lambda: analyze._checked_part(text), size_mb(text))
+    assert cost < TEXT_SECONDS_PER_MB, f"{cost:.2f} s/MB"
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        # A 1 MB blank run from just before the limit, judged by what comes after its end.
+        ("a" * (MAX_FIELD_CHARS - 1) + " " * SIZE + "[.] b", None),
+        ("a" * (MAX_FIELD_CHARS - 2) + "-" + " " * SIZE + "\nb", None),
+        ("a" * (MAX_FIELD_CHARS - 1) + "\u200b " * (SIZE // 2) + "b", "a" * (MAX_FIELD_CHARS - 1)),
+    ],
+    ids=["bracket after the run", "line break after a hyphen", "value after the run"],
+)
+def test_cut_of_a_blank_run_over_the_limit_is_linear(text: str, expected: str | None) -> None:
+    result: list[str | None] = []
+    cost = seconds_per_mb(
+        lambda: result.append(cut_between_values(text, MAX_FIELD_CHARS, MAX_FIELD_CHARS)), size_mb(text)
+    )
+    assert result == [expected]
     assert cost < TEXT_SECONDS_PER_MB, f"{cost:.2f} s/MB"
 
 

@@ -303,7 +303,7 @@ TTPrism 預設會拿掉下列的值（括號裡是 `suppressed` 底下的鍵名�
 - **防毒軟體偵測名稱**（`detection_name`）：`Backdoor.Win32.Ht` 或 `Trojan.MSIL.Bot`，它們的家族名稱剛好是頂級網域。
 - **跨行斷開的名稱片段**（`line_wrap_fragment`）：上一行以字母或數字加連字號結尾時（`dynamic-` / `dns.net`），下一行開頭的名稱或電子郵件位址片段，因為那個連字號可能屬於名稱，也可能不屬於。見「限制」。
 
-CAPE 報告也只讀到固定的上限，這些上限記在 `suppressed` 底下：API 名稱、指令列、登錄機碼寫入、簽章和 TTP 標籤，各自最多讀 10,000 個（`truncated_apis`、`truncated_commands`、`truncated_registry_writes`、`truncated_signatures`、`truncated_ttps`）；指令列在規則比對和 IOC 搜尋時，各自最多讀總共 8 Mi 個字元（`truncated_rule_commands`、`truncated_ioc_commands`，並會在警告中列出）。重複的 API 名稱、指令列和登錄機碼寫入只算一次；簽章照列出的次數算，TTP 標籤則是每個技術和簽章的組合算一次。超過 8,192 個字元的文字欄位會被略過（`truncated_fields`，每次遇到都算，重複的指令列只算一次）；只有指令列例外，會在這個位置之前最後一個 refang 不會把值接過去的空白或換行處切斷（不切在括號旁邊，例如 `evil [.] com`，也不切在連字號後面的換行），沒有這種位置才略過。超過 100 個字元的 API 名稱（`long_api_names`，每個名稱算一次），以及名稱超過 200 個字元的簽章（`long_signature_names`，照列出的次數算）會被略過；在 TTP 標籤裡，這種名稱會被截到 200 個字元，而截斷後和另一個簽章的標籤變成相同的，會被計數（`merged_ttps`）。
+CAPE 報告也只讀到固定的上限，這些上限記在 `suppressed` 底下：API 名稱、指令列、登錄機碼寫入、簽章和 TTP 標籤，各自最多讀 10,000 個（`truncated_apis`、`truncated_commands`、`truncated_registry_writes`、`truncated_signatures`、`truncated_ttps`）；指令列在規則比對和 IOC 搜尋時，各自最多讀總共 8 Mi 個字元（`truncated_rule_commands`、`truncated_ioc_commands`，並會在警告中列出）。重複的 API 名稱、指令列和登錄機碼寫入只算一次；簽章照列出的次數算，TTP 標籤則是每個技術和簽章的組合算一次。超過 8,192 個字元的文字欄位會被略過（`truncated_fields`，每次遇到都算，重複的指令列只算一次）；只有指令列例外，會在這個位置或之前最後一個 refang 不會把值接過去的空白或換行處切斷（不切在括號旁邊，例如 `evil [.] com`，也不切在連字號後面的換行；跨過這個位置的連續空白看到它真正的結尾），沒有這種位置才略過。超過 100 個字元的 API 名稱（`long_api_names`，每個名稱算一次），以及名稱超過 200 個字元的簽章（`long_signature_names`，照列出的次數算）會被略過；在 TTP 標籤裡，這種名稱會被截到 200 個字元，而截斷後和另一個簽章的標籤變成相同的，會被計數（`merged_ttps`）。
 
 ## 限制
 
