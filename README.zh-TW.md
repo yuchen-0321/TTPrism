@@ -120,7 +120,7 @@ cve,CVE-2023-23397,text,
 attack-technique,T1059.001,reported,PowerShell (reported as T1086)
 ```
 
-`--defang` 適用於 JSON 和 CSV。它讓 IOC 值無法點擊，如上面的輸出（`hxxps[://]cdn[.]update-check[.]example/stage2.bin`、`198[.]51[.]100[.]23`），電子郵件位址則變成 `ops[@]corp[.]example`；IPv6 位址裡 IPv4 部分的點也會改掉（`[:][:]ffff[:]198[.]51[.]100[.]7`）。URL 的路徑和查詢字串保持原樣，所以在 IOC 清單裡，出現在另一個 URL 路徑或查詢字串裡的 URL 仍然可以點擊。JSON 裡的技術證據（例如 CAPE 的指令列）也會 defang：其中每個 URL 改到路徑之前（任何後面接 `://` 的 scheme，也包括另一個 URL 裡的 URL），以及每個 IP 位址、電子郵件位址和最後一段是 TLD 的名稱（`cmd.exe` 和 `T1059.001` 保持原樣）。
+`--defang` 適用於 JSON 和 CSV。它讓 IOC 值無法點擊，如上面的輸出（`hxxps[://]cdn[.]update-check[.]example/stage2.bin`、`198[.]51[.]100[.]23`），電子郵件位址則變成 `ops[@]corp[.]example`；IPv6 位址裡 IPv4 部分的點也會改掉（`[:][:]ffff[:]198[.]51[.]100[.]7`）。URL 的路徑和查詢字串保持原樣，所以在 IOC 清單裡，出現在另一個 URL 路徑或查詢字串裡的 URL 仍然可以點擊。JSON 裡的技術證據（例如 CAPE 的指令列）也會 defang，連路徑和查詢字串也包括在內：其中每個 URL 改到路徑之前（任何後面接 `://` 的 scheme，也包括另一個 URL 裡的 URL，或一串 URL 清單裡的每一個），以及每個 IP 位址、電子郵件位址和最後一段是 TLD 的名稱，接在 `\`、`@` 或 `_` 後面的也算（`...\Domains\evil[.]example`、`dig @ns1[.]evil[.]example`；`cmd.exe` 和 `T1059.001` 保持原樣）。
 
 ### CAPE 報告轉成 ATT&CK 技術與 STIX
 
@@ -303,7 +303,7 @@ TTPrism 預設會拿掉下列的值（括號裡是 `suppressed` 底下的鍵名�
 - **防毒軟體偵測名稱**（`detection_name`）：`Backdoor.Win32.Ht` 或 `Trojan.MSIL.Bot`，它們的家族名稱剛好是頂級網域。
 - **跨行斷開的名稱片段**（`line_wrap_fragment`）：上一行以字母或數字加連字號結尾時（`dynamic-` / `dns.net`），下一行開頭的名稱或電子郵件位址片段，因為那個連字號可能屬於名稱，也可能不屬於。見「限制」。
 
-CAPE 報告也只讀到固定的上限，這些上限記在 `suppressed` 底下：API 名稱、指令列、登錄機碼寫入、簽章和 TTP 標籤，各自最多讀 10,000 個（`truncated_apis`、`truncated_commands`、`truncated_registry_writes`、`truncated_signatures`、`truncated_ttps`）；指令列在規則比對和 IOC 搜尋時，各自最多讀總共 8 Mi 個字元（`truncated_rule_commands`、`truncated_ioc_commands`，並會在警告中列出）。重複的 API 名稱、指令列和登錄機碼寫入只算一次；簽章照列出的次數算，TTP 標籤則是每個技術和簽章的組合算一次。超過 8,192 個字元的文字欄位會被略過（`truncated_fields`，每次遇到都算）；只有指令列例外，會在這個位置之前最後一個值不可能延續的空白或換行處切斷，沒有這種位置才略過，所以不會有值被截短回報。超過 100 個字元的 API 名稱（`long_api_names`，每個名稱算一次），以及名稱超過 200 個字元的簽章（`long_signature_names`，照列出的次數算）會被略過；在 TTP 標籤裡，這種名稱會被截到 200 個字元，而截斷後和另一個簽章的標籤變成相同的，會被計數（`merged_ttps`）。
+CAPE 報告也只讀到固定的上限，這些上限記在 `suppressed` 底下：API 名稱、指令列、登錄機碼寫入、簽章和 TTP 標籤，各自最多讀 10,000 個（`truncated_apis`、`truncated_commands`、`truncated_registry_writes`、`truncated_signatures`、`truncated_ttps`）；指令列在規則比對和 IOC 搜尋時，各自最多讀總共 8 Mi 個字元（`truncated_rule_commands`、`truncated_ioc_commands`，並會在警告中列出）。重複的 API 名稱、指令列和登錄機碼寫入只算一次；簽章照列出的次數算，TTP 標籤則是每個技術和簽章的組合算一次。超過 8,192 個字元的文字欄位會被略過（`truncated_fields`，每次遇到都算，重複的指令列只算一次）；只有指令列例外，會在這個位置之前最後一個 refang 不會把值接過去的空白或換行處切斷（不切在括號旁邊，例如 `evil [.] com`，也不切在連字號後面的換行），沒有這種位置才略過。超過 100 個字元的 API 名稱（`long_api_names`，每個名稱算一次），以及名稱超過 200 個字元的簽章（`long_signature_names`，照列出的次數算）會被略過；在 TTP 標籤裡，這種名稱會被截到 200 個字元，而截斷後和另一個簽章的標籤變成相同的，會被計數（`merged_ttps`）。
 
 ## 限制
 
@@ -315,7 +315,7 @@ CAPE 報告也只讀到固定的上限，這些上限記在 `suppressed` 底下�
 - 兩個名稱字元之間的單一 bidi 記號會被當成名稱的一部分移除，所以只靠這種記號分隔的兩個 IOC（`198.51.100.7\u200f203.0.113.9`）不會被拆開。
 - 全形冒號 `：` 會讀成 `:`，所以 URL 後面直接接 `：` 和 ASCII 文字時（`.../a.exe：C2`），會連那段文字一起保留；全形的 `（），；！` 則會結束 URL。
 - ATT&CK 指令規則只在 cmd.exe 的 `&`、`&&` 和 `||` 切分一行：用 `;` 串起來的 PowerShell 敘述會被當成一個指令比對。
-- `--defang` 不改 URL 的路徑和查詢字串。在技術證據裡，它只改認得出來的值：沒寫 scheme、最後一段又不是 TLD 的主機，會保留它的點。
+- `--defang` 不改 IOC 清單裡 URL 的路徑和查詢字串（在技術證據裡，路徑和查詢字串中認得出來的值也會改）。在技術證據裡，它只改認得出來的值：沒寫 scheme、最後一段又不是 TLD 的主機，會保留它的點。
 - 跨行斷開的名稱和 URL（PDF 轉換工具常留下這種結果）只在兩種情況會接回去：斷點的連字號不可能屬於它們（`evil.-` / `com`、`evil-` / `.com`），或 URL 在它自己的某個連字號後面斷開（`/KB-Auto-win-` / `update.exe`，跨幾行都會接；URL 還在主機部分時，只有一整行都是字母、數字、點和連字號，或接著進到連接埠或路徑的那一行，才會把它帶到再下一行，所以在使用者名稱或密碼後面又斷行的 URL 會在那裡被切斷）。以下情況會判斷錯誤：
   - 真的以 `-` 結尾、剛好位於行尾的 URL，會和下一行開頭接在一起；
   - 轉換工具在斷開 URL 時自己加上的連字號會被保留（即使 URL 其實是 `/downloadfile.exe`，`/download-` / `file.exe` 也會得到 `/download-file.exe`），跨幾行都一樣；

@@ -153,29 +153,32 @@ def blank_run_res() -> tuple[re.Pattern[str], re.Pattern[str]]:
 
 # Characters that, at the end of a line, may join it to the next.
 _LINE_JOINING = frozenset("-\u00ad\u2010\u2011\u2212\ufe63\uff0d")
-# Brackets of a spaced defang, which refang joins across the spaces ("evil [.] com", "a [at] b.com").
-_OPENING = frozenset("[(\uff08\uff3b\u3010")
-_CLOSING = frozenset("])\uff09\uff3d\u3011")
 
 
 def cut_between_values(text: str, limit: int, window: int) -> str | None:
-    """``text`` if it has at most ``limit`` characters, else its start cut where no value can go on,
-    or None if there is no such place. The cut is at the start of the last blank run (white space,
-    line breaks and what refang deletes) in the last ``window`` characters before the limit that
-    leaves a space or line break, and that neither follows a line-end hyphen (the line-break rules
-    may join the lines) nor touches a bracket (refang joins a spaced "[.]" or "[at]")."""
+    """``text`` if it has at most ``limit`` characters, else its start cut at a blank that refang
+    does not join a value across, or None if there is no such place. The cut is at the start of the
+    last blank run (white space, line breaks and what refang deletes) in the last ``window``
+    characters before the limit that leaves a space or line break, and that neither follows a
+    line-end hyphen (the line-break rules may join the lines) nor touches a bracket (refang joins
+    "evil [.] com", "evil{ . }com" and "a ( at ) b.com" across the spaces)."""
     if len(text) <= limit:
         return text
     blank_run, leaves_space = blank_run_res()
     for run in reversed(list(blank_run.finditer(text, max(0, limit - window), limit))):
         start, end = run.span()
         before, after = text[start - 1 : start], text[end : end + 1]
-        if not leaves_space.search(run.group()) or before in _CLOSING or after in _OPENING:
+        if not leaves_space.search(run.group()) or _is_bracket(before) or _is_bracket(after):
             continue
         if "\n" in run.group() and before in _LINE_JOINING:
             continue
         return text[:start]
     return None
+
+
+def _is_bracket(char: str) -> bool:
+    """Whether ``char`` is one of the brackets refang defangs within, after folding its width."""
+    return _BRACKET_RE.fullmatch(char.translate(_fold_table())) is not None
 
 
 def _without_soft_hyphens(match: re.Match[str]) -> str:
@@ -211,6 +214,7 @@ def _format_table() -> dict[int, str | None]:
 # ASCII equivalent (and the unfolded full-width parentheses) are listed explicitly.
 _OPEN = r"[\[({<【〔〖「『（]"
 _CLOSE = r"[\])}>】〕〗」』）]"
+_BRACKET_RE = re.compile(f"{_OPEN}|{_CLOSE}")
 _DOT_MARK = r" ?(?:\.|。|dot|點|点) ?"
 _AT_MARK = r" ?(?:@|at) ?"
 

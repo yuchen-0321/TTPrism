@@ -91,6 +91,35 @@ def test_defanged_json_defangs_evidence() -> None:
             "command: curl http://[64:ff9b::198.51.100.7]/a",
             "command: curl hxxp[://][64:ff9b::198[.]51[.]100[.]7]/a",
         ),
+        # Each URL of a list, also with no path between them.
+        (
+            "command: x 'http://a.example','http://b.example','http://c.example'",
+            "command: x 'hxxp[://]a[.]example','hxxp[://]b[.]example','hxxp[://]c[.]example'",
+        ),
+        *(
+            (f"x http://a.example{sep}http://b.example{sep}http://c.example", f"x {defanged}")
+            for sep in (",", "|", ";", "&", "\uff0c")
+            for defanged in [f"hxxp[://]a[.]example{sep}hxxp[://]b[.]example{sep}hxxp[://]c[.]example"]
+        ),
+        (
+            'curl -d {"a":"http://a.example","b":"https://b.example","c":"ftp://c.example"}',
+            'curl -d {"a":"hxxp[://]a[.]example","b":"hxxps[://]b[.]example","c":"fxp[://]c[.]example"}',
+        ),
+        # Names after characters that DOMAIN_RE does not start a name after.
+        (
+            "command: reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings"
+            "\\ZoneMap\\Domains\\evil.example /v http /d 2",
+            "command: reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings"
+            "\\ZoneMap\\Domains\\evil[.]example /v http /d 2",
+        ),
+        (
+            "command: dig @ns1.evil.example _dmarc.evil.example TXT",
+            "command: dig @ns1[.]evil[.]example _dmarc[.]evil[.]example TXT",
+        ),
+        (
+            "command: C:\\Windows\\System32\\cmd.exe /c System.Net.dll",
+            "command: C:\\Windows\\System32\\cmd.exe /c System.Net.dll",
+        ),
     ],
 )
 def test_defang_text(text: str, expected: str) -> None:

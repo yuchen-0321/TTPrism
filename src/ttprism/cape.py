@@ -17,8 +17,8 @@ from ttprism.extract import extract_into, normalize_domain, normalize_ip
 from ttprism.models import IOCCollector, IOCType
 from ttprism.refang import cut_between_values, refang
 
-# A field longer than this is left out, and a command line cut where no value goes on; either way it
-# is counted under suppressed (truncated_fields), so no value is reported cut short.
+# A field longer than this is left out, and a command line cut at a blank where refang cannot join
+# a value across it; either way it is counted under suppressed (truncated_fields).
 MAX_FIELD_CHARS = 8192
 # Upper bounds on what one report can feed into rule matching. Real CAPE runs
 # stay far below these; a crafted report cannot make matching cost explode.
@@ -78,11 +78,9 @@ def _str(value: Any, stats: Counter[str]) -> str | None:
     return value
 
 
-def _command(value: Any, stats: Counter[str]) -> str | None:
-    """A command line, cut where no value goes on if it is longer than MAX_FIELD_CHARS (or left out
-    if it has no such place)."""
-    if not isinstance(value, str) or not value:
-        return None
+def _command(value: str, stats: Counter[str]) -> str | None:
+    """A command line, cut at a blank that refang does not join a value across if it is longer than
+    MAX_FIELD_CHARS (or left out if it has no such place)."""
     if len(value) > MAX_FIELD_CHARS:
         stats["truncated_fields"] += 1
         return cut_between_values(value, MAX_FIELD_CHARS, MAX_FIELD_CHARS) or None
@@ -175,17 +173,18 @@ def parse_cape(report: Mapping[str, Any]) -> CapeReport:
     # Behaviour.
     behavior_section = _dict(report.get("behavior"))
     summary = _dict(behavior_section.get("summary"))
-    commands: dict[str, None] = {}
+    # Repeats are dropped before long lines are cut, so that each distinct line is cut only once.
+    raw_commands: dict[str, None] = {}
     executed = summary.get("executed_commands")
     for command in executed if isinstance(executed, list) else []:
-        if command_line := _command(command, stats):
-            commands[command_line] = None
+        if isinstance(command, str) and command:
+            raw_commands[command] = None
     dropped_apis: set[str] = set()
     long_apis: set[str] = set()
     for process in _dicts(behavior_section.get("processes")):
-        command_line = _command(_dict(process.get("environ")).get("CommandLine"), stats)
-        if command_line:
-            commands[command_line] = None
+        command = _dict(process.get("environ")).get("CommandLine")
+        if isinstance(command, str) and command:
+            raw_commands[command] = None
         for call in _dicts(process.get("calls")):
             api = call.get("api")
             if not isinstance(api, str) or api in behavior.apis:
@@ -200,6 +199,7 @@ def parse_cape(report: Mapping[str, Any]) -> CapeReport:
         stats["truncated_apis"] += len(dropped_apis)
     if long_apis:
         stats["long_api_names"] += len(long_apis)
+    commands = dict.fromkeys(line for raw in raw_commands if (line := _command(raw, stats)))
     command_lines = _capped(list(commands), "commands", stats)
     warnings: list[str] = []
     behavior.commands = _size_capped(

@@ -9,7 +9,16 @@ import re
 from typing import Any
 
 from ttprism._version import __version__
-from ttprism.extract import DOMAIN_RE, EMAIL_RE, IPV4_RE, IPV6_RE, normalize_domain, normalize_ip
+from ttprism.extract import (
+    _LABEL,
+    _TLD,
+    DOMAIN_RE,
+    EMAIL_RE,
+    IPV4_RE,
+    IPV6_RE,
+    normalize_domain,
+    normalize_ip,
+)
 from ttprism.inputs import printable
 from ttprism.models import AnalysisResult, IOCType
 from ttprism.refang import defang
@@ -19,8 +28,15 @@ from ttprism.refang import defang
 _FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
 
 
-# A URL's scheme, "://" and what comes before its path, at a token start, any scheme.
-_URL_START_RE = re.compile(r"(?<![A-Za-z0-9+.-])[A-Za-z][A-Za-z0-9+.-]{0,31}://[^/?#\s]{0,1024}")
+# A URL's scheme, "://" and what comes before its path, at a token start, any scheme. The host ends
+# where the next URL starts, so each URL of "'http://a.example','http://b.example'" is found.
+_URL_START_RE = re.compile(
+    r"(?<![A-Za-z0-9+.-])[A-Za-z][A-Za-z0-9+.-]{0,31}://"
+    r"(?:(?![A-Za-z][A-Za-z0-9+.-]{0,31}://)[^/?#\s]){0,1024}"
+)
+# A name anywhere but inside a longer name: also after "\", "@", "_" or "/", which DOMAIN_RE
+# excludes ("...\ZoneMap\Domains\evil.example", "dig @ns1.evil.example", "_dmarc.evil.example").
+_NAME_RE = re.compile(rf"(?<![A-Za-z0-9.-])(?:{_LABEL}\.){{1,126}}{_TLD}(?![A-Za-z0-9-]|\.[A-Za-z0-9])")
 
 
 def defang_text(text: str) -> str:
@@ -41,9 +57,10 @@ def defang_text(text: str) -> str:
     for match in EMAIL_RE.finditer(text):
         if normalize_domain(match.group().rpartition("@")[2]) is not None:
             take(*match.span(), IOCType.EMAIL)
-    for match in DOMAIN_RE.finditer(text):
-        if normalize_domain(match.group()) is not None:
-            take(*match.span(), IOCType.DOMAIN)
+    for name_re in (DOMAIN_RE, _NAME_RE):
+        for match in name_re.finditer(text):
+            if normalize_domain(match.group()) is not None:
+                take(*match.span(), IOCType.DOMAIN)
     for match in IPV6_RE.finditer(text):
         if normalize_ip(match.group()) is not None:
             take(*match.span(), IOCType.IPV6)

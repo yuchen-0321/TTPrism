@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from ttprism import IOCType, defang, refang
-from ttprism.refang import refang_soft_hyphens_as_hints
+from ttprism.refang import cut_between_values, refang_soft_hyphens_as_hints
 
 
 @pytest.mark.parametrize(
@@ -370,3 +370,20 @@ def test_soft_hyphens_can_be_read_as_break_hints(text: str, expected: str) -> No
 )
 def test_soft_hyphens_that_both_readings_share(text: str) -> None:
     assert refang_soft_hyphens_as_hints(text) is None
+
+
+@pytest.mark.parametrize(
+    ("text", "limit", "expected"),
+    [
+        ("a b", 3, "a b"),  # at most the limit: not cut
+        ("a b c", 4, "a b"),
+        ("abcde", 4, None),
+        ("a {.} b", 6, None),  # every blank touches a bracket
+        ("x a [ . ] b", 9, "x"),
+        ("x a \uff08 at \uff09 b", 9, "x"),
+        ("x a \ufe59.\ufe5a b", 7, "x"),  # small parentheses fold to ASCII
+        ("x evil-\nnet", 10, "x"),  # a line-end hyphen may join the lines
+    ],
+)
+def test_cut_between_values(text: str, limit: int, expected: str | None) -> None:
+    assert cut_between_values(text, limit, limit) == expected

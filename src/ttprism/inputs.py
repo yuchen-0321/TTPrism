@@ -85,12 +85,19 @@ def decode_text(data: bytes, encoding: str | None = None) -> tuple[str, list[str
         text = data.decode("utf-16", errors="replace")
     else:
         try:
-            text = data.decode("utf-8")  # a byte-order mark is removed below
+            # Two byte-order marks are removed, one here and one below: a tool that adds one to a
+            # file that already has one leaves two.
+            text = data.decode("utf-8").removeprefix("\ufeff")
         except UnicodeDecodeError as exc:
             # Replacing the bad bytes would report wrong values: Big5 "網域：c2.example" gives gc2.example.
+            bad = f"input is not valid UTF-8 (byte 0x{data[exc.start]:02x} at offset {exc.start})"
+            if data.count(0) * 100 > len(data):
+                raise InputError(
+                    f"{bad}; it is probably UTF-16 or UTF-32 without a byte-order mark: pass "
+                    "--encoding utf-16-le (or utf-16-be, utf-32)"
+                ) from None
             raise InputError(
-                f"input is not valid UTF-8 (byte 0x{data[exc.start]:02x} at offset {exc.start}); pass its "
-                "encoding, e.g. --encoding big5, cp950 or gb18030 for Chinese text"
+                f"{bad}; pass its encoding, e.g. --encoding big5, cp950 or gb18030 for Chinese text"
             ) from None
     text = text.removeprefix("\ufeff")
     if text.count("\x00") * 100 > len(text):

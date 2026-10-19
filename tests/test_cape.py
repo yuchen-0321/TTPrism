@@ -255,6 +255,66 @@ def test_command_line_over_the_field_limit_is_cut_between_values() -> None:
     assert result.suppressed == {"truncated_fields": 1}
 
 
+@pytest.mark.parametrize(
+    "value",
+    [
+        "c2.example {.} net",
+        "c2.example <.> net",
+        "c2.example \u300c.\u300d net",
+        "c2.example \uff3b.\uff3d net",
+        "c2.example \ufe5b.\ufe5c net",
+        "c2.example[ . ]net",
+        "c2.example \u3016 . \u3017 net",
+        "c2.example ( dot ) net",
+        "http[ :// ]c2.example.net",
+    ],
+)
+def test_command_line_is_not_cut_inside_a_spaced_defang(value: str) -> None:
+    # refang joins these across their spaces, so a cut at any of them would report c2.example (or
+    # nothing for the URL) for c2.example.net; the line is cut before the value instead.
+    head = "curl http://first.example.net/a "
+    last_blank = value.rindex(" ")
+    command = head + "x" * (MAX_FIELD_CHARS - len(head) - last_blank - 3) + " " + value + " tail"
+    assert command[:MAX_FIELD_CHARS].endswith(value[: last_blank + 2])
+    report = {"info": {}, "behavior": {"summary": {"executed_commands": [command]}}}
+    result = analyze_cape(report, AnalysisOptions(include_reserved=True))
+    assert [(i.type, i.value) for i in result.iocs] == [
+        (IOCType.URL, "http://first.example.net/a"),
+        (IOCType.DOMAIN, "first.example.net"),
+    ]
+    assert result.suppressed == {"truncated_fields": 1}
+
+
+def test_fields_of_exactly_the_field_limit_are_kept() -> None:
+    uri = "http://h.example.com/" + "a" * (MAX_FIELD_CHARS - 21)
+    key = "HKCU\\Software\\" + "k" * (MAX_FIELD_CHARS - 14)
+    command = "vssadmin delete shadows /all " + "x" * (MAX_FIELD_CHARS - 29)
+    assert {len(uri), len(key), len(command)} == {MAX_FIELD_CHARS}
+    report = {
+        "info": {},
+        "network": {
+            "http": [{"uri": uri}],
+            "https_ex": [{"host": "cdn.example.com", "uri": "/" + "a" * (MAX_FIELD_CHARS - 1)}],
+        },
+        "behavior": {"summary": {"executed_commands": [command], "write_keys": [key]}},
+    }
+    parsed = parse_cape(report)
+    assert parsed.behavior.commands == [command]
+    assert parsed.behavior.registry_writes == [key]
+    assert {v for t, v, _ in parsed.iocs if t is IOCType.DOMAIN} == {"h.example.com", "cdn.example.com"}
+    assert len({v for t, v, _ in parsed.iocs if t is IOCType.URL}) == 2
+    assert parsed.stats == {}
+
+
+def test_repeated_long_command_lines_are_cut_once() -> None:
+    command = "cmd /c echo " + "a " * MAX_FIELD_CHARS
+    report = {"info": {}, "behavior": {"summary": {"executed_commands": [command] * 3}}}
+    report["behavior"]["processes"] = [{"environ": {"CommandLine": command}}]
+    parsed = parse_cape(report)
+    assert parsed.behavior.commands == [command[: MAX_FIELD_CHARS - 1]]
+    assert parsed.stats == {"truncated_fields": 1}
+
+
 def test_command_line_over_the_field_limit_without_a_blank_is_left_out() -> None:
     command = "http://first.example.net/" + "a" * MAX_FIELD_CHARS
     environ = {"environ": {"CommandLine": "vssadmin delete shadows /all /quiet " + "x" * MAX_FIELD_CHARS}}

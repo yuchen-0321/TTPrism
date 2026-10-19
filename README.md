@@ -154,9 +154,11 @@ attack-technique,T1059.001,reported,PowerShell (reported as T1086)
 `ops[@]corp[.]example` for an e-mail address; in an IPv6 address the dots of an IPv4 part are
 changed too (`[:][:]ffff[:]198[.]51[.]100[.]7`). URL paths and queries are left as they are, so in
 the IOC list a URL inside another URL's path or query stays clickable. In JSON the technique
-evidence, such as a CAPE command line, is defanged as well: each URL in it up to its path (any
-scheme followed by `://`, also inside another URL), and each IP address, e-mail address and name
-whose last label is a TLD (`cmd.exe` and `T1059.001` stay as they are).
+evidence, such as a CAPE command line, is defanged as well, paths and queries included: each URL
+in it up to its path (any scheme followed by `://`, also inside another URL or in a list of URLs),
+and each IP address, e-mail address and name whose last label is a TLD, also after `\`, `@` or `_`
+(`...\Domains\evil[.]example`, `dig @ns1[.]evil[.]example`; `cmd.exe` and `T1059.001` stay as they
+are).
 
 ### Turn a CAPE report into ATT&CK techniques and STIX
 
@@ -385,9 +387,10 @@ TTP labels (`truncated_apis`, `truncated_commands`, `truncated_registry_writes`,
 rule matching and for IOC search (`truncated_rule_commands`, `truncated_ioc_commands`, also named
 in a warning). Repeated API names, command lines and registry writes count once; signatures count
 as listed, and TTP labels once per technique and signature. A text field over 8,192 characters is
-left out (`truncated_fields`, counted each time), except that a command line is cut at its last
-space or line break before that point where no value can go on, and left out only if it has none,
-so no value is reported cut short. API names over 100 characters (`long_api_names`, once per name)
+left out (`truncated_fields`, counted each time, a repeated command line once), except that a
+command line is cut at its last space or line break before that point that refang does not join a
+value across (not one next to a bracket, as in `evil [.] com`, nor a line break after a hyphen),
+and left out only if it has none. API names over 100 characters (`long_api_names`, once per name)
 and signatures whose name is over 200 (`long_signature_names`, as listed) are skipped; for TTP
 labels such a name is cut to 200 characters, and a label that the cut makes the same as another
 signature's is counted (`merged_ttps`).
@@ -414,7 +417,8 @@ signature's is counted (`merged_ttps`).
   (`.../a.exe：C2`) keeps that text; full-width `（），；！` do end a URL.
 - ATT&CK command rules split a line at cmd.exe's `&`, `&&` and `||` only: PowerShell statements
   joined by `;` are matched as one command.
-- `--defang` leaves URL paths and queries as they are. In technique evidence it changes only what
+- `--defang` leaves the paths and queries of URLs in the IOC list as they are (in technique
+  evidence it defangs what it recognises in them too). In technique evidence it changes only what
   it recognises: a host written without a scheme whose last label is not a TLD keeps its dots.
 - Names and URLs broken across lines (as PDF converters leave them) are joined only where the
   hyphen at the break cannot belong to them (`evil.-` / `com`, `evil-` / `.com`) or where a URL
