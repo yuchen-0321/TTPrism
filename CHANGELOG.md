@@ -7,6 +7,30 @@ their advisory.
 
 ## [Unreleased]
 
+### Changed
+
+- Input that is not UTF-8 (nor UTF-16/32 with a byte-order mark) is an error without
+  `--encoding` (exit code 1), naming the first bad byte and suggesting `--encoding big5`, `cp950`
+  or `gb18030`, instead of being read with replacement characters that could change values (Big5
+  `網域：c2.example` gave `gc2.example`). `decode_text` and `analyze_file` raise `InputError` for it.
+- Values from a CAPE report's `network` section are never dropped as masked names: HTTP URLs were
+  checked while hosts, domains, DNS queries and HTTP hosts were not; all are connections the
+  sandbox saw.
+
+### Fixed
+
+- CAPE text fields over 8,192 characters are left out and counted (`truncated_fields`) instead of
+  being cut, which could report a value cut short (`198.51.100.2` for `198.51.100.23`); a command
+  line that long is cut where no value can go on, and left out if there is no such place.
+- CAPE drops that were not counted now are: API names over 100 characters (`long_api_names`),
+  signatures whose name is over 200 (`long_signature_names`), TTP labels that the 200-character cut
+  of a signature name merges with another signature's (`merged_ttps`), and filtered values in HTTP
+  URLs (`filename_like_domain` and the other filter counts).
+- `--defang` also defangs the URLs, domains, IP addresses and e-mail addresses in JSON technique
+  evidence, such as CAPE command lines, which stayed clickable; and the dots of an IPv4 part of an
+  IPv6 address (`::ffff:198.51.100.7`, `64:ff9b::198.51.100.7`), also in a bracketed URL host. The
+  `defang()` docstring now describes what it changes.
+
 ### Documentation
 
 - Reorganised the README around common tasks (PDF report to IOC CSV, defanged output for chat, CAPE

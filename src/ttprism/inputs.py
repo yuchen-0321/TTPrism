@@ -69,7 +69,8 @@ def _too_large(name: str, max_bytes: int) -> InputError:
 
 
 def decode_text(data: bytes, encoding: str | None = None) -> tuple[str, list[str]]:
-    """Decode ``data``; returns (text, warnings)."""
+    """Decode ``data``; returns (text, warnings). Without ``encoding``, input that is not UTF-8 (or
+    UTF-16/32 with a byte-order mark) raises InputError."""
     warnings: list[str] = []
     if encoding:
         try:
@@ -84,13 +85,13 @@ def decode_text(data: bytes, encoding: str | None = None) -> tuple[str, list[str
         text = data.decode("utf-16", errors="replace")
     else:
         try:
-            text = data.decode("utf-8-sig")
-        except UnicodeDecodeError:
-            warnings.append(
-                "input is not valid UTF-8; undecodable bytes were replaced "
-                "(pass --encoding, e.g. big5 or gb18030, for legacy Chinese text)"
-            )
-            text = data.decode("utf-8", errors="replace")
+            text = data.decode("utf-8")  # a byte-order mark is removed below
+        except UnicodeDecodeError as exc:
+            # Replacing the bad bytes would report wrong values: Big5 "網域：c2.example" gives gc2.example.
+            raise InputError(
+                f"input is not valid UTF-8 (byte 0x{data[exc.start]:02x} at offset {exc.start}); pass its "
+                "encoding, e.g. --encoding big5, cp950 or gb18030 for Chinese text"
+            ) from None
     text = text.removeprefix("\ufeff")
     if text.count("\x00") * 100 > len(text):
         warnings.append(

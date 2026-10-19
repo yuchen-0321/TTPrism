@@ -21,7 +21,7 @@ from ttprism.inputs import (
     read_bytes,
 )
 from ttprism.models import IOC, AnalysisResult, IOCCollector, IOCType, sort_iocs
-from ttprism.refang import blank_run_res, refang, refang_soft_hyphens_as_hints
+from ttprism.refang import cut_between_values, refang, refang_soft_hyphens_as_hints
 
 
 @dataclass
@@ -106,33 +106,16 @@ MAX_SOFT_HYPHEN_CHECK_CHARS = 8 * 1024 * 1024
 
 # A part of a long text is cut within this many characters before MAX_SOFT_HYPHEN_CHECK_CHARS.
 _CUT_WINDOW = 65536
-# Characters that, at the end of a line, may join it to the next.
-_LINE_JOINING = frozenset("-\u00ad\u2010\u2011\u2212\ufe63\uff0d")
-# Brackets of a spaced defang, which refang joins across the spaces ("evil [.] com", "a [at] b.com").
-_OPENING = frozenset("[(\uff08\uff3b\u3010")
-_CLOSING = frozenset("])\uff09\uff3d\u3011")
 
 
 def _checked_part(text: str) -> str:
     """At most MAX_SOFT_HYPHEN_CHECK_CHARS characters from the start of ``text``, cut where no value
-    can go on, so that none is cut in two and reported in part as if the soft hyphens had changed it.
-    The cut is at the start of the last blank run (white space, line breaks and what refang deletes)
-    in the last _CUT_WINDOW characters before the limit that leaves a space or line break, and that
-    neither follows a line-end hyphen (the line-break rules may join the lines) nor touches a bracket
-    (refang joins a spaced "[.]" or "[at]"). Without one, the text is cut at the limit."""
+    can go on (see :func:`~ttprism.refang.cut_between_values`) within the last _CUT_WINDOW characters
+    before the limit, so that none is cut in two and reported in part as if the soft hyphens had
+    changed it. Without such a place, the text is cut at the limit."""
     limit = MAX_SOFT_HYPHEN_CHECK_CHARS
-    if len(text) <= limit:
-        return text
-    blank_run, leaves_space = blank_run_res()
-    for run in reversed(list(blank_run.finditer(text, max(0, limit - _CUT_WINDOW), limit))):
-        start, end = run.span()
-        before, after = text[start - 1 : start], text[end : end + 1]
-        if not leaves_space.search(run.group()) or before in _CLOSING or after in _OPENING:
-            continue
-        if "\n" in run.group() and before in _LINE_JOINING:
-            continue
-        return text[:start]
-    return text[:limit]
+    cut = cut_between_values(text, limit, _CUT_WINDOW)
+    return text[:limit] if cut is None else cut
 
 
 def _soft_hyphen_warning(

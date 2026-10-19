@@ -14,6 +14,7 @@ import reference_matcher
 from timing import seconds_per_mb, size_mb
 from ttprism import AnalysisOptions, analyze_text
 from ttprism.attack import Behavior, RuleSet
+from ttprism.export import defang_text
 from ttprism.inputs import InputError, load_json
 
 SIZE = 1_000_000
@@ -272,6 +273,22 @@ def test_soft_hyphen_check_cut_is_linear(text: str) -> None:
         mock.patch.object(analyze, "_CUT_WINDOW", len(text)),
     ):
         cost = seconds_per_mb(lambda: analyze._checked_part(text), size_mb(text))
+    assert cost < TEXT_SECONDS_PER_MB, f"{cost:.2f} s/MB"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        *PATHOLOGICAL.values(),
+        "a://" * (SIZE // 4),
+        " a" * (SIZE // 2),
+        "a" * SIZE + "://",
+        "a://" + "a" * SIZE,
+    ],
+    ids=[*PATHOLOGICAL.keys(), "schemes", "short words", "long scheme", "long authority"],
+)
+def test_evidence_defanging_is_linear(text: str) -> None:
+    cost = seconds_per_mb(lambda: defang_text(text), size_mb(text))
     assert cost < TEXT_SECONDS_PER_MB, f"{cost:.2f} s/MB"
 
 

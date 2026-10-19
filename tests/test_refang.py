@@ -81,6 +81,19 @@ def test_bare_ideographic_full_stop_is_left_alone() -> None:
         ("https://evil.com/a.php?x=1.2", IOCType.URL, "hxxps[://]evil[.]com/a.php?x=1.2"),
         ("ftp://user@files.evil.com:21/x", IOCType.URL, "fxp[://]user@files[.]evil[.]com:21/x"),
         ("http://[2001:db8::1]/x", IOCType.URL, "hxxp[://][2001:db8::1]/x"),
+        # The IPv4 part of an IPv6 address, also in a URL host, has its dots defanged.
+        ("::ffff:198.51.100.7", IOCType.IPV6, "[:][:]ffff[:]198[.]51[.]100[.]7"),
+        ("64:ff9b::198.51.100.7", IOCType.IPV6, "64[:]ff9b[:][:]198[.]51[.]100[.]7"),
+        (
+            "http://[::ffff:198.51.100.7]:8080/a.b",
+            IOCType.URL,
+            "hxxp[://][::ffff:198[.]51[.]100[.]7]:8080/a.b",
+        ),
+        (
+            "http://u.ser:p.w@[64:ff9b::198.51.100.7]/",
+            IOCType.URL,
+            "hxxp[://]u[.]ser:p[.]w@[64:ff9b::198[.]51[.]100[.]7]/",
+        ),
         ("d41d8cd98f00b204e9800998ecf8427e", IOCType.MD5, "d41d8cd98f00b204e9800998ecf8427e"),
     ],
 )

@@ -8,7 +8,14 @@ import pytest
 
 from timing import seconds_per_mb, size_mb
 from ttprism import AnalysisOptions, AttackCatalog, IOCType, analyze_cape
-from ttprism.cape import MAX_ITEMS, MAX_SIGNATURE_CHARS, looks_like_cape, parse_cape
+from ttprism.cape import (
+    MAX_API_CHARS,
+    MAX_FIELD_CHARS,
+    MAX_ITEMS,
+    MAX_SIGNATURE_CHARS,
+    looks_like_cape,
+    parse_cape,
+)
 
 
 def test_looks_like_cape(cape_report: dict[str, Any]) -> None:
@@ -195,12 +202,121 @@ def test_ioc_extraction_sees_a_bounded_amount_of_commands(monkeypatch: pytest.Mo
 
 def test_dropped_api_names_are_counted_once() -> None:
     calls = [{"api": f"Api{i}"} for i in range(MAX_ITEMS)]
-    # Repeats of kept names, invalid names and repeats of dropped names are not counted.
+    # Repeats of kept names, names that are too long, invalid names and repeats of dropped names are
+    # not counted.
     calls += [{"api": "Api0"}, {"api": "x" * 101}, {"api": 5}, {"api": "Late1"}, {"api": "Late2"}]
     calls += [{"api": "Late1"}]
     parsed = parse_cape({"info": {}, "behavior": {"processes": [{"calls": calls}, {"calls": calls}]}})
     assert len(parsed.behavior.apis) == MAX_ITEMS
     assert parsed.stats["truncated_apis"] == 2
+
+
+def test_long_api_names_are_counted_once() -> None:
+    calls = [{"api": "a" * MAX_API_CHARS}, {"api": "b" * (MAX_API_CHARS + 1)}, {"api": "c" * 5000}]
+    calls += [{"api": "b" * (MAX_API_CHARS + 1)}]
+    parsed = parse_cape({"info": {}, "behavior": {"processes": [{"calls": calls}, {"calls": calls}]}})
+    assert parsed.behavior.apis == {"a" * MAX_API_CHARS}
+    assert parsed.stats["long_api_names"] == 2
+
+
+def test_long_signature_names_are_counted() -> None:
+    names = ["s" * MAX_SIGNATURE_CHARS, "t" * (MAX_SIGNATURE_CHARS + 1), "t" * (MAX_SIGNATURE_CHARS + 1)]
+    names.append("u" * (MAX_FIELD_CHARS + 1))
+    parsed = parse_cape({"info": {}, "signatures": [{"name": n} for n in names]})
+    assert parsed.behavior.signatures == ["s" * MAX_SIGNATURE_CHARS]
+    # Counted as listed, like truncated_signatures; a name over MAX_FIELD_CHARS counts only here.
+    assert parsed.stats == {"long_signature_names": 3}
+
+
+def test_ttp_pairs_merged_by_the_signature_cut_are_counted() -> None:
+    prefix = "s" * MAX_SIGNATURE_CHARS
+    ttps = [
+        {"signature": prefix + "_one", "ttps": ["T1055", "T1112"]},
+        {"signature": prefix + "_two", "ttps": ["T1055"]},  # same pair as the first once cut
+        {"signature": prefix + "_one", "ttps": ["T1055"]},  # a repeat, not a merge
+        {"signature": "short", "ttps": ["T1055"]},
+    ]
+    parsed = parse_cape({"info": {}, "ttps": ttps})
+    assert parsed.reported_ttps == [("T1055", prefix), ("T1112", prefix), ("T1055", "short")]
+    assert parsed.stats == {"merged_ttps": 1}
+
+
+def test_command_line_over_the_field_limit_is_cut_between_values() -> None:
+    # The limit falls inside 198.51.100.23, which used to be reported as 198.51.100.2.
+    head = "curl http://first.example.net/a "
+    command = head + "x" * (MAX_FIELD_CHARS - len(head) - 13) + " 198.51.100.23 http://late.example.net/b"
+    assert command[:MAX_FIELD_CHARS].endswith(" 198.51.100.2")
+    report = {"info": {}, "behavior": {"summary": {"executed_commands": [command]}}}
+    result = analyze_cape(report, AnalysisOptions(include_reserved=True))
+    assert [(i.type, i.value) for i in result.iocs] == [
+        (IOCType.URL, "http://first.example.net/a"),
+        (IOCType.DOMAIN, "first.example.net"),
+    ]
+    assert result.suppressed == {"truncated_fields": 1}
+
+
+def test_command_line_over_the_field_limit_without_a_blank_is_left_out() -> None:
+    command = "http://first.example.net/" + "a" * MAX_FIELD_CHARS
+    environ = {"environ": {"CommandLine": "vssadmin delete shadows /all /quiet " + "x" * MAX_FIELD_CHARS}}
+    report = {"info": {}, "behavior": {"summary": {"executed_commands": [command]}, "processes": [environ]}}
+    parsed = parse_cape(report)
+    assert parsed.behavior.commands == ["vssadmin delete shadows /all /quiet"]
+    assert list(parsed.iocs) == []
+    assert parsed.stats == {"truncated_fields": 2}
+    assert "T1490" in {t.technique_id for t in analyze_cape(report).techniques}
+
+
+def test_other_fields_over_the_field_limit_are_left_out() -> None:
+    long = "a" * (MAX_FIELD_CHARS - 11) + ".example.com"
+    assert len(long) == MAX_FIELD_CHARS + 1
+    report = {
+        "info": {},
+        "target": {"file": {"md5": "5f89cef4c9ed3f109bc7c400d822e60e" * 300}},
+        "network": {
+            "hosts": [long, {"ip": long}],
+            "domains": [{"domain": long, "ip": "198.51.100.7"}],
+            "dns": [{"request": long, "answers": [{"type": "A", "data": long}]}],
+            "http": [{"uri": f"http://h.example.com/{long}", "host": long}],
+            # The host is kept, but no URL is made up from it with the path "/".
+            "https_ex": [{"host": "cdn.example.com", "uri": "/" + long}],
+        },
+        "behavior": {"summary": {"write_keys": ["HKCU\\Software\\" + long, "HKCU\\Software\\x"]}},
+        "ttps": [{"signature": "s", "ttps": ["T" + long, "T1055"]}, {"signature": "s", "ttp": "T" + long}],
+    }
+    parsed = parse_cape(report)
+    assert sorted(v for _, v, _ in parsed.iocs) == ["198.51.100.7", "cdn.example.com"]
+    assert parsed.behavior.registry_writes == ["HKCU\\Software\\x"]
+    assert parsed.reported_ttps == [("T1055", "s")]
+    assert parsed.stats == {"truncated_fields": 12}
+
+
+def test_network_fields_keep_masked_names() -> None:
+    report = {
+        "info": {},
+        "network": {
+            "hosts": ["wiki.xxxx.example.com"],
+            "domains": [{"domain": "mail.xxxx.example.com"}],
+            "dns": [{"request": "dns.xxxx.example.com"}],
+            "http": [{"uri": "http://cdn.xxxx.example.com/a", "host": "cdn.xxxx.example.com:8080"}],
+            "http_ex": [{"host": "dl.xxxx.example.com", "uri": "/b?u=payload.zip"}],
+        },
+        "behavior": {"summary": {"executed_commands": ["curl http://cmd.xxxx.example.com/c"]}},
+    }
+    result = analyze_cape(report, AnalysisOptions(include_reserved=True))
+    assert result.iocs_of(IOCType.DOMAIN) == [
+        "cdn.xxxx.example.com",
+        "dl.xxxx.example.com",
+        "dns.xxxx.example.com",
+        "mail.xxxx.example.com",
+        "wiki.xxxx.example.com",
+    ]
+    assert result.iocs_of(IOCType.URL) == [
+        "http://cdn.xxxx.example.com/a",
+        "http://dl.xxxx.example.com/b?u=payload.zip",
+    ]
+    # A command line is text that may hide a value, as in a report; the drops in a network URL are
+    # counted too.
+    assert result.suppressed == {"filename_like_domain": 1, "masked_name": 1}
 
 
 def test_dns_answer_types() -> None:

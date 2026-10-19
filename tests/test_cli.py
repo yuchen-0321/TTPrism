@@ -88,12 +88,48 @@ def test_encoding_option(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> 
     report = tmp_path / "big5.txt"
     report.write_bytes("惡意網域 evil．com".encode("big5", errors="ignore") + b" evil2.com")
     code, out, err = run(capsys, "extract", str(report))
-    assert code == 0
+    assert code == 1
+    assert out == ""
     assert "not valid UTF-8" in err
     code, out, err = run(capsys, "extract", str(report), "--encoding", "big5")
     assert code == 0
     assert err == ""
     assert {i["value"] for i in json.loads(out)["iocs"]} == {"evil.com", "evil2.com"}
+
+
+@pytest.mark.parametrize("output", [None, "out.json"])
+def test_text_that_is_not_utf8_needs_encoding(
+    capsys: pytest.CaptureFixture[str], tmp_path: Path, output: str | None
+) -> None:
+    # Read as UTF-8 with the bad bytes replaced, the last byte of "：" glued to the name: gc2.example.
+    report = tmp_path / "big5.txt"
+    report.write_bytes("網域：c2.example".encode("big5"))
+    args = ["-o", str(tmp_path / output)] if output else []
+    code, out, err = run(capsys, "extract", str(report), *args)
+    assert code == 1
+    assert out == ""
+    assert err == (
+        "ttprism: error: input is not valid UTF-8 (byte 0xba at offset 0); pass its encoding, e.g. "
+        "--encoding big5, cp950 or gb18030 for Chinese text\n"
+    )
+    assert not (tmp_path / "out.json").exists()
+    for encoding in ("big5", "cp950"):
+        code, out, err = run(capsys, "extract", str(report), "--encoding", encoding, "--include-reserved")
+        assert (code, err) == (0, "")
+        assert [i["value"] for i in json.loads(out)["iocs"]] == ["c2.example"]
+
+
+def test_utf8_with_a_byte_order_mark(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+    report = tmp_path / "r.txt"
+    report.write_bytes(codecs.BOM_UTF8 + "evil.com 網域\n".encode())
+    code, out, err = run(capsys, "extract", str(report))
+    assert (code, err) == (0, "")
+    assert [i["value"] for i in json.loads(out)["iocs"]] == ["evil.com"]
+    # The offset counts the byte-order mark.
+    report.write_bytes(codecs.BOM_UTF8 + b"evil.com \xff")
+    code, out, err = run(capsys, "extract", str(report))
+    assert code == 1
+    assert "(byte 0xff at offset 12)" in err
 
 
 def test_max_size(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:

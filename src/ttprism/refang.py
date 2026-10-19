@@ -151,6 +151,33 @@ def blank_run_res() -> tuple[re.Pattern[str], re.Pattern[str]]:
     return re.compile(f"[{_char_class(spaces | deleted)}]+"), re.compile(f"[{_char_class(spaces)}]")
 
 
+# Characters that, at the end of a line, may join it to the next.
+_LINE_JOINING = frozenset("-\u00ad\u2010\u2011\u2212\ufe63\uff0d")
+# Brackets of a spaced defang, which refang joins across the spaces ("evil [.] com", "a [at] b.com").
+_OPENING = frozenset("[(\uff08\uff3b\u3010")
+_CLOSING = frozenset("])\uff09\uff3d\u3011")
+
+
+def cut_between_values(text: str, limit: int, window: int) -> str | None:
+    """``text`` if it has at most ``limit`` characters, else its start cut where no value can go on,
+    or None if there is no such place. The cut is at the start of the last blank run (white space,
+    line breaks and what refang deletes) in the last ``window`` characters before the limit that
+    leaves a space or line break, and that neither follows a line-end hyphen (the line-break rules
+    may join the lines) nor touches a bracket (refang joins a spaced "[.]" or "[at]")."""
+    if len(text) <= limit:
+        return text
+    blank_run, leaves_space = blank_run_res()
+    for run in reversed(list(blank_run.finditer(text, max(0, limit - window), limit))):
+        start, end = run.span()
+        before, after = text[start - 1 : start], text[end : end + 1]
+        if not leaves_space.search(run.group()) or before in _CLOSING or after in _OPENING:
+            continue
+        if "\n" in run.group() and before in _LINE_JOINING:
+            continue
+        return text[:start]
+    return None
+
+
 def _without_soft_hyphens(match: re.Match[str]) -> str:
     return match.group(0).replace("\u00ad", "")
 
@@ -247,18 +274,22 @@ _SCHEME_DEFANG = {"http": "hxxp", "https": "hxxps", "ftp": "fxp", "ftps": "fxps"
 
 
 def defang(value: str, ioc_type: IOCType) -> str:
-    """Return a non-clickable form of ``value``.
+    """Return a non-clickable form of ``value``, an IOC of type ``ioc_type``.
 
-    Only the URL scheme and ``://``, the dots of hosts and IPv4 addresses, the
-    colons of IPv6 addresses and the ``@`` of e-mail addresses are defanged. A
-    URL's path and query are left as they are, so :func:`refang` is guaranteed
-    to restore the scheme and host only: a path that itself contains defang
-    markers such as ``[.]`` or ``(at)`` may not round-trip.
+    The dots of a domain or an IP address (also the IPv4 part of an IPv6 address such as
+    ``::ffff:198.51.100.7``) become ``[.]``, the colons of an IPv6 address ``[:]``, and the ``@``
+    of an e-mail address ``[@]``. In a URL, ``http``, ``https``, ``ftp`` and ``ftps`` become
+    ``hxxp``, ``hxxps``, ``fxp`` and ``fxps`` (other schemes are kept), ``://`` becomes ``[://]``,
+    and every dot before the path becomes ``[.]``: in the host, also a bracketed IPv6 host, whose
+    colons are kept, and in the user name and password. The path, query and fragment are left as
+    they are, so a URL inside them stays clickable. :func:`refang` restores the value, unless a
+    part left as it is, or the user name or password, itself contains a defang marker such as
+    ``[.]`` or ``(at)``.
     """
     if ioc_type in (IOCType.DOMAIN, IOCType.IPV4):
         return value.replace(".", "[.]")
     if ioc_type == IOCType.IPV6:
-        return value.replace(":", "[:]")
+        return value.replace(":", "[:]").replace(".", "[.]")
     if ioc_type == IOCType.EMAIL:
         local, _, domain = value.rpartition("@")
         return f"{local}[@]{domain.replace('.', '[.]')}"
@@ -268,7 +299,5 @@ def defang(value: str, ioc_type: IOCType) -> str:
             return value.replace(".", "[.]")
         scheme, authority, rest = match.groups()
         scheme = _SCHEME_DEFANG.get(scheme.lower(), scheme)
-        if not authority.startswith("["):
-            authority = authority.replace(".", "[.]")
-        return f"{scheme}[://]{authority}{rest}"
+        return f"{scheme}[://]{authority.replace('.', '[.]')}{rest}"
     return value

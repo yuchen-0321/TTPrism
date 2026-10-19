@@ -39,6 +39,9 @@ ipv4 = st.tuples(*[st.integers(0, 255)] * 4).map(lambda t: ".".join(map(str, t))
 # Paths do not end in "." or similar: a trailing period is read as sentence punctuation.
 path = st.from_regex(r"(/[A-Za-z0-9_~-]{1,8}(\.[A-Za-z0-9]{1,4})?){0,3}/?", fullmatch=True)
 url = st.builds(lambda s, d, p: f"{s}://{d}{p}", st.sampled_from(["http", "https", "ftp"]), domain, path)
+# IPv4-mapped and NAT64 addresses, whose IPv4 part is defanged too.
+embedded_ipv6 = st.builds(lambda prefix, v4: prefix + v4, st.sampled_from(["::ffff:", "64:ff9b::"]), ipv4)
+bracketed_url = st.builds(lambda a, p: f"http://[{a}]{p or '/'}", embedded_ipv6, path)
 separator = st.sampled_from([" ", "\n", "，", "、", "（", "：", "\t", " (", "<", "|"])
 
 
@@ -65,6 +68,8 @@ def test_domains_in_context_are_found(name: str, before: str, after: str) -> Non
         domain.map(lambda d: (d, IOCType.DOMAIN)),
         ipv4.map(lambda i: (i, IOCType.IPV4)),
         url.map(lambda u: (u, IOCType.URL)),
+        embedded_ipv6.map(lambda a: (a, IOCType.IPV6)),
+        bracketed_url.map(lambda u: (u, IOCType.URL)),
     )
 )
 def test_defang_round_trip(value_and_type: tuple[str, IOCType]) -> None:

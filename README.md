@@ -98,10 +98,11 @@ What it does not do:
 | CAPE `report.json` | Detected automatically (input that looks like JSON but does not parse is analysed as text, with a warning); network, files, commands, API calls, registry, signatures |
 
 Text that is not UTF-8 needs `--encoding` with its encoding: `big5` for Big5 (`cp950` if the file
-was saved on Windows), `gb18030` for GB18030. Without it, or with the wrong one, values next to
-Chinese text can be lost or come out wrong: Big5 `網域：c2.example` read without `--encoding` gives
-`gc2.example`. A warning about undecodable bytes is printed only when `--encoding` is not given.
-UTF-16 and UTF-32 with a byte-order mark are detected automatically.
+was saved on Windows), `gb18030` for GB18030. Without it, such text stops TTPrism with an error
+(exit code 1) that names the first byte that is not UTF-8, so no wrong values are printed. With
+`--encoding`, bytes that do not decode are replaced without a warning, so a wrong encoding can lose
+values next to Chinese text or change them: Big5 `網域：c2.example` read with `--encoding utf-8`
+gives `gc2.example`. UTF-16 and UTF-32 with a byte-order mark are detected automatically.
 
 ## Common tasks
 
@@ -150,11 +151,12 @@ attack-technique,T1059.001,reported,PowerShell (reported as T1086)
 
 `--defang` works for JSON and CSV. It makes IOC values unclickable, as in the output above
 (`hxxps[://]cdn[.]update-check[.]example/stage2.bin`, `198[.]51[.]100[.]23`), and
-`ops[@]corp[.]example` for an e-mail address. The IPv4 part of an IPv6 address such as
-`::ffff:198.51.100.7` keeps its dots (`[:][:]ffff[:]198.51.100.7`). URL paths and queries are left
-as they are, so a URL inside another URL's path or query stays clickable. In JSON only the IOC
-values are defanged: technique evidence, such as a CAPE command line, keeps its URLs live, so paste
-the CSV into chat, not the JSON.
+`ops[@]corp[.]example` for an e-mail address; in an IPv6 address the dots of an IPv4 part are
+changed too (`[:][:]ffff[:]198[.]51[.]100[.]7`). URL paths and queries are left as they are, so in
+the IOC list a URL inside another URL's path or query stays clickable. In JSON the technique
+evidence, such as a CAPE command line, is defanged as well: each URL in it up to its path (any
+scheme followed by `://`, also inside another URL), and each IP address, e-mail address and name
+whose last label is a TLD (`cmd.exe` and `T1059.001` stay as they are).
 
 ### Turn a CAPE report into ATT&CK techniques and STIX
 
@@ -320,7 +322,7 @@ attack-technique,T1564.003,rule:local.powershell-hidden-window,Hidden Window
 | `--allowlist FILE` | Add an allowlist (repeatable); `--no-default-allowlist` disables the built-in one |
 | `--rules PATH` | Add ATT&CK rule files or directories (repeatable); `--no-default-rules` disables the built-in rules |
 | `--input-format auto\|text\|cape` | Input format (default `auto`: detected from the content) |
-| `--encoding NAME` | Input text encoding (default UTF-8, or UTF-16/32 detected from a byte-order mark; for example `big5`, `gb18030`) |
+| `--encoding NAME` | Input text encoding (default UTF-8, or UTF-16/32 detected from a byte-order mark; other text is an error without it; for example `big5`, `gb18030`) |
 | `--max-size SIZE` | Refuse larger inputs (default `64m`) |
 | `-q`, `--quiet` | Do not print warnings |
 
@@ -367,8 +369,9 @@ By default TTPrism drops (the name in brackets is the key under `suppressed`):
   (`SerialNumber:`, `Serial Number`, `序列号`, `序號`, `憑證序號`, with or without a colon) has the
   length of a hash but is not one.
 - **Masked names** (`masked_name`): names, e-mail addresses and URL hosts with a label of three or
-  more `x` (`wiki.xxxx.com`), which reports use to hide the real value. The `hosts`, `domains` and
-  `dns` entries and the HTTP `host` fields of a CAPE report's `network` section are not checked.
+  more `x` (`wiki.xxxx.com`), which reports use to hide the real value. Values from a CAPE
+  report's `network` section (`hosts`, `domains`, `dns` and HTTP requests, URLs included) are not
+  checked, since they are connections the sandbox saw.
 - **Antivirus detection names** (`detection_name`): `Backdoor.Win32.Ht` or `Trojan.MSIL.Bot`, whose
   family happens to be a TLD.
 - **Fragments of names broken across lines** (`line_wrap_fragment`): the part of a name or e-mail
@@ -381,7 +384,13 @@ TTP labels (`truncated_apis`, `truncated_commands`, `truncated_registry_writes`,
 `truncated_signatures`, `truncated_ttps`), and command lines up to 8 Mi characters in total for
 rule matching and for IOC search (`truncated_rule_commands`, `truncated_ioc_commands`, also named
 in a warning). Repeated API names, command lines and registry writes count once; signatures count
-as listed, and TTP labels once per technique and signature.
+as listed, and TTP labels once per technique and signature. A text field over 8,192 characters is
+left out (`truncated_fields`, counted each time), except that a command line is cut at its last
+space or line break before that point where no value can go on, and left out only if it has none,
+so no value is reported cut short. API names over 100 characters (`long_api_names`, once per name)
+and signatures whose name is over 200 (`long_signature_names`, as listed) are skipped; for TTP
+labels such a name is cut to 200 characters, and a label that the cut makes the same as another
+signature's is counted (`merged_ttps`).
 
 ## Limitations
 
@@ -405,8 +414,8 @@ as listed, and TTP labels once per technique and signature.
   (`.../a.exe：C2`) keeps that text; full-width `（），；！` do end a URL.
 - ATT&CK command rules split a line at cmd.exe's `&`, `&&` and `||` only: PowerShell statements
   joined by `;` are matched as one command.
-- `--defang` leaves URL paths and queries as they are, and in JSON it does not defang technique
-  evidence.
+- `--defang` leaves URL paths and queries as they are. In technique evidence it changes only what
+  it recognises: a host written without a scheme whose last label is not a TLD keeps its dots.
 - Names and URLs broken across lines (as PDF converters leave them) are joined only where the
   hyphen at the break cannot belong to them (`evil.-` / `com`, `evil-` / `.com`) or where a URL
   breaks after one of its own hyphens (`/KB-Auto-win-` / `update.exe`, over as many lines as it
@@ -440,10 +449,6 @@ as listed, and TTP labels once per technique and signature.
   soft hyphens would add, not those it would lose. pdftotext's default mode, unlike `-raw`, also
   joins a line ending in a hyphen to the next and drops the hyphen, which no reading of separate
   lines can repeat.
-- A CAPE report's text fields are read only up to 8,192 characters each, without a count or
-  warning, so a value that crosses that point can be reported cut short (`198.51.100.2` for
-  `198.51.100.23`); API names over 100 characters and entries of the `signatures` section whose
-  name is over 200 are skipped, also without a count.
 - CAPE is the only sandbox format so far.
 
 ## Evaluation

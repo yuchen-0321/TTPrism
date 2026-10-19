@@ -899,18 +899,35 @@ def _continues_url(text: str, url_rest: int, state: _UrlState | None, hyphen: in
     return (False, quote) if match is not None and match.end() == len(url) else None
 
 
-def extract_into(collector: IOCCollector, text: str, source: str, stats: Counter[str] | None = None) -> None:
-    """Add every IOC in already-refanged ``text`` to ``collector``."""
+def extract_into(
+    collector: IOCCollector,
+    text: str,
+    source: str,
+    stats: Counter[str] | None = None,
+    *,
+    drop_masked: bool = True,
+) -> None:
+    """Add every IOC in already-refanged ``text`` to ``collector``. With ``drop_masked`` false,
+    masked names (``wiki.xxxx.com``) are kept: a sandbox's network record is a real connection."""
     _extract(
         collector,
         _rejoin_wrapped_lines(text),
         source,
         stats if stats is not None else Counter(),
         nested=False,
+        drop_masked=drop_masked,
     )
 
 
-def _extract(collector: IOCCollector, text: str, source: str, stats: Counter[str], *, nested: bool) -> None:
+def _extract(
+    collector: IOCCollector,
+    text: str,
+    source: str,
+    stats: Counter[str],
+    *,
+    nested: bool,
+    drop_masked: bool,
+) -> None:
     userinfo_starts: list[int] = []
     userinfo_ends: list[int] = []
     decoded_tails: list[str] = []
@@ -938,7 +955,12 @@ def _extract(collector: IOCCollector, text: str, source: str, stats: Counter[str
         if parsed is None:
             continue
         url, _, host_ioc, tail = parsed
-        if host_ioc is not None and host_ioc[0] == IOCType.DOMAIN and _masked_name(host_ioc[1]):
+        if (
+            drop_masked
+            and host_ioc is not None
+            and host_ioc[0] == IOCType.DOMAIN
+            and _masked_name(host_ioc[1])
+        ):
             stats["masked_name"] += 1
             continue
         collector.add(IOCType.URL, url, source)
@@ -964,7 +986,7 @@ def _extract(collector: IOCCollector, text: str, source: str, stats: Counter[str
             # An encoded quote, bracket or separator ends what comes before: "%3Cops@example.org".
             local = local[delimiters[-1].end() :]
         domain = normalize_domain(domain_part)
-        if domain is not None and _masked_name(domain):
+        if drop_masked and domain is not None and _masked_name(domain):
             stats["masked_name"] += 1
         elif domain is not None and _valid_local_part(local):
             collector.add(IOCType.EMAIL, f"{local.lower()}@{domain}", source)
@@ -980,7 +1002,7 @@ def _extract(collector: IOCCollector, text: str, source: str, stats: Counter[str
         domain = normalize_domain(written)
         if domain is None:
             continue
-        if _masked_name(domain):
+        if drop_masked and _masked_name(domain):
             stats["masked_name"] += 1
             continue
         noise = _bare_name_noise(domain, written)
@@ -1031,7 +1053,7 @@ def _extract(collector: IOCCollector, text: str, source: str, stats: Counter[str
     # One level only: URLs found in decoded tails are not decoded again. Their
     # stats are not counted, as the raw tail was already scanned above.
     for tail in decoded_tails:
-        _extract(collector, tail, source, Counter(), nested=True)
+        _extract(collector, tail, source, Counter(), nested=True, drop_masked=drop_masked)
 
 
 def _decoded_tail(tail: str) -> str:
