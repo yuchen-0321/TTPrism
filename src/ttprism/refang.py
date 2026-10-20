@@ -158,15 +158,23 @@ _LINE_JOINING = frozenset("-\u00ad\u2010\u2011\u2212\ufe63\uff0d")
 def cut_between_values(text: str, limit: int, window: int) -> str | None:
     """``text`` if it has at most ``limit`` characters, else its start cut at a blank that refang
     does not join a value across, or None if there is no such place. The cut is at the start of the
-    last blank run (white space, line breaks and what refang deletes) in the last ``window``
-    characters before the limit that leaves a space or line break, and that neither follows a
-    line-end hyphen (the line-break rules may join the lines) nor touches a bracket (refang joins
-    "evil [.] com", "evil{ . }com" and "a ( at ) b.com" across the spaces)."""
+    last blank run (white space, line breaks and what refang deletes) that starts in the last
+    ``window`` characters before the limit or at the limit itself, so that a value ending exactly
+    at the limit is kept, and that leaves a space or line break and neither follows a line-end
+    hyphen (the line-break rules may join the lines) nor touches a bracket (refang joins
+    "evil [.] com", "evil{ . }com" and "a ( at ) b.com" across the spaces). A run that goes on past
+    the limit is judged as a whole, up to its real end."""
     if len(text) <= limit:
         return text
     blank_run, leaves_space = blank_run_res()
-    for run in reversed(list(blank_run.finditer(text, max(0, limit - window), limit))):
+    first = max(0, limit - window)
+    for run in reversed(list(blank_run.finditer(text, first, limit + 1))):
         start, end = run.span()
+        if start == first > 0 and blank_run.match(text, start - 1, start):  # starts before the window
+            continue
+        if end > limit:  # the run goes on past the limit: check it at its real end
+            run = blank_run.match(text, start) or run
+            end = run.end()
         before, after = text[start - 1 : start], text[end : end + 1]
         if not leaves_space.search(run.group()) or _is_bracket(before) or _is_bracket(after):
             continue

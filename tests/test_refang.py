@@ -377,6 +377,7 @@ def test_soft_hyphens_that_both_readings_share(text: str) -> None:
     [
         ("a b", 3, "a b"),  # at most the limit: not cut
         ("a b c", 4, "a b"),
+        ("ab cd", 2, "ab"),  # a blank right at the limit
         ("abcde", 4, None),
         ("a {.} b", 6, None),  # every blank touches a bracket
         ("x a [ . ] b", 9, "x"),
@@ -387,3 +388,15 @@ def test_soft_hyphens_that_both_readings_share(text: str) -> None:
 )
 def test_cut_between_values(text: str, limit: int, expected: str | None) -> None:
     assert cut_between_values(text, limit, limit) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "limit", "window"),
+    [
+        ("x c2.example.-" + "\u200b" * 10 + "\nnet tail", 20, 4),  # a line-end hyphen before the window
+        ("c2.example [\u200b . ] net tail", 14, 1),  # a bracket before the window
+        ("c2.example \u3010\u200b . \u3011 net tail", 14, 1),
+    ],
+)
+def test_cut_skips_a_blank_run_that_starts_before_the_window(text: str, limit: int, window: int) -> None:
+    assert cut_between_values(text, limit, window) is None

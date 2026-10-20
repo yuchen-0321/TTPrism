@@ -111,8 +111,8 @@ _CUT_WINDOW = 65536
 def _checked_part(text: str) -> str:
     """At most MAX_SOFT_HYPHEN_CHECK_CHARS characters from the start of ``text``, cut where no value
     can go on (see :func:`~ttprism.refang.cut_between_values`) within the last _CUT_WINDOW characters
-    before the limit, so that none is cut in two and reported in part as if the soft hyphens had
-    changed it. Without such a place, the text is cut at the limit."""
+    before the limit or at the limit, so that none is cut in two and reported in part as if the soft
+    hyphens had changed it. Without such a place, the text is cut at the limit."""
     limit = MAX_SOFT_HYPHEN_CHECK_CHARS
     cut = cut_between_values(text, limit, _CUT_WINDOW)
     return text[:limit] if cut is None else cut
