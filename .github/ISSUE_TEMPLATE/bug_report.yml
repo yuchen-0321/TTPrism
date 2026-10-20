@@ -24,6 +24,6 @@ body:
     id: version
     attributes:
       label: TTPrism version and platform
-      description: "e.g. ttprism 0.1.0, Python 3.12, Windows 11"
+      description: "e.g. ttprism 0.2.0, Python 3.12, Windows 11"
     validations:
       required: true

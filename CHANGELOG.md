@@ -7,6 +7,8 @@ their advisory.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-20
+
 ### Changed
 
 - Input that is not UTF-8 (nor UTF-16/32 with a byte-order mark) is an error without
@@ -16,8 +18,9 @@ their advisory.
   Input with many NUL bytes gets `--encoding utf-16-le` (or `utf-16-be`, `utf-32`) suggested
   instead, as UTF-16 or UTF-32 without a byte-order mark.
 - Values from a CAPE report's `network` section are never dropped as masked names: HTTP URLs were
-  checked while hosts, domains, DNS queries and HTTP hosts were not; all are connections the
-  sandbox saw.
+  checked while hosts, domains, DNS queries and HTTP hosts were not. Hosts, domains, DNS queries
+  and HTTP hosts are connections the sandbox saw; a masked name inside an HTTP URL, such as in its
+  query, is reported too.
 
 ### Fixed
 
@@ -148,5 +151,6 @@ their advisory.
   them uses full-width or CJK-bracket defanging (two of the second set use ASCII `[.]`), so
   TTPrism's handling of those writings is supported only by synthetic tests.
 
-[Unreleased]: https://github.com/yuchen-0321/TTPrism/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/yuchen-0321/TTPrism/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/yuchen-0321/TTPrism/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/yuchen-0321/TTPrism/releases/tag/v0.1.0

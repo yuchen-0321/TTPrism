@@ -16,8 +16,7 @@ CJK-bracket defanging (so that handling is supported only by synthetic tests), T
 advantages were fewer wrong values and repairing values split across PDF lines, with the same
 recall as ioc-finder; see [Evaluation](https://github.com/yuchen-0321/TTPrism#evaluation).
 
-> **Status:** 0.1.0, the first release. Feedback and detection-quality reports are very
-> welcome.
+> **Status:** 0.2.0. Feedback and detection-quality reports are very welcome.
 
 ## Quick start
 
